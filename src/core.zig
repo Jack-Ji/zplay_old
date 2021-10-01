@@ -1,13 +1,16 @@
 const sdl = @import("sdl");
 const c = sdl.c;
 
+pub const Window = sdl.Window;
+pub const WindowPosition = sdl.WindowPosition;
+
 /// application context
 pub const Context = struct {
-    window: sdl.Window = undefined,
+    window: Window = undefined,
     tick: u64 = undefined,
     title: [:0]const u8 = "zplay",
-    pos_x: sdl.WindowPosition = .default,
-    pos_y: sdl.WindowPosition = .default,
+    pos_x: WindowPosition = .default,
+    pos_y: WindowPosition = .default,
     width: usize = 800,
     height: usize = 600,
     fullscreen: bool = false,
