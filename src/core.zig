@@ -37,10 +37,10 @@ pub const Context = struct {
 
 /// game running callbacks
 pub const Game = struct {
-    initFn: fn (ctx: *Context) anyerror!void,
-    eventFn: fn (ctx: *Context, e: Event) void,
-    loopFn: fn (ctx: *Context) void,
-    quitFn: fn (ctx: *Context) void,
+    init_fn: fn (ctx: *Context) anyerror!void,
+    event_fn: fn (ctx: *Context, e: Event) void,
+    loop_fn: fn (ctx: *Context) void,
+    quit_fn: fn (ctx: *Context) void,
 };
 
 /// user i/o event
@@ -79,8 +79,8 @@ pub fn run(g: Game) !void {
 
     // initialize context
     var context: Context = .{};
-    try g.initFn(&context);
-    defer g.quitFn(&context);
+    try g.init_fn(&context);
+    defer g.quit_fn(&context);
 
     // create window
     var flags = sdl.WindowFlags{
@@ -104,10 +104,10 @@ pub fn run(g: Game) !void {
     while (!context.quit) {
         while (sdl.pollEvent()) |e| {
             if (Event.init(e)) |ze| {
-                g.eventFn(&context, ze);
+                g.event_fn(&context, ze);
             }
         }
 
-        g.loopFn(&context);
+        g.loop_fn(&context);
     }
 }
