@@ -2,7 +2,6 @@
 A framework for game creation, built from scratch.
 
 ## feature
-* pure [ziglang](https://ziglang.org) codebase
 * minimum dependency, only [sdl2](https://www.libsdl.org/) is needed
 * cross platform, support windows/mac/linux
 * support jpeg/png image format (TODO)

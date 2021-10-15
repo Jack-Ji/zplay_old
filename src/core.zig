@@ -14,6 +14,7 @@ pub const Context = struct {
     width: usize = 800,
     height: usize = 600,
     fullscreen: bool = false,
+    enable_vsync: bool = true,
     quit: bool = false,
 
     /// quit game
@@ -82,10 +83,18 @@ pub fn run(g: Game) !void {
     try g.init_fn(&context);
     defer g.quit_fn(&context);
 
+    // decide opengl params
+    _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    //_ = c.SDL_GL_SetAttribute(c.SDL_GL_DEPTH_SIZE, 24);
+    //_ = c.SDL_GL_SetAttribute(c.SDL_GL_MULTISAMPLEBUFFERS, c.SDL_TRUE);
+    //_ = c.SDL_GL_SetAttribute(c.SDL_GL_MULTISAMPLESAMPLES, 4);
+
     // create window
     var flags = sdl.WindowFlags{
         .allow_high_dpi = true,
         .mouse_capture = true,
+        .opengl = true,
     };
     if (context.fullscreen) {
         flags.fullscreen = true;
@@ -99,6 +108,14 @@ pub fn run(g: Game) !void {
         flags,
     );
     defer context.window.destroy();
+
+    // enable opengl context
+    const gl_ctx = try sdl.gl.createContext(context.window);
+    defer sdl.gl.deleteContext(gl_ctx);
+    try sdl.gl.makeCurrent(gl_ctx, context.window);
+    if (context.enable_vsync) {
+        try sdl.gl.setSwapInterval(.vsync);
+    }
 
     // game loop
     while (!context.quit) {

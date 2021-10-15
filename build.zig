@@ -20,7 +20,7 @@ pub fn build(b: *std.build.Builder) void {
         );
         exe.setBuildMode(mode);
         exe.setTarget(target);
-        link(b, exe);
+        link(b, exe, target);
         const install_cmd = b.addInstallArtifact(exe);
         const run_cmd = exe.run();
         run_cmd.step.dependOn(&install_cmd.step);
@@ -32,13 +32,34 @@ pub fn build(b: *std.build.Builder) void {
     }
 }
 
-pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep) void {
+pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.build.Target) void {
+    // link sdl
     const sdl = @import("src/sdl/Sdk.zig").init(b);
     sdl.link(exe, .dynamic);
+
+    // link opengl
+    var gl = b.addStaticLibrary("gl", null);
+    gl.linkLibC();
+    var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
+    if (b.is_release) flags.append("-Os") catch unreachable;
+    if (target.isWindows()) {
+        gl.linkSystemLibrary("opengl32");
+    }
+    if (target.isLinux()) {
+        gl.linkSystemLibrary("gl");
+    }
+    gl.addIncludeDir(rootPath() ++ "/src/gl/c/include");
+    gl.addCSourceFile(
+        rootPath() ++ "/src/gl/c/src/glad.c",
+        flags.items,
+    );
+    exe.linkLibrary(gl);
+
+    // use zplay
     exe.addPackage(.{
         .name = "zplay",
         .path = .{
-            .path = libRoot() ++ "/src/lib.zig",
+            .path = rootPath() ++ "/src/lib.zig",
         },
         .dependencies = &[_]std.build.Pkg{
             sdl.getWrapperPackage("sdl"),
@@ -46,6 +67,6 @@ pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep) void {
     });
 }
 
-fn libRoot() []const u8 {
+fn rootPath() []const u8 {
     return std.fs.path.dirname(@src().file) orelse ".";
 }
