@@ -2,20 +2,14 @@ const sdl = @import("sdl");
 const c = sdl.c;
 const gl = @import("gl/gl.zig");
 
-pub const WindowPosition = sdl.WindowPosition;
-
 /// application context
 pub const Context = struct {
+    // following fields are readonly, user code shouldn't modify them
     _window: sdl.Window = undefined,
     _quit: bool = undefined,
     _title: [:0]const u8 = undefined,
-    _resizable: bool = undefined,
     _fullscreen: bool = undefined,
     _enable_vsync: bool = undefined,
-    _pos_x: i32 = undefined,
-    _pos_y: i32 = undefined,
-    _width: i32 = undefined,
-    _height: i32 = undefined,
 
     /// time tick, updated every loop
     tick: u64 = undefined,
@@ -32,10 +26,20 @@ pub const Context = struct {
                 self._fullscreen = false;
             }
         } else {
-            if (c.SDL_SetWindowFullscreen(self._window.ptr, c.SDL_WINDOW_FULLSCREEN) == 0) {
+            if (c.SDL_SetWindowFullscreen(self._window.ptr, c.SDL_WINDOW_FULLSCREEN_DESKTOP) == 0) {
                 self._fullscreen = true;
             }
         }
+    }
+
+    /// get position of window
+    pub fn getPosition(self: *Context, x: ?*i32, y: ?*i32) void {
+        c.SDL_GetWindowPosition(self._window.ptr, x.?, y.?);
+    }
+
+    /// get size of window
+    pub fn getSize(self: *Context, w: ?*i32, h: ?*i32) void {
+        c.SDL_GetWindowSize(self._window.ptr, w.?, h.?);
     }
 };
 
@@ -50,8 +54,8 @@ pub const Game = struct {
     title: [:0]const u8 = "zplay",
 
     /// position of window
-    pos_x: WindowPosition = .default,
-    pos_y: WindowPosition = .default,
+    pos_x: sdl.WindowPosition = .default,
+    pos_y: sdl.WindowPosition = .default,
 
     // whether window is resizable
     resizable: bool = false,
@@ -65,9 +69,6 @@ pub const Game = struct {
 
     // vsync switch
     enable_vsync: bool = true,
-
-    // update window's status
-    refresh_window_status_per_frame: bool = false,
 };
 
 /// user i/o event
@@ -108,7 +109,6 @@ pub fn run(g: Game) !void {
     var context: Context = .{
         ._quit = false,
         ._title = g.title,
-        ._resizable = g.resizable,
         ._fullscreen = g.fullscreen,
         ._enable_vsync = g.enable_vsync,
     };
@@ -130,7 +130,7 @@ pub fn run(g: Game) !void {
         flags.resizable = true;
     }
     if (g.fullscreen) {
-        flags.fullscreen = true;
+        flags.fullscreen_desktop = true;
     }
     context._window = try sdl.createWindow(
         g.title,
@@ -139,16 +139,6 @@ pub fn run(g: Game) !void {
         g.width,
         g.height,
         flags,
-    );
-    c.SDL_GetWindowPosition(
-        context._window.ptr,
-        &context._pos_x,
-        &context._pos_y,
-    );
-    c.SDL_GetWindowSize(
-        context._window.ptr,
-        &context._width,
-        &context._height,
     );
     defer context._window.destroy();
 
@@ -169,20 +159,6 @@ pub fn run(g: Game) !void {
 
     // game loop
     while (!context._quit) {
-        // update window status
-        if (g.refresh_window_status_per_frame) {
-            c.SDL_GetWindowPosition(
-                context._window.ptr,
-                &context._pos_x,
-                &context._pos_y,
-            );
-            c.SDL_GetWindowSize(
-                context._window.ptr,
-                &context._width,
-                &context._height,
-            );
-        }
-
         // event loop
         while (sdl.pollEvent()) |e| {
             if (Event.init(e)) |ze| {

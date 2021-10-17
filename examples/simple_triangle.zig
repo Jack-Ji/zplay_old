@@ -1,7 +1,6 @@
 const std = @import("std");
 const zp = @import("zplay");
 const gl = zp.gl;
-const zlm = zp.zlm;
 
 const vertex_shader =
     \\#version 330 core
@@ -23,9 +22,8 @@ const fragment_shader =
     \\}
 ;
 
-var shader_program: gl.GLuint = undefined;
+var shader_program: zp.ShaderProgram = undefined;
 var vao: gl.GLuint = undefined;
-var vbo: gl.GLuint = undefined;
 
 const vertices = [_]f32{
     -0.5, -0.5, 0.0,
@@ -36,49 +34,16 @@ const vertices = [_]f32{
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
-    var success: gl.GLint = undefined;
-    var shader_log: [512]gl.GLchar = undefined;
-    var log_size: gl.GLsizei = undefined;
-
-    // vertex shader
-    var vshader = gl.createShader(gl.GL_VERTEX_SHADER);
-    defer gl.deleteShader(vshader);
-    gl.shaderSource(vshader, 1, @ptrCast([*c]const [*c]const gl.GLchar, &vertex_shader), null);
-    gl.compileShader(vshader);
-    gl.getShaderiv(vshader, gl.GL_COMPILE_STATUS, &success);
-    if (success == 0) {
-        gl.getShaderInfoLog(vshader, 512, &log_size, &shader_log);
-        std.debug.panic("compile vertex shader failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
-    }
-
-    // fragment shader
-    var fshader = gl.createShader(gl.GL_FRAGMENT_SHADER);
-    defer gl.deleteShader(fshader);
-    gl.shaderSource(fshader, 1, @ptrCast([*c]const [*c]const gl.GLchar, &fragment_shader), null);
-    gl.compileShader(fshader);
-    gl.getShaderiv(fshader, gl.GL_COMPILE_STATUS, &success);
-    if (success == 0) {
-        gl.getShaderInfoLog(fshader, 512, &log_size, &shader_log);
-        std.debug.panic("compile fragment shader failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
-    }
-
-    // link program
-    shader_program = gl.createProgram();
-    gl.attachShader(shader_program, vshader);
-    gl.attachShader(shader_program, fshader);
-    gl.linkProgram(shader_program);
-    gl.getProgramiv(shader_program, gl.GL_LINK_STATUS, &success);
-    if (success == 0) {
-        gl.getProgramInfoLog(shader_program, 512, &log_size, &shader_log);
-        std.debug.panic("link shader program failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
-    }
+    // shader program
+    shader_program = zp.ShaderProgram.init(vertex_shader, fragment_shader);
 
     // vertex array object
     gl.genVertexArrays(1, &vao);
     gl.bindVertexArray(vao);
     defer gl.bindVertexArray(0);
 
-    // vertex buffer
+    // vertex buffer object
+    var vbo: gl.GLuint = undefined;
     gl.genBuffers(1, &vbo);
     gl.bindBuffer(gl.GL_ARRAY_BUFFER, vbo);
     gl.bufferData(gl.GL_ARRAY_BUFFER, @sizeOf(@TypeOf(vertices)), &vertices, gl.GL_STATIC_DRAW);
@@ -111,12 +76,15 @@ fn event(ctx: *zp.Context, e: zp.Event) void {
 }
 
 fn loop(ctx: *zp.Context) void {
-    _ = ctx;
+    var w: i32 = undefined;
+    var h: i32 = undefined;
+    ctx.getSize(&w, &h);
+    gl.viewport(0, 0, w, h);
 
     gl.clearColor(0.2, 0.3, 0.3, 1.0);
     gl.clear(gl.GL_COLOR_BUFFER_BIT);
 
-    gl.useProgram(shader_program);
+    gl.useProgram(shader_program.id);
     gl.bindVertexArray(vao);
     gl.drawArrays(gl.GL_TRIANGLES, 0, 3);
 }
