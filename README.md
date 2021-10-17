@@ -1,7 +1,7 @@
 # zplay
 A framework for game creation and creative coding, built from scratch.
 
-## feature
+## Features
 * minimum dependency, only [sdl2](https://www.libsdl.org/) and opengl are needed
 * support PC platforms: windows/mac/linux
 * support image formats: tga/png/jpeg (TODO)
