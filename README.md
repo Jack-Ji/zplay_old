@@ -1,12 +1,12 @@
 # zplay
-A framework for game creation, built from scratch.
+A framework for game creation and creative coding, built from scratch.
 
 ## feature
-* minimum dependency, only [sdl2](https://www.libsdl.org/) is needed
+* minimum dependency, only [sdl2](https://www.libsdl.org/) and opengl is needed
 * cross platform, support windows/mac/linux
-* support jpeg/png image format (TODO)
+* support tga/png/jpeg image format (TODO)
 * support mp3/ogg audio format (TODO)
 * sprite system (TODO)
-* pixel perfect collision detection (TODO)
-* powerful partical system (TODO)
-* a skinable UI system (TODO)
+* collision system (TODO)
+* particle system (TODO)
+* UI system (TODO)
