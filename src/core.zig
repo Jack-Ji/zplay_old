@@ -1,36 +1,39 @@
 const sdl = @import("sdl");
 const c = sdl.c;
+const gl = @import("gl/gl.zig");
 
-pub const Window = sdl.Window;
 pub const WindowPosition = sdl.WindowPosition;
 
 /// application context
 pub const Context = struct {
-    window: Window = undefined,
-    tick: u64 = undefined,
-    title: [:0]const u8 = "zplay",
-    pos_x: WindowPosition = .default,
-    pos_y: WindowPosition = .default,
-    width: usize = 800,
-    height: usize = 600,
-    fullscreen: bool = false,
-    enable_vsync: bool = true,
-    quit: bool = false,
+    _window: sdl.Window = undefined,
+    _quit: bool = undefined,
+    _title: [:0]const u8 = undefined,
+    _resizable: bool = undefined,
+    _fullscreen: bool = undefined,
+    _enable_vsync: bool = undefined,
+    _pos_x: i32 = undefined,
+    _pos_y: i32 = undefined,
+    _width: i32 = undefined,
+    _height: i32 = undefined,
 
-    /// quit game
+    /// time tick, updated every loop
+    tick: u64 = undefined,
+
+    /// kill app
     pub fn kill(self: *Context) void {
-        self.quit = true;
+        self._quit = true;
     }
 
     /// toggle fullscreen
     pub fn toggleFullscreeen(self: *Context) void {
-        if (self.fullscreen) {
-            if (c.SDL_SetWindowFullscreen(self.window.ptr, 0) == 0) {
-                self.fullscreen = false;
+        if (self._fullscreen) {
+            if (c.SDL_SetWindowFullscreen(self._window.ptr, 0) == 0) {
+                self._fullscreen = false;
             }
         } else {
-            if (c.SDL_SetWindowFullscreen(self.window.ptr, c.SDL_WINDOW_FULLSCREEN) == 0) {
-                self.fullscreen = true;
+            if (c.SDL_SetWindowFullscreen(self._window.ptr, c.SDL_WINDOW_FULLSCREEN) == 0) {
+                self._fullscreen = true;
             }
         }
     }
@@ -42,6 +45,29 @@ pub const Game = struct {
     event_fn: fn (ctx: *Context, e: Event) void,
     loop_fn: fn (ctx: *Context) void,
     quit_fn: fn (ctx: *Context) void,
+
+    /// window's title
+    title: [:0]const u8 = "zplay",
+
+    /// position of window
+    pos_x: WindowPosition = .default,
+    pos_y: WindowPosition = .default,
+
+    // whether window is resizable
+    resizable: bool = false,
+
+    /// width/height of window
+    width: usize = 800,
+    height: usize = 600,
+
+    /// display switch
+    fullscreen: bool = false,
+
+    // vsync switch
+    enable_vsync: bool = true,
+
+    // update window's status
+    refresh_window_status_per_frame: bool = false,
 };
 
 /// user i/o event
@@ -79,9 +105,13 @@ pub fn run(g: Game) !void {
     defer sdl.quit();
 
     // initialize context
-    var context: Context = .{};
-    try g.init_fn(&context);
-    defer g.quit_fn(&context);
+    var context: Context = .{
+        ._quit = false,
+        ._title = g.title,
+        ._resizable = g.resizable,
+        ._fullscreen = g.fullscreen,
+        ._enable_vsync = g.enable_vsync,
+    };
 
     // decide opengl params
     _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -96,35 +126,74 @@ pub fn run(g: Game) !void {
         .mouse_capture = true,
         .opengl = true,
     };
-    if (context.fullscreen) {
+    if (g.resizable) {
+        flags.resizable = true;
+    }
+    if (g.fullscreen) {
         flags.fullscreen = true;
     }
-    context.window = try sdl.createWindow(
-        context.title,
-        context.pos_x,
-        context.pos_y,
-        context.width,
-        context.height,
+    context._window = try sdl.createWindow(
+        g.title,
+        g.pos_x,
+        g.pos_y,
+        g.width,
+        g.height,
         flags,
     );
-    defer context.window.destroy();
+    c.SDL_GetWindowPosition(
+        context._window.ptr,
+        &context._pos_x,
+        &context._pos_y,
+    );
+    c.SDL_GetWindowSize(
+        context._window.ptr,
+        &context._width,
+        &context._height,
+    );
+    defer context._window.destroy();
 
     // enable opengl context
-    const gl_ctx = try sdl.gl.createContext(context.window);
+    const gl_ctx = try sdl.gl.createContext(context._window);
     defer sdl.gl.deleteContext(gl_ctx);
-    try sdl.gl.makeCurrent(gl_ctx, context.window);
-    if (context.enable_vsync) {
+    try sdl.gl.makeCurrent(gl_ctx, context._window);
+    if (gl.gladLoadGL() == 0) {
+        @panic("load opengl functions failed!");
+    }
+    if (g.enable_vsync) {
         try sdl.gl.setSwapInterval(.vsync);
     }
 
+    // init before loop
+    try g.init_fn(&context);
+    defer g.quit_fn(&context);
+
     // game loop
-    while (!context.quit) {
+    while (!context._quit) {
+        // update window status
+        if (g.refresh_window_status_per_frame) {
+            c.SDL_GetWindowPosition(
+                context._window.ptr,
+                &context._pos_x,
+                &context._pos_y,
+            );
+            c.SDL_GetWindowSize(
+                context._window.ptr,
+                &context._width,
+                &context._height,
+            );
+        }
+
+        // event loop
         while (sdl.pollEvent()) |e| {
             if (Event.init(e)) |ze| {
                 g.event_fn(&context, ze);
             }
         }
 
+        // main loop
         g.loop_fn(&context);
+
+        // swap buffers
+        sdl.gl.swapWindow(context._window);
     }
 }

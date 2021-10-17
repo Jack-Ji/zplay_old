@@ -12,6 +12,7 @@ pub fn build(b: *std.build.Builder) void {
 
     const examples = [_][]const u8{
         "simple_window",
+        "simple_triangle",
     };
     inline for (examples) |name| {
         const exe = b.addExecutable(
@@ -44,9 +45,10 @@ pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.bu
     if (b.is_release) flags.append("-Os") catch unreachable;
     if (target.isWindows()) {
         gl.linkSystemLibrary("opengl32");
-    }
-    if (target.isLinux()) {
-        gl.linkSystemLibrary("gl");
+    } else if (target.isDarwin()) {
+        gl.linkFramework("OpenGL");
+    } else if (target.isLinux()) {
+        gl.linkSystemLibrary("GL");
     }
     gl.addIncludeDir(rootPath() ++ "/src/gl/c/include");
     gl.addCSourceFile(
