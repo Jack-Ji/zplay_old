@@ -2,10 +2,10 @@
 A framework for game creation and creative coding, built from scratch.
 
 ## feature
-* minimum dependency, only [sdl2](https://www.libsdl.org/) and opengl is needed
-* cross platform, support windows/mac/linux
-* support tga/png/jpeg image format (TODO)
-* support mp3/ogg audio format (TODO)
+* minimum dependency, only [sdl2](https://www.libsdl.org/) and opengl are needed
+* support PC platforms: windows/mac/linux
+* support image formats: tga/png/jpeg (TODO)
+* support audio formats: mp3/ogg (TODO)
 * sprite system (TODO)
 * collision system (TODO)
 * particle system (TODO)
