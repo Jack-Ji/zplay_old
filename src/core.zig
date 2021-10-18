@@ -26,7 +26,7 @@ pub const Context = struct {
                 self._fullscreen = false;
             }
         } else {
-            if (c.SDL_SetWindowFullscreen(self._window.ptr, c.SDL_WINDOW_FULLSCREEN_DESKTOP) == 0) {
+            if (c.SDL_SetWindowFullscreen(self._window.ptr, c.SDL_WINDOW_FULLSCREEN) == 0) {
                 self._fullscreen = true;
             }
         }
@@ -130,7 +130,7 @@ pub fn run(g: Game) !void {
         flags.resizable = true;
     }
     if (g.fullscreen) {
-        flags.fullscreen_desktop = true;
+        flags.fullscreen = true;
     }
     context._window = try sdl.createWindow(
         g.title,
