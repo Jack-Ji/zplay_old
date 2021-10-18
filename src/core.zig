@@ -71,12 +71,14 @@ pub const Game = struct {
     enable_vsync: bool = true,
 };
 
-/// user i/o event
+/// system event
+const WindowEvent = @import("WindowEvent.zig");
 const KeyboardEvent = @import("KeyboardEvent.zig");
 const MouseEvent = @import("MouseEvent.zig");
 const GamepadEvent = @import("GamepadEvent.zig");
 const QuitEvent = struct {};
 pub const Event = union(enum) {
+    window_event: WindowEvent,
     keyboard_event: KeyboardEvent,
     mouse_event: MouseEvent,
     gamepad_event: GamepadEvent,
@@ -84,14 +86,47 @@ pub const Event = union(enum) {
 
     fn init(e: sdl.Event) ?Event {
         return switch (e) {
+            .window => |ee| Event{
+                .window_event = WindowEvent.init(ee),
+            },
+            .key_up => |ee| Event{
+                .keyboard_event = KeyboardEvent.init(ee),
+            },
+            .key_down => |ee| Event{
+                .keyboard_event = KeyboardEvent.init(ee),
+            },
+            .mouse_motion => |ee| Event{
+                .mouse_event = MouseEvent.fromMotionEvent(ee),
+            },
+            .mouse_button_up => |ee| Event{
+                .mouse_event = MouseEvent.fromButtonEvent(ee),
+            },
+            .mouse_button_down => |ee| Event{
+                .mouse_event = MouseEvent.fromButtonEvent(ee),
+            },
+            .mouse_wheel => |ee| Event{
+                .mouse_event = MouseEvent.fromWheelEvent(ee),
+            },
+            .controller_axis_motion => |ee| Event{
+                .gamepad_event = GamepadEvent.fromAxisEvent(ee),
+            },
+            .controller_button_up => |ee| Event{
+                .gamepad_event = GamepadEvent.fromButtonEvent(ee),
+            },
+            .controller_button_down => |ee| Event{
+                .gamepad_event = GamepadEvent.fromButtonEvent(ee),
+            },
+            .controller_device_added => |ee| Event{
+                .gamepad_event = GamepadEvent.fromDeviceEvent(ee),
+            },
+            .controller_device_removed => |ee| Event{
+                .gamepad_event = GamepadEvent.fromDeviceEvent(ee),
+            },
+            .controller_device_remapped => |ee| Event{
+                .gamepad_event = GamepadEvent.fromDeviceEvent(ee),
+            },
             .quit => Event{
                 .quit_event = QuitEvent{},
-            },
-            .key_up => |key| Event{
-                .keyboard_event = KeyboardEvent.init(key),
-            },
-            .key_down => |key| Event{
-                .keyboard_event = KeyboardEvent.init(key),
             },
 
             // ignored other events

@@ -49,5 +49,26 @@ pub fn init(
         std.debug.panic("link shader program failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
     }
 
+    gl.checkError();
     return program;
+}
+
+/// deinitialize shader program
+pub fn deinit(self: Self) void {
+    gl.deleteProgram(self.id);
+    gl.checkError();
+}
+
+/// start using shader program
+pub fn use(self: Self) void {
+    gl.useProgram(self.id);
+    gl.checkError();
+}
+
+/// stop using shader program
+pub fn disuse(self: Self) void {
+    _ = self;
+
+    gl.useProgram(0);
+    gl.checkError();
 }

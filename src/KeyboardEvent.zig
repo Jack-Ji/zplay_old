@@ -1,19 +1,6 @@
 const sdl = @import("sdl");
 const c = sdl.c;
-
 const Self = @This();
-
-/// trigger type
-trigger_type: TriggerType,
-
-/// key being pressed/released
-scan_code: ScanCode,
-
-/// repeat key
-is_repeat: bool,
-
-/// timestamp of event
-timestamp: u32,
 
 ///  press or release
 const TriggerType = enum {
@@ -269,6 +256,18 @@ const ScanCode = enum(c_uint) {
 
     _,
 };
+
+/// trigger type
+trigger_type: TriggerType,
+
+/// key being pressed/released
+scan_code: ScanCode,
+
+/// repeat key
+is_repeat: bool,
+
+/// timestamp of event
+timestamp: u32,
 
 pub fn init(e: c.SDL_KeyboardEvent) Self {
     return .{

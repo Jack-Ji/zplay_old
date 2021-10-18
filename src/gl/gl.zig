@@ -2787,3 +2787,5 @@ pub inline fn secondaryColorP3uiv(arg_1134: GLenum, arg_1135: [*c]const GLuint) 
     return glad_glSecondaryColorP3uiv.?(arg_1134, arg_1135);
 }
 const gladGLversionStruct = struct_gladGLversionStruct;
+
+pub usingnamespace @import("util.zig");
