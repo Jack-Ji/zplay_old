@@ -13,6 +13,7 @@ pub fn build(b: *std.build.Builder) void {
     const examples = [_][]const u8{
         "simple_window",
         "simple_triangle",
+        "indexed_drawing",
     };
     inline for (examples) |name| {
         const exe = b.addExecutable(

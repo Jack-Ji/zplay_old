@@ -26,9 +26,14 @@ var shader_program: zp.ShaderProgram = undefined;
 var vertex_array: zp.VertexArray = undefined;
 
 const vertices = [_]f32{
-    -0.5, -0.5, 0.0,
-    0.5,  -0.5, 0.0,
-    0.0,  0.5,  0.0,
+    0.5, 0.5, 0.0, // top right
+    0.5, -0.5, 0.0, // bottom right
+    -0.5, -0.5, 0.0, // bottom left
+    -0.5, 0.5, 0.0, // top left
+};
+const indices = [_]u32{
+    0, 1, 3, // 1st triangle
+    1, 2, 3, // 2nd triangle
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -43,6 +48,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
     vertex_array.setAttribute(0, 3, f32, false, 3 * @sizeOf(f32), 0);
+    vertex_array.bufferData(1, u32, &indices, .element_array_buffer, .static_draw);
 
     std.log.info("game init", .{});
 }
@@ -82,7 +88,7 @@ fn loop(ctx: *zp.Context) void {
 
     shader_program.use();
     vertex_array.use();
-    gl.drawArrays(gl.GL_TRIANGLES, 0, 3);
+    gl.drawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
 }
 
 fn quit(ctx: *zp.Context) void {
