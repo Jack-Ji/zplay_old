@@ -24,6 +24,7 @@ const fragment_shader =
 
 var shader_program: zp.ShaderProgram = undefined;
 var vertex_array: zp.VertexArray = undefined;
+var wireframe_mode = false;
 
 const vertices = [_]f32{
     0.5, 0.5, 0.0, // top right
@@ -72,6 +73,15 @@ fn event(ctx: *zp.Context, e: zp.Event) void {
             switch (key.scan_code) {
                 .escape => ctx.kill(),
                 .f1 => ctx.toggleFullscreeen(),
+                .w => {
+                    if (wireframe_mode) {
+                        wireframe_mode = false;
+                        gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
+                    } else {
+                        wireframe_mode = true;
+                        gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
+                    }
+                },
                 else => {},
             }
         },
