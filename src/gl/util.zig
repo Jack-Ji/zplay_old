@@ -1,6 +1,6 @@
 const gl = @import("gl.zig");
 
-pub inline fn checkError() void {
+pub fn checkError() void {
     switch (gl.getError()) {
         gl.GL_NO_ERROR => {},
         gl.GL_INVALID_ENUM => @panic("invalid enum"),

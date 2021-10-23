@@ -9,9 +9,3 @@ pub const gl = @import("gl/gl.zig");
 
 /// vector/matrix functions
 pub const zlm = @import("zlm/zlm.zig");
-
-/// shader program
-pub const ShaderProgram = @import("ShaderProgram.zig");
-
-/// vertex array
-pub const VertexArray = @import("VertexArray.zig");

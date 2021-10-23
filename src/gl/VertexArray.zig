@@ -1,5 +1,5 @@
 const std = @import("std");
-const gl = @import("gl/gl.zig");
+const gl = @import("gl.zig");
 const Self = @This();
 
 /// max number of vbo

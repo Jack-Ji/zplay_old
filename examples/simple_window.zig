@@ -21,9 +21,8 @@ fn event(ctx: *zp.Context, e: zp.Event) void {
                 else => {},
             }
         },
-        .mouse_event => {},
-        .gamepad_event => {},
         .quit_event => ctx.kill(),
+        else => {},
     }
 }
 
