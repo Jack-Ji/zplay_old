@@ -6,10 +6,13 @@ const Self = @This();
 /// id of shader program
 id: gl.GLuint,
 
+/// uniform location cache
+uniform_locs: std.StringHashMap(gl.GLuint),
+
 /// init shader program
 pub fn init(
-    vs_source: [*:0]const u8,
-    fs_source: [*:0]const u8,
+    vs_source: [:0]const u8,
+    fs_source: [:0]const u8,
 ) Self {
     var program: Self = undefined;
     var success: gl.GLint = undefined;
@@ -19,24 +22,26 @@ pub fn init(
     // vertex shader
     var vshader = gl.createShader(gl.GL_VERTEX_SHADER);
     defer gl.deleteShader(vshader);
-    gl.shaderSource(vshader, 1, &vs_source, null);
+    gl.shaderSource(vshader, 1, &vs_source.ptr, null);
     gl.compileShader(vshader);
     gl.getShaderiv(vshader, gl.GL_COMPILE_STATUS, &success);
     if (success == 0) {
         gl.getShaderInfoLog(vshader, 512, &log_size, &shader_log);
         std.debug.panic("compile vertex shader failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
     }
+    gl.checkError();
 
     // fragment shader
     var fshader = gl.createShader(gl.GL_FRAGMENT_SHADER);
     defer gl.deleteShader(fshader);
-    gl.shaderSource(fshader, 1, &fs_source, null);
+    gl.shaderSource(fshader, 1, &fs_source.ptr, null);
     gl.compileShader(fshader);
     gl.getShaderiv(fshader, gl.GL_COMPILE_STATUS, &success);
     if (success == 0) {
         gl.getShaderInfoLog(fshader, 512, &log_size, &shader_log);
         std.debug.panic("compile fragment shader failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
     }
+    gl.checkError();
 
     // link program
     program.id = gl.createProgram();
@@ -48,15 +53,19 @@ pub fn init(
         gl.getProgramInfoLog(program.id, 512, &log_size, &shader_log);
         std.debug.panic("link shader program failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
     }
-
     gl.checkError();
+
+    // init uniform location cache
+    program.uniform_locs = std.StringHashMap(gl.GLuint).init(std.heap.raw_c_allocator);
+
     return program;
 }
 
 /// deinitialize shader program
-pub fn deinit(self: Self) void {
+pub fn deinit(self: *Self) void {
     gl.deleteProgram(self.id);
     gl.checkError();
+    self.uniform_locs.deinit();
 }
 
 /// start using shader program
@@ -74,19 +83,30 @@ pub fn disuse(self: Self) void {
 }
 
 /// set uniform value with name
-pub fn setUniformByName(self: Self, name: [*:0]const u8, v: anytype) void {
+pub fn setUniformByName(self: Self, name: [:0]const u8, v: anytype) void {
     var current_program: gl.GLuint = undefined;
     gl.getIntegerv(gl.GL_CURRENT_PROGRAM, &current_program);
     if (current_program != self.id) {
         std.debug.panic("invalid operation, must use program first!, is using {d}", .{current_program});
     }
 
-    var loc: gl.GLint = gl.getUniformLocation(self.id, name);
-    gl.checkError();
-    if (loc < 0) {
-        std.debug.panic("can't find location of uniform {s}", name);
+    var loc: gl.GLuint = undefined;
+    if (std.uniform_locs.get(name)) |l| {
+        // check cache first
+        loc = l;
+    } else {
+        // query driver
+        const l = gl.getUniformLocation(self.id, name.ptr);
+        gl.checkError();
+        if (l < 0) {
+            std.debug.panic("can't find location of uniform {s}", name);
+        }
+        loc = @intCast(gl.GLuint, l);
+
+        // save into cache
+        self.uniform_locs.put(name, loc);
     }
-    self._setUniformByLocation(@intCast(gl.GLuint, loc), v);
+    self._setUniformByLocation(loc, v);
 }
 
 /// set uniform value with location
