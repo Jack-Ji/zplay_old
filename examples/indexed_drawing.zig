@@ -22,8 +22,8 @@ const fragment_shader =
     \\}
 ;
 
-var shader_program: zp.ShaderProgram = undefined;
-var vertex_array: zp.VertexArray = undefined;
+var shader_program: gl.ShaderProgram = undefined;
+var vertex_array: gl.VertexArray = undefined;
 var wireframe_mode = false;
 
 const vertices = [_]f32{
@@ -41,10 +41,10 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
     // shader program
-    shader_program = zp.ShaderProgram.init(vertex_shader, fragment_shader);
+    shader_program = gl.ShaderProgram.init(vertex_shader, fragment_shader);
 
     // vertex array
-    vertex_array = zp.VertexArray.init(5);
+    vertex_array = gl.VertexArray.init(5);
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
