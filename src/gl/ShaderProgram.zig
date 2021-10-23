@@ -124,6 +124,7 @@ fn _setUniformByLocation(self: Self, loc: gl.GLint, v: anytype) void {
     _ = self;
 
     switch (@TypeOf(v)) {
+        bool => gl.uniform1i(loc, gl.boolType(v)),
         i32 => gl.uniform1i(loc, v),
         []i32 => gl.uniform1iv(loc, v.len, v.ptr),
         [2]i32 => gl.uniform2iv(loc, 1, &v),
