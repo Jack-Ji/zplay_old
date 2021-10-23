@@ -7,7 +7,7 @@ const Self = @This();
 id: gl.GLuint,
 
 /// uniform location cache
-uniform_locs: std.StringHashMap(gl.GLuint),
+uniform_locs: std.StringHashMap(gl.GLint),
 
 /// init shader program
 pub fn init(
@@ -56,7 +56,7 @@ pub fn init(
     gl.checkError();
 
     // init uniform location cache
-    program.uniform_locs = std.StringHashMap(gl.GLuint).init(std.heap.raw_c_allocator);
+    program.uniform_locs = std.StringHashMap(gl.GLint).init(std.heap.raw_c_allocator);
 
     return program;
 }
@@ -83,28 +83,27 @@ pub fn disuse(self: Self) void {
 }
 
 /// set uniform value with name
-pub fn setUniformByName(self: Self, name: [:0]const u8, v: anytype) void {
-    var current_program: gl.GLuint = undefined;
+pub fn setUniformByName(self: *Self, name: [:0]const u8, v: anytype) void {
+    var current_program: gl.GLint = undefined;
     gl.getIntegerv(gl.GL_CURRENT_PROGRAM, &current_program);
     if (current_program != self.id) {
         std.debug.panic("invalid operation, must use program first!, is using {d}", .{current_program});
     }
 
-    var loc: gl.GLuint = undefined;
-    if (std.uniform_locs.get(name)) |l| {
+    var loc: gl.GLint = undefined;
+    if (self.uniform_locs.get(name)) |l| {
         // check cache first
         loc = l;
     } else {
         // query driver
-        const l = gl.getUniformLocation(self.id, name.ptr);
+        loc = gl.getUniformLocation(self.id, name.ptr);
         gl.checkError();
-        if (l < 0) {
-            std.debug.panic("can't find location of uniform {s}", name);
+        if (loc < 0) {
+            std.debug.panic("can't find location of uniform {s}", .{name});
         }
-        loc = @intCast(gl.GLuint, l);
 
         // save into cache
-        self.uniform_locs.put(name, loc);
+        self.uniform_locs.put(name, loc) catch unreachable;
     }
     self._setUniformByLocation(loc, v);
 }
@@ -121,7 +120,7 @@ pub fn setUniformByLocation(self: Self, loc: gl.GLuint, v: anytype) void {
 }
 
 /// internal generic function for setting uniform value
-fn _setUniformByLocation(self: Self, loc: gl.GLuint, v: anytype) void {
+fn _setUniformByLocation(self: Self, loc: gl.GLint, v: anytype) void {
     _ = self;
 
     switch (@TypeOf(v)) {

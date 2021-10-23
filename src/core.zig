@@ -11,8 +11,8 @@ pub const Context = struct {
     _fullscreen: bool = undefined,
     _enable_vsync: bool = undefined,
 
-    /// time tick, updated every loop
-    tick: u64 = undefined,
+    /// number of seconds since program has being runing
+    tick: f32 = undefined,
 
     /// kill app
     pub fn kill(self: *Context) void {
@@ -192,6 +192,11 @@ pub fn run(g: Game) !void {
     try g.init_fn(&context);
     defer g.quit_fn(&context);
 
+    // init time clock
+    const counter_freq = @intToFloat(f32, c.SDL_GetPerformanceFrequency());
+    var last_counter = c.SDL_GetPerformanceCounter();
+    context.tick = 0;
+
     // game loop
     while (!context._quit) {
         // event loop
@@ -200,6 +205,11 @@ pub fn run(g: Game) !void {
                 g.event_fn(&context, ze);
             }
         }
+
+        // update tick
+        const counter = c.SDL_GetPerformanceCounter();
+        context.tick += @intToFloat(f32, counter - last_counter) / counter_freq;
+        last_counter = counter;
 
         // main loop
         g.loop_fn(&context);
