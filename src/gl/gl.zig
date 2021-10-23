@@ -1,7 +1,7 @@
-// raw opengl api
+/// raw opengl api
 pub usingnamespace @import("api.zig");
 
-// helper functions
+/// helper functions
 pub usingnamespace @import("util.zig");
 
 /// shader program object
