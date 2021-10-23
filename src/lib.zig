@@ -9,3 +9,6 @@ pub const gl = @import("gl/gl.zig");
 
 /// vector/matrix functions
 pub const zlm = @import("zlm/zlm.zig");
+
+/// stb utilities
+pub const stb = @import("stb/stb.zig");

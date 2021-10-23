@@ -10,6 +10,11 @@ pub fn build(b: *std.build.Builder) void {
         },
     });
 
+    const example_assets_install = b.addInstallDirectory(.{
+        .source_dir = "examples/assets",
+        .install_dir = .bin,
+        .install_subdir = "assets",
+    });
     const examples = [_][]const u8{
         "simple_window",
         "simple_triangle",
@@ -27,6 +32,7 @@ pub fn build(b: *std.build.Builder) void {
         const install_cmd = b.addInstallArtifact(exe);
         const run_cmd = exe.run();
         run_cmd.step.dependOn(&install_cmd.step);
+        run_cmd.step.dependOn(&example_assets_install.step);
         const run_step = b.step(
             name,
             "run example " ++ name,
@@ -36,6 +42,9 @@ pub fn build(b: *std.build.Builder) void {
 }
 
 pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.build.Target) void {
+    var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
+    if (b.is_release) flags.append("-Os") catch unreachable;
+
     // link sdl
     const sdl = @import("src/sdl/Sdk.zig").init(b);
     sdl.link(exe, .dynamic);
@@ -43,8 +52,6 @@ pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.bu
     // link opengl
     var gl = b.addStaticLibrary("gl", null);
     gl.linkLibC();
-    var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
-    if (b.is_release) flags.append("-Os") catch unreachable;
     if (target.isWindows()) {
         gl.linkSystemLibrary("opengl32");
     } else if (target.isDarwin()) {
@@ -58,6 +65,15 @@ pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.bu
         flags.items,
     );
     exe.linkLibrary(gl);
+
+    // link stb
+    var stb = b.addStaticLibrary("stb", null);
+    stb.linkLibC();
+    stb.addCSourceFile(
+        rootPath() ++ "/src/stb/c/stb_image_wrapper.c",
+        flags.items,
+    );
+    exe.linkLibrary(stb);
 
     // use zplay
     exe.addPackage(.{
