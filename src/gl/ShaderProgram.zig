@@ -4,10 +4,10 @@ const zlm = @import("../zlm/zlm.zig");
 const Self = @This();
 
 /// id of shader program
-id: gl.GLuint,
+id: gl.GLuint = undefined,
 
 /// uniform location cache
-uniform_locs: std.StringHashMap(gl.GLint),
+uniform_locs: std.StringHashMap(gl.GLint) = undefined,
 
 /// init shader program
 pub fn init(
@@ -64,8 +64,9 @@ pub fn init(
 /// deinitialize shader program
 pub fn deinit(self: *Self) void {
     gl.deleteProgram(self.id);
-    gl.checkError();
+    self.id = undefined;
     self.uniform_locs.deinit();
+    gl.checkError();
 }
 
 /// start using shader program

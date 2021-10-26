@@ -32,11 +32,11 @@ const BufferUsage = enum(c_uint) {
 };
 
 /// id of vertex array
-id: gl.GLuint,
+id: gl.GLuint = undefined,
 
 /// buffer objects
-vbos: [max_vbo_num]gl.GLuint,
-vbo_num: usize,
+vbos: [max_vbo_num]gl.GLuint = undefined,
+vbo_num: usize = undefined,
 
 /// init vertex array
 pub fn init(vbo_num: usize) Self {
@@ -56,9 +56,12 @@ pub fn init(vbo_num: usize) Self {
 }
 
 /// deinitialize vertex array
-pub fn deinit(self: Self) void {
+pub fn deinit(self: *Self) void {
     gl.deleteVertexArrays(1, &self.id);
     gl.deleteBuffers(self.vbo_num, &self.vbos);
+    self.id = undefined;
+    self.vbos = undefined;
+    self.vbo_num = undefined;
     gl.checkError();
 }
 
