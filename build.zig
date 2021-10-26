@@ -20,6 +20,7 @@ pub fn build(b: *std.build.Builder) void {
         "simple_triangle",
         "flashing_triangle",
         "indexed_drawing",
+        "2d_texture",
     };
     inline for (examples) |name| {
         const exe = b.addExecutable(
@@ -33,6 +34,7 @@ pub fn build(b: *std.build.Builder) void {
         const run_cmd = exe.run();
         run_cmd.step.dependOn(&install_cmd.step);
         run_cmd.step.dependOn(&example_assets_install.step);
+        run_cmd.cwd = "zig-out" ++ std.fs.path.sep_str ++ "bin";
         const run_step = b.step(
             name,
             "run example " ++ name,

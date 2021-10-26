@@ -2,7 +2,7 @@ const std = @import("std");
 const gl = @import("gl.zig");
 const Self = @This();
 
-const TextureType = enum(c_int) {
+const TextureType = enum(c_uint) {
     texture_1d = gl.GL_TEXTURE_1D,
     texture_2d = gl.GL_TEXTURE_2D,
     texture_3d = gl.GL_TEXTURE_3D,
@@ -15,7 +15,7 @@ const TextureType = enum(c_int) {
     texture_2d_multisample_array = gl.GL_TEXTURE_2D_MULTISAMPLE_ARRAY,
 };
 
-const UpdateTarget = enum(c_int) {
+const UpdateTarget = enum(c_uint) {
     /// 1d
     texture_1d = gl.GL_TEXTURE_1D,
     proxy_texture_1d = gl.GL_PROXY_TEXTURE_1D,
@@ -42,7 +42,7 @@ const UpdateTarget = enum(c_int) {
     proxy_texture_2d_array = gl.GL_PROXY_TEXTURE_2D_ARRAY,
 };
 
-const TextureMultisampleTarget = enum(c_int) {
+const TextureMultisampleTarget = enum(c_uint) {
     /// 2d multisample
     texture_2d_multisample = gl.GL_TEXTURE_2D_MULTISAMPLE,
     proxy_texture_2d_multisample = gl.GL_PROXY_TEXTURE_2D_MULTISAMPLE,
@@ -67,7 +67,7 @@ const TextureFormat = enum(c_int) {
     compressed_srgb_alpha = gl.GL_COMPRESSED_SRGB_ALPHA,
 };
 
-const ImageFormat = enum(c_int) {
+const ImageFormat = enum(c_uint) {
     red = gl.GL_RED,
     rg = gl.GL_RG,
     rgb = gl.GL_RGB,
@@ -78,7 +78,7 @@ const ImageFormat = enum(c_int) {
     depth_stencil = gl.GL_DEPTH_STENCIL,
 };
 
-const TextureUnit = enum(c_int) {
+const TextureUnit = enum(c_uint) {
     texture0 = gl.GL_TEXTURE0,
     texture1 = gl.GL_TEXTURE1,
     texture2 = gl.GL_TEXTURE2,
@@ -113,9 +113,10 @@ const TextureUnit = enum(c_int) {
     texture31 = gl.GL_TEXTURE31,
 };
 
-const WrappingCoord = enum(c_int) {
+const WrappingCoord = enum(c_uint) {
     s = gl.GL_TEXTURE_WRAP_S,
     t = gl.GL_TEXTURE_WRAP_T,
+    r = gl.GL_TEXTURE_WRAP_R,
 };
 
 const WrappingMode = enum(c_int) {
@@ -125,7 +126,7 @@ const WrappingMode = enum(c_int) {
     clamp_to_border = gl.GL_CLAMP_TO_BORDER,
 };
 
-const FilteringSituation = enum(c_int) {
+const FilteringSituation = enum(c_uint) {
     minifying = gl.GL_TEXTURE_MIN_FILTER,
     magnifying = gl.GL_TEXTURE_MAG_FILTER,
 };
@@ -173,6 +174,12 @@ pub fn bindToTextureUnit(self: *Self, unit: TextureUnit) void {
     gl.checkError();
 }
 
+// get binded texture unit
+pub fn getTextureUnit(self: Self) i32 {
+    std.debug.assert(self.tu != undefined);
+    return @intCast(i32, @enumToInt(self.tu) - gl.GL_TEXTURE0);
+}
+
 /// set texture wrapping mode
 pub fn setWrapping(self: Self, coord: WrappingCoord, mode: WrappingMode) void {
     std.debug.assert(self.tt == .texture_2d);
@@ -194,7 +201,7 @@ pub fn setFilteringMode(self: Self, situation: FilteringSituation, mode: Filteri
         (mode == .linear_mipmap_nearest or mode == .linear_mipmap_linear or
         mode == .nearest_mipmap_nearest or mode == .nearest_mipmap_linear))
     {
-        std.debug.panic("meaningless filtering parameters!");
+        std.debug.panic("meaningless filtering parameters!", .{});
     }
     gl.texParameteri(gl.GL_TEXTURE_2D, @enumToInt(situation), @enumToInt(mode));
     gl.checkError();
@@ -221,7 +228,7 @@ pub fn updateImageData(
                 @enumToInt(target),
                 mipmap_level,
                 @enumToInt(texture_format),
-                width,
+                @intCast(c_int, width),
                 0,
                 @enumToInt(image_format),
                 gl.dataType(T),
@@ -234,8 +241,8 @@ pub fn updateImageData(
                 @enumToInt(target),
                 mipmap_level,
                 @enumToInt(texture_format),
-                width,
-                height.?,
+                @intCast(c_int, width),
+                @intCast(c_int, height.?),
                 0,
                 @enumToInt(image_format),
                 gl.dataType(T),
@@ -248,8 +255,8 @@ pub fn updateImageData(
                 @enumToInt(target),
                 mipmap_level,
                 @enumToInt(texture_format),
-                width,
-                height.?,
+                @intCast(c_int, width),
+                @intCast(c_int, height.?),
                 0,
                 @enumToInt(image_format),
                 gl.dataType(T),
@@ -262,8 +269,8 @@ pub fn updateImageData(
                 @enumToInt(target),
                 mipmap_level,
                 @enumToInt(texture_format),
-                width,
-                height.?,
+                @intCast(c_int, width),
+                @intCast(c_int, height.?),
                 0,
                 @enumToInt(image_format),
                 gl.dataType(T),
@@ -282,8 +289,8 @@ pub fn updateImageData(
                 @enumToInt(target),
                 mipmap_level,
                 @enumToInt(texture_format),
-                width,
-                height.?,
+                @intCast(c_int, width),
+                @intCast(c_int, height.?),
                 0,
                 @enumToInt(image_format),
                 gl.dataType(T),
@@ -296,9 +303,9 @@ pub fn updateImageData(
                 @enumToInt(target),
                 mipmap_level,
                 @enumToInt(texture_format),
-                width,
-                height.?,
-                depth.?,
+                @intCast(c_int, width),
+                @intCast(c_int, height.?),
+                @intCast(c_int, depth.?),
                 0,
                 @enumToInt(image_format),
                 gl.dataType(T),
@@ -311,9 +318,9 @@ pub fn updateImageData(
                 @enumToInt(target),
                 mipmap_level,
                 @enumToInt(texture_format),
-                width,
-                height.?,
-                depth.?,
+                @intCast(c_int, width),
+                @intCast(c_int, height.?),
+                @intCast(c_int, depth.?),
                 0,
                 @enumToInt(image_format),
                 gl.dataType(T),
@@ -321,13 +328,13 @@ pub fn updateImageData(
             );
         },
         else => {
-            std.debug.panic("invalid operation!");
+            std.debug.panic("invalid operation!", .{});
         },
     }
     gl.checkError();
 
     if (self.tt != .texture_rectangle and gen_mipmap) {
-        gl.generateMipmap(self.tt);
+        gl.generateMipmap(@enumToInt(self.tt));
         gl.checkError();
     }
 }
@@ -368,7 +375,7 @@ pub fn updateMultisampleData(
             );
         },
         else => {
-            std.debug.panic("invalid operation!");
+            std.debug.panic("invalid operation!", .{});
         },
     }
     gl.checkError();
