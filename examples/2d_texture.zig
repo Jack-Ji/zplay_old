@@ -84,7 +84,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     defer stb_image.stbi_image_free(image_data);
     std.log.info("image info: width({d}) height({d}) channel({d})", .{ width, height, channels });
     var texture = gl.Texture.init(.texture_2d);
-    texture.bindToTextureUnit(.texture0);
+    texture.bindToTextureUnit(.texture_unit_0);
     texture.setWrapping(.s, .repeat);
     texture.setWrapping(.t, .repeat);
     texture.setFilteringMode(.minifying, .linear_mipmap_linear);
@@ -101,6 +101,10 @@ fn init(ctx: *zp.Context) anyerror!void {
         image_data[0..@intCast(usize, width * height * channels)],
         true,
     );
+
+    // only necessary when not using texture unit 0
+    //shader_program.use();
+    //shader_program.setUniformByName("u_texture", texture.getTextureUnit());
 
     std.log.info("game init", .{});
 }
