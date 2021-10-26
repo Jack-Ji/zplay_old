@@ -367,7 +367,11 @@ pub fn updateMultisampleData(
                 gl.boolType(fixed_sample_location),
             );
         },
+        else => {
+            std.debug.panic("invalid operation!");
+        },
     }
+    gl.checkError();
 }
 
 /// update buffer texture data
@@ -378,4 +382,5 @@ pub fn updateBufferTexture(
 ) void {
     std.debug.assert(self.tt == .texture_buffer);
     gl.texBuffer(gl.GL_TEXTURE_BUFFER, @enumToInt(texture_format), vbo);
+    gl.checkError();
 }
