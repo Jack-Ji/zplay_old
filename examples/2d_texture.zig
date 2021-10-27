@@ -1,6 +1,7 @@
 const std = @import("std");
 const zp = @import("zplay");
 const gl = zp.gl;
+const zlm = zp.zlm;
 const stb_image = zp.stb.image;
 
 const vertex_shader =
@@ -9,12 +10,14 @@ const vertex_shader =
     \\layout (location = 1) in vec3 a_color;
     \\layout (location = 2) in vec2 a_tex;
     \\
+    \\uniform mat4 u_mvp;
+    \\
     \\out vec3 v_color;
     \\out vec2 v_tex;
     \\
     \\void main()
     \\{
-    \\    gl_Position = vec4(a_pos, 1.0);
+    \\    gl_Position = u_mvp * vec4(a_pos, 1.0);
     \\    v_color = a_color;
     \\    v_tex = a_tex;
     \\}
@@ -148,11 +151,22 @@ fn event(ctx: *zp.Context, e: zp.Event) void {
 fn loop(ctx: *zp.Context) void {
     _ = ctx;
 
+    const s = struct {
+        var frame: u32 = 0;
+    };
+    s.frame += 1;
+
     gl.clearColor(0.2, 0.3, 0.3, 1.0);
     gl.clear(gl.GL_COLOR_BUFFER_BIT);
 
     shader_program.use();
     vertex_array.use();
+
+    const mvp = zlm.Mat4.createAngleAxis(
+        zlm.Vec3.unitZ,
+        std.math.pi / 180.0 * @intToFloat(f32, s.frame),
+    ).transpose();
+    shader_program.setUniformByName("u_mvp", mvp);
     gl.drawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
 }
 

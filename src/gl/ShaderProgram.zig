@@ -144,9 +144,9 @@ fn _setUniformByLocation(self: Self, loc: gl.GLint, v: anytype) void {
         zlm.Vec2 => gl.uniform2f(loc, v.x, v.y),
         zlm.Vec3 => gl.uniform3f(loc, v.x, v.y, v.z),
         zlm.Vec4 => gl.uniform4f(loc, v.x, v.y, v.z, v.w),
-        zlm.Mat2 => gl.uniformMatrix2fv(loc, 1, gl.GL_FALSE, &v.fields),
-        zlm.Mat3 => gl.uniformMatrix3fv(loc, 1, gl.GL_FALSE, &v.fields),
-        zlm.Mat4 => gl.uniformMatrix4fv(loc, 1, gl.GL_FALSE, &v.fields),
+        zlm.Mat2 => gl.uniformMatrix2fv(loc, 1, gl.GL_FALSE, @ptrCast(*const f32, &v.fields)),
+        zlm.Mat3 => gl.uniformMatrix3fv(loc, 1, gl.GL_FALSE, @ptrCast(*const f32, &v.fields)),
+        zlm.Mat4 => gl.uniformMatrix4fv(loc, 1, gl.GL_FALSE, @ptrCast(*const f32, &v.fields)),
         else => std.debug.panic("unsupported type {}", @TypeOf(v)),
     }
     gl.checkError();
