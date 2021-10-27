@@ -2,7 +2,7 @@ const std = @import("std");
 const gl = @import("gl.zig");
 const Self = @This();
 
-const TextureType = enum(c_uint) {
+pub const TextureType = enum(c_uint) {
     texture_1d = gl.GL_TEXTURE_1D,
     texture_2d = gl.GL_TEXTURE_2D,
     texture_3d = gl.GL_TEXTURE_3D,
@@ -15,7 +15,7 @@ const TextureType = enum(c_uint) {
     texture_2d_multisample_array = gl.GL_TEXTURE_2D_MULTISAMPLE_ARRAY,
 };
 
-const UpdateTarget = enum(c_uint) {
+pub const UpdateTarget = enum(c_uint) {
     /// 1d
     texture_1d = gl.GL_TEXTURE_1D,
     proxy_texture_1d = gl.GL_PROXY_TEXTURE_1D,
@@ -42,7 +42,7 @@ const UpdateTarget = enum(c_uint) {
     proxy_texture_2d_array = gl.GL_PROXY_TEXTURE_2D_ARRAY,
 };
 
-const TextureMultisampleTarget = enum(c_uint) {
+pub const TextureMultisampleTarget = enum(c_uint) {
     /// 2d multisample
     texture_2d_multisample = gl.GL_TEXTURE_2D_MULTISAMPLE,
     proxy_texture_2d_multisample = gl.GL_PROXY_TEXTURE_2D_MULTISAMPLE,
@@ -52,7 +52,7 @@ const TextureMultisampleTarget = enum(c_uint) {
     proxy_texture_2d_multisample_array = gl.GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY,
 };
 
-const TextureFormat = enum(c_int) {
+pub const TextureFormat = enum(c_int) {
     red = gl.GL_RED,
     rg = gl.GL_RG,
     rgb = gl.GL_RGB,
@@ -67,7 +67,7 @@ const TextureFormat = enum(c_int) {
     compressed_srgb_alpha = gl.GL_COMPRESSED_SRGB_ALPHA,
 };
 
-const ImageFormat = enum(c_uint) {
+pub const ImageFormat = enum(c_uint) {
     red = gl.GL_RED,
     rg = gl.GL_RG,
     rgb = gl.GL_RGB,
@@ -78,7 +78,7 @@ const ImageFormat = enum(c_uint) {
     depth_stencil = gl.GL_DEPTH_STENCIL,
 };
 
-const TextureUnit = enum(c_uint) {
+pub const TextureUnit = enum(c_uint) {
     texture_unit_0 = gl.GL_TEXTURE0,
     texture_unit_1 = gl.GL_TEXTURE1,
     texture_unit_2 = gl.GL_TEXTURE2,
@@ -113,25 +113,25 @@ const TextureUnit = enum(c_uint) {
     texture_unit_31 = gl.GL_TEXTURE31,
 };
 
-const WrappingCoord = enum(c_uint) {
+pub const WrappingCoord = enum(c_uint) {
     s = gl.GL_TEXTURE_WRAP_S,
     t = gl.GL_TEXTURE_WRAP_T,
     r = gl.GL_TEXTURE_WRAP_R,
 };
 
-const WrappingMode = enum(c_int) {
+pub const WrappingMode = enum(c_int) {
     repeat = gl.GL_REPEAT,
     mirrored_repeat = gl.GL_MIRRORED_REPEAT,
     clamp_to_edge = gl.GL_CLAMP_TO_EDGE,
     clamp_to_border = gl.GL_CLAMP_TO_BORDER,
 };
 
-const FilteringSituation = enum(c_uint) {
+pub const FilteringSituation = enum(c_uint) {
     minifying = gl.GL_TEXTURE_MIN_FILTER,
     magnifying = gl.GL_TEXTURE_MAG_FILTER,
 };
 
-const FilteringMode = enum(c_int) {
+pub const FilteringMode = enum(c_int) {
     nearest = gl.GL_NEAREST,
     linear = gl.GL_LINEAR,
     nearest_mipmap_nearest = gl.GL_NEAREST_MIPMAP_NEAREST,

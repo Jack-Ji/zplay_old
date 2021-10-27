@@ -12,3 +12,6 @@ pub const zlm = @import("zlm/zlm.zig");
 
 /// stb utilities
 pub const stb = @import("stb/stb.zig");
+
+/// export texture functions
+pub const texture = @import("texture.zig");

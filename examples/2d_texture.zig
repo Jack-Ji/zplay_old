@@ -30,11 +30,12 @@ const fragment_shader =
     \\in vec3 v_color;
     \\in vec2 v_tex;
     \\
-    \\uniform sampler2D u_texture;
+    \\uniform sampler2D u_texture1;
+    \\uniform sampler2D u_texture2;
     \\
     \\void main()
     \\{
-    \\    frag_color = texture(u_texture, v_tex);
+    \\    frag_color = mix(texture(u_texture1, v_tex), texture(u_texture2, v_tex), 0.2);
     \\}
 ;
 
@@ -70,44 +71,14 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.setAttribute(2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
     vertex_array.bufferData(1, u32, &indices, .element_array_buffer, .static_draw);
 
-    // texture
-    var width: c_int = undefined;
-    var height: c_int = undefined;
-    var channels: c_int = undefined;
-    var image_data = stb_image.stbi_load(
-        "assets/wall.jpg",
-        &width,
-        &height,
-        &channels,
-        0,
-    );
-    if (image_data == null) {
-        std.debug.panic("load texture failed!", .{});
-    }
-    defer stb_image.stbi_image_free(image_data);
-    std.log.info("image info: width({d}) height({d}) channel({d})", .{ width, height, channels });
-    var texture = gl.Texture.init(.texture_2d);
-    texture.bindToTextureUnit(.texture_unit_0);
-    texture.setWrapping(.s, .repeat);
-    texture.setWrapping(.t, .repeat);
-    texture.setFilteringMode(.minifying, .linear_mipmap_linear);
-    texture.setFilteringMode(.magnifying, .linear);
-    texture.updateImageData(
-        .texture_2d,
-        0,
-        .rgb,
-        @intCast(usize, width),
-        @intCast(usize, height),
-        null,
-        .rgb,
-        u8,
-        image_data[0..@intCast(usize, width * height * channels)],
-        true,
-    );
+    // load texture
+    const texture1 = try zp.texture.createTexture2D("assets/wall.jpg", .texture_unit_0, false);
+    const texture2 = try zp.texture.createTexture2D("assets/awesomeface.png", .texture_unit_1, true);
 
     // only necessary when not using texture unit 0
-    //shader_program.use();
-    //shader_program.setUniformByName("u_texture", texture.getTextureUnit());
+    shader_program.use();
+    shader_program.setUniformByName("u_texture1", texture1.getTextureUnit());
+    shader_program.setUniformByName("u_texture2", texture2.getTextureUnit());
 
     std.log.info("game init", .{});
 }
@@ -162,11 +133,7 @@ fn loop(ctx: *zp.Context) void {
     shader_program.use();
     vertex_array.use();
 
-    const mvp = zlm.Mat4.createAngleAxis(
-        zlm.Vec3.unitZ,
-        std.math.pi / 180.0 * @intToFloat(f32, s.frame),
-    ).transpose();
-    shader_program.setUniformByName("u_mvp", mvp);
+    shader_program.setUniformByName("u_mvp", zlm.Mat4.identity);
     gl.drawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
 }
 
