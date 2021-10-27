@@ -7,8 +7,8 @@ pub const known_folders = @import("known_folders/known-folders.zig");
 /// opengl 3.3 core definitions
 pub const gl = @import("gl/gl.zig");
 
-/// vector/matrix functions
-pub const zlm = @import("zlm/zlm.zig");
+/// algebra types: vector/matrix/quaternion
+pub const alg = @import("alg/src/main.zig");
 
 /// stb utilities
 pub const stb = @import("stb/stb.zig");

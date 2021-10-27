@@ -1,8 +1,7 @@
 const std = @import("std");
 const zp = @import("zplay");
 const gl = zp.gl;
-const zlm = zp.zlm;
-const stb_image = zp.stb.image;
+const alg = zp.alg;
 
 const vertex_shader =
     \\#version 330 core
@@ -123,7 +122,7 @@ fn loop(ctx: *zp.Context) void {
     _ = ctx;
 
     const s = struct {
-        var frame: u32 = 0;
+        var frame: f32 = 0;
     };
     s.frame += 1;
 
@@ -133,7 +132,10 @@ fn loop(ctx: *zp.Context) void {
     shader_program.use();
     vertex_array.use();
 
-    shader_program.setUniformByName("u_mvp", zlm.Mat4.identity);
+    shader_program.setUniformByName(
+        "u_mvp",
+        alg.Mat4.fromRotation(s.frame, alg.Vec3.forward()),
+    );
     gl.drawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
 }
 

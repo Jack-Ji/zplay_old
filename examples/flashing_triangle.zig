@@ -1,7 +1,7 @@
 const std = @import("std");
 const zp = @import("zplay");
 const gl = zp.gl;
-const zlm = zp.zlm;
+const alg = zp.alg;
 
 const vertex_shader =
     \\#version 330 core
@@ -85,7 +85,7 @@ fn loop(ctx: *zp.Context) void {
     vertex_array.use();
 
     // update color and draw triangle
-    const color = zlm.Vec4.new(0.2, 0.3 + std.math.absFloat(std.math.sin(ctx.tick)), 0.3, 1);
+    const color = alg.Vec4.new(0.2, 0.3 + std.math.absFloat(std.math.sin(ctx.tick)), 0.3, 1);
     shader_program.setUniformByName("u_color", color);
     gl.drawArrays(gl.GL_TRIANGLES, 0, 3);
 }

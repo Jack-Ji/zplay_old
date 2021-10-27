@@ -1,6 +1,6 @@
 const std = @import("std");
 const gl = @import("gl.zig");
-const zlm = @import("../zlm/zlm.zig");
+const alg = @import("../lib.zig").alg;
 const Self = @This();
 
 /// id of shader program
@@ -141,13 +141,11 @@ fn _setUniformByLocation(self: Self, loc: gl.GLint, v: anytype) void {
         [2]f32 => gl.uniform2fv(loc, 1, &v),
         [3]f32 => gl.uniform3fv(loc, 1, &v),
         [4]f32 => gl.uniform4fv(loc, 1, &v),
-        zlm.Vec2 => gl.uniform2f(loc, v.x, v.y),
-        zlm.Vec3 => gl.uniform3f(loc, v.x, v.y, v.z),
-        zlm.Vec4 => gl.uniform4f(loc, v.x, v.y, v.z, v.w),
-        zlm.Mat2 => gl.uniformMatrix2fv(loc, 1, gl.GL_FALSE, @ptrCast(*const f32, &v.fields)),
-        zlm.Mat3 => gl.uniformMatrix3fv(loc, 1, gl.GL_FALSE, @ptrCast(*const f32, &v.fields)),
-        zlm.Mat4 => gl.uniformMatrix4fv(loc, 1, gl.GL_FALSE, @ptrCast(*const f32, &v.fields)),
-        else => std.debug.panic("unsupported type {}", @TypeOf(v)),
+        alg.Vec2 => gl.uniform2f(loc, v.x, v.y),
+        alg.Vec3 => gl.uniform3f(loc, v.x, v.y, v.z),
+        alg.Vec4 => gl.uniform4f(loc, v.x, v.y, v.z, v.w),
+        alg.Mat4 => gl.uniformMatrix4fv(loc, 1, gl.GL_FALSE, v.getData()),
+        else => std.debug.panic("unsupported type {s}", .{@typeName(@TypeOf(v))}),
     }
     gl.checkError();
 }
