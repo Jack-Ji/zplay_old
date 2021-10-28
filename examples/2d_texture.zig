@@ -134,7 +134,7 @@ fn loop(ctx: *zp.Context) void {
 
     shader_program.setUniformByName(
         "u_mvp",
-        alg.Mat4.fromRotation(s.frame, alg.Vec3.forward()),
+        alg.Mat4.fromTranslate(alg.Vec3.new(0.5, 0.5, 0)).rotate(s.frame, alg.Vec3.forward()),
     );
     gl.drawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
 }
