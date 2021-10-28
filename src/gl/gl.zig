@@ -10,5 +10,5 @@ pub const ShaderProgram = @import("ShaderProgram.zig");
 /// vertex array object
 pub const VertexArray = @import("VertexArray.zig");
 
-/// texture object
+/// 2d texture
 pub const Texture = @import("Texture.zig");
