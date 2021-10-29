@@ -258,16 +258,16 @@ pub const ScanCode = enum(c_uint) {
 };
 
 /// trigger type
-trigger_type: TriggerType,
+trigger_type: TriggerType = undefined,
 
 /// key being pressed/released
-scan_code: ScanCode,
+scan_code: ScanCode = undefined,
 
 /// repeat key
-is_repeat: bool,
+is_repeat: bool = undefined,
 
 /// timestamp of event
-timestamp: u32,
+timestamp: u32 = undefined,
 
 pub fn init(e: c.SDL_KeyboardEvent) Self {
     return .{

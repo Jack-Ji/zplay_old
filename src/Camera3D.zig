@@ -1,6 +1,6 @@
 const std = @import("std");
+const sdl = @import("sdl");
 const Context = @import("lib.zig").Context;
-const MouseEvent = @import("lib.zig").MouseEvent;
 const alg = @import("lib.zig").alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
@@ -37,7 +37,7 @@ euler: Vec3 = undefined,
 last_tick: ?f32 = null,
 move_speed: f32 = 2.5,
 mouse_sensitivity: f32 = 0.25,
-last_mouse_pos: MouseEvent.Position = undefined,
+last_mouse_state: sdl.MouseState = undefined,
 
 /// create a 3d camera using position and target
 pub fn fromPositionAndTarget(pos: Vec3, target: Vec3, world_up: ?Vec3) Self {
@@ -110,7 +110,7 @@ fn _updateVectors(self: *Self) void {
 pub fn updateInContext(self: *Self, ctx: *Context) void {
     if (self.last_tick == null) {
         self.last_tick = ctx.tick;
-        self.last_mouse_pos = ctx.getMousePosition();
+        self.last_mouse_state = ctx.getMouseState();
         return;
     }
 
@@ -132,9 +132,9 @@ pub fn updateInContext(self: *Self, ctx: *Context) void {
     }
 
     // mouse rotation
-    const pos = ctx.getMousePosition();
-    const xoffset = @intToFloat(f32, pos.x - self.last_mouse_pos.x);
-    const yoffset = @intToFloat(f32, self.last_mouse_pos.y - pos.y);
-    self.last_mouse_pos = pos;
+    const state = ctx.getMouseState();
+    const xoffset = @intToFloat(f32, state.x - self.last_mouse_state.x);
+    const yoffset = @intToFloat(f32, self.last_mouse_state.y - state.y);
+    self.last_mouse_state = state;
     self.rotate(self.mouse_sensitivity * yoffset, self.mouse_sensitivity * xoffset);
 }

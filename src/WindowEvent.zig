@@ -59,13 +59,13 @@ const Data = union(Type) {
 };
 
 /// window id
-window_id: u32,
+window_id: u32 = undefined,
 
 /// event data
-data: Data,
+data: Data = undefined,
 
 /// timestamp of event
-timestamp: u32,
+timestamp: u32 = undefined,
 
 pub fn init(e: sdl.WindowEvent) Self {
     return .{

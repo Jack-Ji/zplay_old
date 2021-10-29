@@ -49,14 +49,10 @@ pub const Context = struct {
         return state[@enumToInt(key)] == 1;
     }
 
-    // get mouse status
-    pub fn getMousePosition(self: Context) MouseEvent.Position {
+    // get mouse state
+    pub fn getMouseState(self: Context) sdl.MouseState {
         _ = self;
-        const state = sdl.getMouseState();
-        return .{
-            .x = state.x,
-            .y = state.y,
-        };
+        return sdl.getMouseState();
     }
 };
 
@@ -86,6 +82,9 @@ pub const Game = struct {
 
     // vsync switch
     enable_vsync: bool = true,
+
+    /// relative mouse mode switch
+    enable_relative_mouse_mode: bool = false,
 };
 
 /// system event
@@ -203,6 +202,11 @@ pub fn run(g: Game) !void {
     }
     if (g.enable_vsync) {
         try sdl.gl.setSwapInterval(.vsync);
+    }
+
+    // other options
+    if (g.enable_relative_mouse_mode) {
+        _ = c.SDL_SetRelativeMouseMode(c.SDL_TRUE);
     }
 
     // init before loop
