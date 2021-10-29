@@ -17,4 +17,4 @@ pub const stb = @import("stb/stb.zig");
 pub const Texture2D = @import("Texture2D.zig");
 
 /// 3d camera
-pub const Camera2D = @import("Camera3D.zig");
+pub const Camera3D = @import("Camera3D.zig");

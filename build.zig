@@ -22,6 +22,7 @@ pub fn build(b: *std.build.Builder) void {
         "indexed_drawing",
         "2d_texture",
         "cubes",
+        "3d_camera",
     };
     inline for (examples) |name| {
         const exe = b.addExecutable(

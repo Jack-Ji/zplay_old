@@ -41,6 +41,23 @@ pub const Context = struct {
     pub fn getSize(self: *Context, w: ?*i32, h: ?*i32) void {
         c.SDL_GetWindowSize(self._window.ptr, w.?, h.?);
     }
+
+    // get key status
+    pub fn isKeyPressed(self: Context, key: KeyboardEvent.ScanCode) bool {
+        _ = self;
+        const state = c.SDL_GetKeyboardState(null);
+        return state[@enumToInt(key)] == 1;
+    }
+
+    // get mouse status
+    pub fn getMousePosition(self: Context) MouseEvent.Position {
+        _ = self;
+        const state = sdl.getMouseState();
+        return .{
+            .x = state.x,
+            .y = state.y,
+        };
+    }
 };
 
 /// game running callbacks
@@ -72,11 +89,11 @@ pub const Game = struct {
 };
 
 /// system event
-const WindowEvent = @import("WindowEvent.zig");
-const KeyboardEvent = @import("KeyboardEvent.zig");
-const MouseEvent = @import("MouseEvent.zig");
-const GamepadEvent = @import("GamepadEvent.zig");
-const QuitEvent = struct {};
+pub const WindowEvent = @import("WindowEvent.zig");
+pub const KeyboardEvent = @import("KeyboardEvent.zig");
+pub const MouseEvent = @import("MouseEvent.zig");
+pub const GamepadEvent = @import("GamepadEvent.zig");
+pub const QuitEvent = struct {};
 pub const Event = union(enum) {
     window_event: WindowEvent,
     keyboard_event: KeyboardEvent,

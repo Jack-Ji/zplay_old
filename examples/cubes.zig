@@ -167,10 +167,10 @@ fn loop(ctx: *zp.Context) void {
     var height: i32 = undefined;
     ctx.getSize(&width, &height);
 
-    const s = struct {
+    const S = struct {
         var frame: f32 = 0;
     };
-    s.frame += 1;
+    S.frame += 1;
 
     gl.clearColor(0.2, 0.3, 0.3, 1.0);
     gl.clear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
@@ -191,7 +191,7 @@ fn loop(ctx: *zp.Context) void {
     );
     for (cube_positions) |pos, i| {
         const model = alg.Mat4.fromRotation(
-            20 * @intToFloat(f32, i) + s.frame,
+            20 * @intToFloat(f32, i) + S.frame,
             alg.Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
         shader_program.setUniformByName("u_mvp", projection.mult(view).mult(model));

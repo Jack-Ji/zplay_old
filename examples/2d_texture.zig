@@ -121,10 +121,10 @@ fn event(ctx: *zp.Context, e: zp.Event) void {
 fn loop(ctx: *zp.Context) void {
     _ = ctx;
 
-    const s = struct {
+    const S = struct {
         var frame: f32 = 0;
     };
-    s.frame += 1;
+    S.frame += 1;
 
     gl.clearColor(0.2, 0.3, 0.3, 1.0);
     gl.clear(gl.GL_COLOR_BUFFER_BIT);
@@ -134,7 +134,7 @@ fn loop(ctx: *zp.Context) void {
 
     shader_program.setUniformByName(
         "u_mvp",
-        alg.Mat4.fromTranslate(alg.Vec3.new(0.5, 0.5, 0)).rotate(s.frame, alg.Vec3.forward()),
+        alg.Mat4.fromTranslate(alg.Vec3.new(0.5, 0.5, 0)).rotate(S.frame, alg.Vec3.forward()),
     );
     gl.drawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
 }

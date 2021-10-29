@@ -37,6 +37,11 @@ const fragment_shader =
 var shader_program: gl.ShaderProgram = undefined;
 var vertex_array: gl.VertexArray = undefined;
 var wireframe_mode = false;
+var camera = zp.Camera3D.fromPositionAndTarget(
+    alg.Vec3.new(0, 0, 3),
+    alg.Vec3.zero(),
+    null,
+);
 
 const vertices = [_]f32{
     // positions, texture coords
@@ -81,19 +86,6 @@ const vertices = [_]f32{
     0.5,  0.5,  0.5,  1.0, 0.0,
     -0.5, 0.5,  0.5,  0.0, 0.0,
     -0.5, 0.5,  -0.5, 0.0, 1.0,
-};
-
-const cube_positions = [_]alg.Vec3{
-    alg.Vec3.new(0.0, 0.0, 0.0),
-    alg.Vec3.new(2.0, 5.0, -15.0),
-    alg.Vec3.new(-1.5, -2.2, -2.5),
-    alg.Vec3.new(-3.8, -2.0, -12.3),
-    alg.Vec3.new(2.4, -0.4, -3.5),
-    alg.Vec3.new(-1.7, 3.0, -7.5),
-    alg.Vec3.new(1.3, -2.0, -2.5),
-    alg.Vec3.new(1.5, 2.0, -2.5),
-    alg.Vec3.new(1.5, 0.2, -1.5),
-    alg.Vec3.new(-1.3, 1.0, -1.5),
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -142,18 +134,10 @@ fn event(ctx: *zp.Context, e: zp.Event) void {
             if (key.trigger_type == .down) {
                 return;
             }
+
             switch (key.scan_code) {
                 .escape => ctx.kill(),
                 .f1 => ctx.toggleFullscreeen(),
-                .w => {
-                    if (wireframe_mode) {
-                        wireframe_mode = false;
-                        gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
-                    } else {
-                        wireframe_mode = true;
-                        gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
-                    }
-                },
                 else => {},
             }
         },
@@ -167,36 +151,36 @@ fn loop(ctx: *zp.Context) void {
     var height: i32 = undefined;
     ctx.getSize(&width, &height);
 
-    const s = struct {
+    const S = struct {
         var frame: f32 = 0;
+        var axis = alg.Vec4.new(1, 1, 1, 0);
     };
-    s.frame += 1;
+    S.frame += 1;
 
+    // update camera
+    camera.updateInContext(ctx);
+
+    // start drawing
     gl.clearColor(0.2, 0.3, 0.3, 1.0);
     gl.clear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
 
     shader_program.use();
     vertex_array.use();
 
-    const view = alg.Mat4.lookAt(
-        alg.Vec3.new(0, 0, 3),
-        alg.Vec3.zero(),
-        alg.Vec3.up(),
-    );
     const projection = alg.Mat4.perspective(
         45,
         @intToFloat(f32, width) / @intToFloat(f32, height),
         0.1,
         100,
     );
-    for (cube_positions) |pos, i| {
-        const model = alg.Mat4.fromRotation(
-            20 * @intToFloat(f32, i) + s.frame,
-            alg.Vec3.new(1, 0.3, 0.5),
-        ).translate(pos);
-        shader_program.setUniformByName("u_mvp", projection.mult(view).mult(model));
-        gl.drawArrays(gl.GL_TRIANGLES, 0, 36);
-    }
+    S.axis = alg.Mat4.fromRotation(1, alg.Vec3.new(-1, 1, -1)).multByVec4(S.axis);
+    const model = alg.Mat4.fromRotation(
+        S.frame,
+        alg.Vec3.new(S.axis.x, S.axis.y, S.axis.z),
+    );
+    const mvp = projection.mult(camera.getViewMatrix()).mult(model);
+    shader_program.setUniformByName("u_mvp", mvp);
+    gl.drawArrays(gl.GL_TRIANGLES, 0, 36);
 }
 
 fn quit(ctx: *zp.Context) void {

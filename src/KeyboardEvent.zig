@@ -3,13 +3,13 @@ const c = sdl.c;
 const Self = @This();
 
 ///  press or release
-const TriggerType = enum {
+pub const TriggerType = enum {
     down,
     up,
 };
 
 /// stolen from sdl
-const ScanCode = enum(c_uint) {
+pub const ScanCode = enum(c_uint) {
     unknown = 0,
     a = 4,
     b = 5,
