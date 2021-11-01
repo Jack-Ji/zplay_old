@@ -179,7 +179,7 @@ pub const Context = struct {
         gl.checkError();
     }
 
-    /// issue draw call
+    /// issue draw call (only accept unsigned-integer indices!)
     pub fn drawElements(self: Context, primitive: gl.PrimitiveType, offset: usize, element_count: usize) void {
         _ = self;
         gl.drawElements(
