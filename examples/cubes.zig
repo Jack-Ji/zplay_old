@@ -121,59 +121,56 @@ fn init(ctx: *zp.Context) anyerror!void {
     shader_program.setUniformByName("u_texture2", texture2.tex.getTextureUnit());
 
     // enable depth test
-    gl.enable(gl.GL_DEPTH_TEST);
+    ctx.toggleCapability(.depth_test, true);
 
     std.log.info("game init", .{});
 }
 
-fn event(ctx: *zp.Context, e: zp.Event) void {
-    _ = ctx;
-
-    switch (e) {
-        .window_event => |we| {
-            switch (we.data) {
-                .resized => |size| {
-                    gl.viewport(0, 0, size.width, size.height);
-                },
-                else => {},
-            }
-        },
-        .keyboard_event => |key| {
-            if (key.trigger_type == .down) {
-                return;
-            }
-            switch (key.scan_code) {
-                .escape => ctx.kill(),
-                .f1 => ctx.toggleFullscreeen(),
-                .w => {
-                    if (wireframe_mode) {
-                        wireframe_mode = false;
-                        gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
-                    } else {
-                        wireframe_mode = true;
-                        gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
-                    }
-                },
-                else => {},
-            }
-        },
-        .quit_event => ctx.kill(),
-        else => {},
-    }
-}
-
 fn loop(ctx: *zp.Context) void {
-    var width: i32 = undefined;
-    var height: i32 = undefined;
-    ctx.getSize(&width, &height);
-
     const S = struct {
         var frame: f32 = 0;
     };
     S.frame += 1;
 
-    gl.clearColor(0.2, 0.3, 0.3, 1.0);
-    gl.clear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
+    while (ctx.pollEvent()) |e| {
+        switch (e) {
+            .window_event => |we| {
+                switch (we.data) {
+                    .resized => |size| {
+                        gl.viewport(0, 0, size.width, size.height);
+                    },
+                    else => {},
+                }
+            },
+            .keyboard_event => |key| {
+                if (key.trigger_type == .down) {
+                    return;
+                }
+                switch (key.scan_code) {
+                    .escape => ctx.kill(),
+                    .f1 => ctx.toggleFullscreeen(null),
+                    .w => {
+                        if (wireframe_mode) {
+                            wireframe_mode = false;
+                            gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
+                        } else {
+                            wireframe_mode = true;
+                            gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
+                        }
+                    },
+                    else => {},
+                }
+            },
+            .quit_event => ctx.kill(),
+            else => {},
+        }
+    }
+
+    var width: i32 = undefined;
+    var height: i32 = undefined;
+    ctx.getSize(&width, &height);
+
+    ctx.clear(true, true, false, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     shader_program.use();
     vertex_array.use();
@@ -195,7 +192,7 @@ fn loop(ctx: *zp.Context) void {
             alg.Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
         shader_program.setUniformByName("u_mvp", projection.mult(view).mult(model));
-        gl.drawArrays(gl.GL_TRIANGLES, 0, 36);
+        ctx.drawBuffer(.triangles, 0, 36);
     }
 }
 
@@ -208,9 +205,8 @@ fn quit(ctx: *zp.Context) void {
 pub fn main() anyerror!void {
     try zp.run(.{
         .init_fn = init,
-        .event_fn = event,
         .loop_fn = loop,
         .quit_fn = quit,
-        .resizable = true,
+        .enable_resizable = true,
     });
 }

@@ -82,52 +82,48 @@ fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 }
 
-fn event(ctx: *zp.Context, e: zp.Event) void {
-    _ = ctx;
-
-    switch (e) {
-        .window_event => |we| {
-            switch (we.data) {
-                .resized => |size| {
-                    gl.viewport(0, 0, size.width, size.height);
-                },
-                else => {},
-            }
-        },
-        .keyboard_event => |key| {
-            if (key.trigger_type == .down) {
-                return;
-            }
-            switch (key.scan_code) {
-                .escape => ctx.kill(),
-                .f1 => ctx.toggleFullscreeen(),
-                .w => {
-                    if (wireframe_mode) {
-                        wireframe_mode = false;
-                        gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
-                    } else {
-                        wireframe_mode = true;
-                        gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
-                    }
-                },
-                else => {},
-            }
-        },
-        .quit_event => ctx.kill(),
-        else => {},
-    }
-}
-
 fn loop(ctx: *zp.Context) void {
-    _ = ctx;
-
     const S = struct {
         var frame: f32 = 0;
     };
     S.frame += 1;
 
-    gl.clearColor(0.2, 0.3, 0.3, 1.0);
-    gl.clear(gl.GL_COLOR_BUFFER_BIT);
+    while (ctx.pollEvent()) |e| {
+        switch (e) {
+            .window_event => |we| {
+                switch (we.data) {
+                    .resized => |size| {
+                        gl.viewport(0, 0, size.width, size.height);
+                    },
+                    else => {},
+                }
+            },
+            .keyboard_event => |key| {
+                if (key.trigger_type == .down) {
+                    return;
+                }
+                switch (key.scan_code) {
+                    .escape => ctx.kill(),
+                    .f1 => ctx.toggleFullscreeen(null),
+                    .w => {
+                        if (wireframe_mode) {
+                            wireframe_mode = false;
+                            gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
+                        } else {
+                            wireframe_mode = true;
+                            gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
+                        }
+                    },
+                    else => {},
+                }
+            },
+            .quit_event => ctx.kill(),
+            else => {},
+        }
+    }
+
+    // start drawing
+    ctx.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     shader_program.use();
     vertex_array.use();
@@ -136,7 +132,8 @@ fn loop(ctx: *zp.Context) void {
         "u_mvp",
         alg.Mat4.fromTranslate(alg.Vec3.new(0.5, 0.5, 0)).rotate(S.frame, alg.Vec3.forward()),
     );
-    gl.drawElements(gl.GL_TRIANGLES, 6, gl.GL_UNSIGNED_INT, null);
+
+    ctx.drawElements(.triangles, 0, 6);
 }
 
 fn quit(ctx: *zp.Context) void {
@@ -148,9 +145,8 @@ fn quit(ctx: *zp.Context) void {
 pub fn main() anyerror!void {
     try zp.run(.{
         .init_fn = init,
-        .event_fn = event,
         .loop_fn = loop,
         .quit_fn = quit,
-        .resizable = true,
+        .enable_resizable = true,
     });
 }

@@ -114,70 +114,87 @@ fn init(ctx: *zp.Context) anyerror!void {
     shader_program.setUniformByName("u_texture2", texture2.tex.getTextureUnit());
 
     // enable depth test
-    gl.enable(gl.GL_DEPTH_TEST);
+    ctx.toggleCapability(.depth_test, true);
 
     std.log.info("game init", .{});
 }
 
-fn event(ctx: *zp.Context, e: zp.Event) void {
-    _ = ctx;
-
-    switch (e) {
-        .window_event => |we| {
-            switch (we.data) {
-                .resized => |size| {
-                    gl.viewport(0, 0, size.width, size.height);
-                },
-                else => {},
-            }
-        },
-        .keyboard_event => |key| {
-            if (key.trigger_type == .down) {
-                return;
-            }
-
-            switch (key.scan_code) {
-                .escape => ctx.kill(),
-                .f1 => ctx.toggleFullscreeen(),
-                else => {},
-            }
-        },
-        .mouse_event => |me| {
-            switch (me.data) {
-                .wheel => |scroll| {
-                    fov -= @intToFloat(f32, scroll.scroll_y);
-                    if (fov < 1) {
-                        fov = 1;
-                    }
-                    if (fov > 45) {
-                        fov = 45;
-                    }
-                },
-                else => {},
-            }
-        },
-        .quit_event => ctx.kill(),
-        else => {},
-    }
-}
-
 fn loop(ctx: *zp.Context) void {
+    const S = struct {
+        var frame: f32 = 0;
+        var axis = alg.Vec4.new(1, 1, 1, 0);
+        var last_tick: ?f32 = null;
+    };
+    S.frame += 1;
+
+    // camera movement
+    const distance = ctx.delta_tick * camera.move_speed;
+    if (ctx.isKeyPressed(.w)) {
+        camera.move(.forward, distance);
+    }
+    if (ctx.isKeyPressed(.s)) {
+        camera.move(.backward, distance);
+    }
+    if (ctx.isKeyPressed(.a)) {
+        camera.move(.left, distance);
+    }
+    if (ctx.isKeyPressed(.d)) {
+        camera.move(.right, distance);
+    }
+
+    while (ctx.pollEvent()) |e| {
+        switch (e) {
+            .window_event => |we| {
+                switch (we.data) {
+                    .resized => |size| {
+                        gl.viewport(0, 0, size.width, size.height);
+                    },
+                    else => {},
+                }
+            },
+            .keyboard_event => |key| {
+                if (key.trigger_type == .up) {
+                    switch (key.scan_code) {
+                        .escape => ctx.kill(),
+                        .f1 => ctx.toggleFullscreeen(null),
+                        .m => ctx.toggleRelativeMouseMode(null),
+                        .v => ctx.toggleVsyncMode(null),
+                        else => {},
+                    }
+                }
+            },
+            .mouse_event => |me| {
+                switch (me.data) {
+                    .motion => |motion| {
+                        // camera rotation
+                        camera.rotate(
+                            camera.mouse_sensitivity * @intToFloat(f32, -motion.yrel),
+                            camera.mouse_sensitivity * @intToFloat(f32, motion.xrel),
+                        );
+                    },
+                    .wheel => |scroll| {
+                        fov -= @intToFloat(f32, scroll.scroll_y);
+                        if (fov < 1) {
+                            fov = 1;
+                        }
+                        if (fov > 45) {
+                            fov = 45;
+                        }
+                    },
+                    else => {},
+                }
+            },
+            .quit_event => ctx.kill(),
+            else => {},
+        }
+    }
+
     var width: i32 = undefined;
     var height: i32 = undefined;
     ctx.getSize(&width, &height);
 
-    const S = struct {
-        var frame: f32 = 0;
-        var axis = alg.Vec4.new(1, 1, 1, 0);
-    };
-    S.frame += 1;
-
-    // update camera
-    camera.updateInContext(ctx);
-
     // start drawing
-    gl.clearColor(0.2, 0.3, 0.3, 1.0);
-    gl.clear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
+    ctx.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     shader_program.use();
     vertex_array.use();
@@ -195,7 +212,8 @@ fn loop(ctx: *zp.Context) void {
     );
     const mvp = projection.mult(camera.getViewMatrix()).mult(model);
     shader_program.setUniformByName("u_mvp", mvp);
-    gl.drawArrays(gl.GL_TRIANGLES, 0, 36);
+
+    ctx.drawBuffer(.triangles, 0, 36);
 }
 
 fn quit(ctx: *zp.Context) void {
@@ -207,9 +225,8 @@ fn quit(ctx: *zp.Context) void {
 pub fn main() anyerror!void {
     try zp.run(.{
         .init_fn = init,
-        .event_fn = event,
         .loop_fn = loop,
         .quit_fn = quit,
-        .resizable = true,
+        .enable_relative_mouse_mode = true,
     });
 }

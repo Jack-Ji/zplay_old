@@ -1,7 +1,8 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const Context = @import("lib.zig").Context;
-const alg = @import("lib.zig").alg;
+const zp = @import("lib.zig");
+const Context = zp.Context;
+const alg = zp.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
 const Self = @This();
@@ -34,10 +35,8 @@ right: Vec3 = undefined,
 euler: Vec3 = undefined,
 
 /// i/o state
-last_tick: ?f32 = null,
 move_speed: f32 = 2.5,
 mouse_sensitivity: f32 = 0.25,
-last_mouse_state: sdl.MouseState = undefined,
 
 /// create a 3d camera using position and target
 pub fn fromPositionAndTarget(pos: Vec3, target: Vec3, world_up: ?Vec3) Self {
@@ -104,37 +103,4 @@ fn _updateVectors(self: *Self) void {
     self.dir = self.dir.norm();
     self.right = self.dir.cross(self.world_up).norm();
     self.up = self.right.cross(self.dir).norm();
-}
-
-/// update camera according to keyboard/mouse state
-pub fn updateInContext(self: *Self, ctx: *Context) void {
-    if (self.last_tick == null) {
-        self.last_tick = ctx.tick;
-        self.last_mouse_state = ctx.getMouseState();
-        return;
-    }
-
-    // keyboard WSAD movement
-    const delta_tick = ctx.tick - self.last_tick.?;
-    self.last_tick = ctx.tick;
-    const distance = delta_tick * self.move_speed;
-    if (ctx.isKeyPressed(.w)) {
-        self.move(.forward, distance);
-    }
-    if (ctx.isKeyPressed(.s)) {
-        self.move(.backward, distance);
-    }
-    if (ctx.isKeyPressed(.a)) {
-        self.move(.left, distance);
-    }
-    if (ctx.isKeyPressed(.d)) {
-        self.move(.right, distance);
-    }
-
-    // mouse rotation
-    const state = ctx.getMouseState();
-    const xoffset = @intToFloat(f32, state.x - self.last_mouse_state.x);
-    const yoffset = @intToFloat(f32, self.last_mouse_state.y - state.y);
-    self.last_mouse_state = state;
-    self.rotate(self.mouse_sensitivity * yoffset, self.mouse_sensitivity * xoffset);
 }

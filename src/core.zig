@@ -1,66 +1,206 @@
+const std = @import("std");
 const sdl = @import("sdl");
 const c = sdl.c;
 const gl = @import("gl/gl.zig");
 
 /// application context
 pub const Context = struct {
-    // following fields are readonly, user code shouldn't modify them
     _window: sdl.Window = undefined,
     _quit: bool = undefined,
     _title: [:0]const u8 = undefined,
-    _fullscreen: bool = undefined,
-    _enable_vsync: bool = undefined,
 
-    /// number of seconds since program has being runing
+    /// resizable mode
+    _resizable: bool = undefined,
+
+    /// fullscreen mode
+    _fullscreen: bool = undefined,
+
+    /// vsync mode
+    _vsync: bool = undefined,
+
+    /// relative mouse mode
+    _relative_moouse: bool = undefined,
+
+    /// number of seconds since launch/last-frame
     tick: f32 = undefined,
+    delta_tick: f32 = undefined,
 
     /// kill app
     pub fn kill(self: *Context) void {
         self._quit = true;
     }
 
-    /// toggle fullscreen
-    pub fn toggleFullscreeen(self: *Context) void {
-        if (self._fullscreen) {
-            if (c.SDL_SetWindowFullscreen(self._window.ptr, 0) == 0) {
-                self._fullscreen = false;
-            }
-        } else {
-            if (c.SDL_SetWindowFullscreen(self._window.ptr, c.SDL_WINDOW_FULLSCREEN) == 0) {
-                self._fullscreen = true;
+    /// poll event
+    pub fn pollEvent(self: *Context) ?Event {
+        _ = self;
+        while (sdl.pollEvent()) |e| {
+            if (Event.init(e)) |ze| {
+                return ze;
             }
         }
+        return null;
+    }
+
+    /// toggle resizable
+    pub fn toggleResizable(self: *Context, on_off: ?bool) void {
+        if (on_off) |state| {
+            self._resizable = state;
+        } else {
+            self._resizable = !self._resizable;
+        }
+        _ = c.SDL_SetWindowResizable(
+            self._window.ptr,
+            if (self._resizable) c.SDL_TRUE else c.SDL_FALSE,
+        );
+    }
+
+    /// toggle fullscreen
+    pub fn toggleFullscreeen(self: *Context, on_off: ?bool) void {
+        if (on_off) |state| {
+            self._fullscreen = state;
+        } else {
+            self._fullscreen = !self._fullscreen;
+        }
+        _ = c.SDL_SetWindowFullscreen(
+            self._window.ptr,
+            if (self._fullscreen) c.SDL_WINDOW_FULLSCREEN else 0,
+        );
+    }
+
+    ///  toggle vsync mode 
+    pub fn toggleVsyncMode(self: *Context, on_off: ?bool) void {
+        if (on_off) |state| {
+            self._vsync = state;
+        } else {
+            self._vsync = !self._vsync;
+        }
+        sdl.gl.setSwapInterval(
+            if (self._vsync) .vsync else .immediate,
+        ) catch |e| {
+            std.debug.print("toggle vsync failed, {}", .{e});
+            std.debug.print("using mode: {s}", .{
+                if (c.SDL_GL_GetSwapInterval() == 1) "immediate" else "vsync    ",
+            });
+        };
+    }
+
+    /// toggle relative mouse mode
+    pub fn toggleRelativeMouseMode(self: *Context, on_off: ?bool) void {
+        if (on_off) |state| {
+            self._relative_moouse = state;
+        } else {
+            self._relative_moouse = !self._relative_moouse;
+        }
+        _ = c.SDL_SetRelativeMouseMode(
+            if (self._relative_moouse) c.SDL_TRUE else c.SDL_FALSE,
+        );
     }
 
     /// get position of window
-    pub fn getPosition(self: *Context, x: ?*i32, y: ?*i32) void {
+    pub fn getPosition(self: Context, x: ?*i32, y: ?*i32) void {
         c.SDL_GetWindowPosition(self._window.ptr, x.?, y.?);
     }
 
     /// get size of window
-    pub fn getSize(self: *Context, w: ?*i32, h: ?*i32) void {
+    pub fn getSize(self: Context, w: ?*i32, h: ?*i32) void {
         c.SDL_GetWindowSize(self._window.ptr, w.?, h.?);
     }
 
-    // get key status
+    /// get key status
     pub fn isKeyPressed(self: Context, key: KeyboardEvent.ScanCode) bool {
         _ = self;
         const state = c.SDL_GetKeyboardState(null);
         return state[@enumToInt(key)] == 1;
     }
 
-    // get mouse state
+    /// get mouse state
     pub fn getMouseState(self: Context) sdl.MouseState {
         _ = self;
         return sdl.getMouseState();
     }
+
+    /// move mouse to given position (relative to window)
+    pub fn setMousePosition(self: Context, xrel: f32, yrel: f32) void {
+        var w: i32 = undefined;
+        var h: i32 = undefined;
+        c.SDL_GetWindowSize(self._window.ptr, &w, &h);
+        c.SDL_WarpMouseInWindow(
+            self._window.ptr,
+            @floatToInt(i32, @intToFloat(f32, w) * xrel),
+            @floatToInt(i32, @intToFloat(f32, h) * yrel),
+        );
+    }
+
+    /// toggle opengl capability
+    pub fn toggleCapability(self: Context, cap: gl.Capability, on_off: bool) void {
+        _ = self;
+        if (on_off) {
+            gl.enable(@enumToInt(cap));
+        } else {
+            gl.disable(@enumToInt(cap));
+        }
+        gl.checkError();
+    }
+
+    /// clear buffers
+    pub fn clear(
+        self: Context,
+        clear_color: bool,
+        clear_depth: bool,
+        clear_stencil: bool,
+        color: ?[4]f32,
+    ) void {
+        _ = self;
+        var clear_flags: c_uint = 0;
+        if (clear_color) {
+            clear_flags |= gl.GL_COLOR_BUFFER_BIT;
+        }
+        if (clear_depth) {
+            clear_flags |= gl.GL_DEPTH_BUFFER_BIT;
+        }
+        if (clear_stencil) {
+            clear_flags |= gl.GL_STENCIL_BUFFER_BIT;
+        }
+        if (color) |rgba| {
+            gl.clearColor(rgba[0], rgba[1], rgba[2], rgba[3]);
+        }
+        gl.clear(clear_flags);
+        gl.checkError();
+    }
+
+    /// issue draw call
+    pub fn drawBuffer(self: Context, primitive: gl.PrimitiveType, offset: usize, vertex_count: usize) void {
+        _ = self;
+        gl.drawArrays(
+            @enumToInt(primitive),
+            @intCast(gl.GLint, offset),
+            @intCast(gl.GLsizei, vertex_count),
+        );
+        gl.checkError();
+    }
+
+    /// issue draw call
+    pub fn drawElements(self: Context, primitive: gl.PrimitiveType, offset: usize, element_count: usize) void {
+        _ = self;
+        gl.drawElements(
+            @enumToInt(primitive),
+            @intCast(gl.GLsizei, element_count),
+            gl.dataType(u32),
+            @intToPtr(*allowzero c_void, offset),
+        );
+        gl.checkError();
+    }
 };
 
-/// game running callbacks
+/// application configurations
 pub const Game = struct {
+    /// called once before rendering loop starts
     init_fn: fn (ctx: *Context) anyerror!void,
-    event_fn: fn (ctx: *Context, e: Event) void,
+
+    /// called every frame
     loop_fn: fn (ctx: *Context) void,
+
+    /// called before life ends
     quit_fn: fn (ctx: *Context) void,
 
     /// window's title
@@ -70,15 +210,15 @@ pub const Game = struct {
     pos_x: sdl.WindowPosition = .default,
     pos_y: sdl.WindowPosition = .default,
 
-    // whether window is resizable
-    resizable: bool = false,
-
     /// width/height of window
     width: usize = 800,
     height: usize = 600,
 
+    // resizable switch
+    enable_resizable: bool = false,
+
     /// display switch
-    fullscreen: bool = false,
+    enable_fullscreen: bool = false,
 
     // vsync switch
     enable_vsync: bool = true,
@@ -160,8 +300,9 @@ pub fn run(g: Game) !void {
     var context: Context = .{
         ._quit = false,
         ._title = g.title,
-        ._fullscreen = g.fullscreen,
-        ._enable_vsync = g.enable_vsync,
+        ._fullscreen = g.enable_fullscreen,
+        ._vsync = g.enable_vsync,
+        ._relative_moouse = g.enable_relative_mouse_mode,
     };
 
     // decide opengl params
@@ -175,14 +316,9 @@ pub fn run(g: Game) !void {
     var flags = sdl.WindowFlags{
         .allow_high_dpi = true,
         .mouse_capture = true,
+        .mouse_focus = true,
         .opengl = true,
     };
-    if (g.resizable) {
-        flags.resizable = true;
-    }
-    if (g.fullscreen) {
-        flags.fullscreen = true;
-    }
     context._window = try sdl.createWindow(
         g.title,
         g.pos_x,
@@ -200,14 +336,12 @@ pub fn run(g: Game) !void {
     if (gl.gladLoadGL() == 0) {
         @panic("load opengl functions failed!");
     }
-    if (g.enable_vsync) {
-        try sdl.gl.setSwapInterval(.vsync);
-    }
 
-    // other options
-    if (g.enable_relative_mouse_mode) {
-        _ = c.SDL_SetRelativeMouseMode(c.SDL_TRUE);
-    }
+    // apply custom options, still changable through Context's methods
+    context.toggleResizable(g.enable_resizable);
+    context.toggleFullscreeen(g.enable_fullscreen);
+    context.toggleVsyncMode(g.enable_vsync);
+    context.toggleRelativeMouseMode(g.enable_relative_mouse_mode);
 
     // init before loop
     try g.init_fn(&context);
@@ -220,16 +354,10 @@ pub fn run(g: Game) !void {
 
     // game loop
     while (!context._quit) {
-        // event loop
-        while (sdl.pollEvent()) |e| {
-            if (Event.init(e)) |ze| {
-                g.event_fn(&context, ze);
-            }
-        }
-
         // update tick
         const counter = c.SDL_GetPerformanceCounter();
-        context.tick += @intToFloat(f32, counter - last_counter) / counter_freq;
+        context.delta_tick = @intToFloat(f32, counter - last_counter) / counter_freq;
+        context.tick += context.delta_tick;
         last_counter = counter;
 
         // main loop
