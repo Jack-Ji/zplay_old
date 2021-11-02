@@ -76,7 +76,7 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    ctx.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    gl.util.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     shader_program.use();
     vertex_array.use();
@@ -84,7 +84,7 @@ fn loop(ctx: *zp.Context) void {
     // update color and draw triangle
     const color = alg.Vec4.new(0.2, 0.3 + std.math.absFloat(std.math.sin(ctx.tick)), 0.3, 1);
     shader_program.setUniformByName("u_color", color);
-    ctx.drawBuffer(.triangles, 0, 3);
+    gl.util.drawBuffer(.triangles, 0, 3);
 }
 
 fn quit(ctx: *zp.Context) void {

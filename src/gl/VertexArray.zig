@@ -51,7 +51,7 @@ pub fn init(vbo_num: usize) Self {
     gl.genVertexArrays(1, &va.id);
     va.vbo_num = vbo_num;
     gl.genBuffers(@intCast(c_int, vbo_num), &va.vbos);
-    gl.checkError();
+    gl.util.checkError();
     return va;
 }
 
@@ -62,7 +62,7 @@ pub fn deinit(self: *Self) void {
     self.id = undefined;
     self.vbos = undefined;
     self.vbo_num = undefined;
-    gl.checkError();
+    gl.util.checkError();
 }
 
 /// update buffer data
@@ -75,7 +75,7 @@ pub fn bufferData(
     usage: BufferUsage,
 ) void {
     // check if data type is valid
-    _ = gl.dataType(T);
+    _ = gl.util.dataType(T);
 
     if (vbo_index > self.vbo_num) {
         std.debug.panic("invalid vbo index", .{});
@@ -88,7 +88,7 @@ pub fn bufferData(
         data.ptr,
         @enumToInt(usage),
     );
-    gl.checkError();
+    gl.util.checkError();
 }
 
 // set vertex attribute (will enable attribute afterwards)
@@ -106,19 +106,19 @@ pub fn setAttribute(
     gl.vertexAttribPointer(
         loc,
         @intCast(c_int, size),
-        gl.dataType(T),
-        gl.boolType(normalized),
+        gl.util.dataType(T),
+        gl.util.boolType(normalized),
         @intCast(c_int, stride),
         @intToPtr(*allowzero c_void, offset),
     );
     gl.enableVertexAttribArray(loc);
-    gl.checkError();
+    gl.util.checkError();
 }
 
 /// start using vertex array
 pub fn use(self: Self) void {
     gl.bindVertexArray(self.id);
-    gl.checkError();
+    gl.util.checkError();
 }
 
 /// stop using vertex array
@@ -126,5 +126,5 @@ pub fn disuse(self: Self) void {
     _ = self;
 
     gl.bindVertexArray(0);
-    gl.checkError();
+    gl.util.checkError();
 }

@@ -82,10 +82,10 @@ fn loop(ctx: *zp.Context) void {
 
     _ = ctx;
 
-    ctx.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    gl.util.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
     shader_program.use();
     vertex_array.use();
-    ctx.drawBuffer(.triangles, 0, 3);
+    gl.util.drawBuffer(.triangles, 0, 3);
 }
 
 fn quit(ctx: *zp.Context) void {

@@ -29,7 +29,7 @@ pub fn init(
         gl.getShaderInfoLog(vshader, 512, &log_size, &shader_log);
         std.debug.panic("compile vertex shader failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
     }
-    gl.checkError();
+    gl.util.checkError();
 
     // fragment shader
     var fshader = gl.createShader(gl.GL_FRAGMENT_SHADER);
@@ -41,7 +41,7 @@ pub fn init(
         gl.getShaderInfoLog(fshader, 512, &log_size, &shader_log);
         std.debug.panic("compile fragment shader failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
     }
-    gl.checkError();
+    gl.util.checkError();
 
     // link program
     program.id = gl.createProgram();
@@ -53,7 +53,7 @@ pub fn init(
         gl.getProgramInfoLog(program.id, 512, &log_size, &shader_log);
         std.debug.panic("link shader program failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
     }
-    gl.checkError();
+    gl.util.checkError();
 
     // init uniform location cache
     program.uniform_locs = std.StringHashMap(gl.GLint).init(std.heap.raw_c_allocator);
@@ -66,13 +66,13 @@ pub fn deinit(self: *Self) void {
     gl.deleteProgram(self.id);
     self.id = undefined;
     self.uniform_locs.deinit();
-    gl.checkError();
+    gl.util.checkError();
 }
 
 /// start using shader program
 pub fn use(self: Self) void {
     gl.useProgram(self.id);
-    gl.checkError();
+    gl.util.checkError();
 }
 
 /// stop using shader program
@@ -80,7 +80,7 @@ pub fn disuse(self: Self) void {
     _ = self;
 
     gl.useProgram(0);
-    gl.checkError();
+    gl.util.checkError();
 }
 
 /// set uniform value with name
@@ -98,7 +98,7 @@ pub fn setUniformByName(self: *Self, name: [:0]const u8, v: anytype) void {
     } else {
         // query driver
         loc = gl.getUniformLocation(self.id, name.ptr);
-        gl.checkError();
+        gl.util.checkError();
         if (loc < 0) {
             std.debug.panic("can't find location of uniform {s}", .{name});
         }
@@ -147,5 +147,5 @@ fn _setUniformByLocation(self: Self, loc: gl.GLint, v: anytype) void {
         alg.Mat4 => gl.uniformMatrix4fv(loc, 1, gl.GL_FALSE, v.getData()),
         else => std.debug.panic("unsupported type {s}", .{@typeName(@TypeOf(v))}),
     }
-    gl.checkError();
+    gl.util.checkError();
 }

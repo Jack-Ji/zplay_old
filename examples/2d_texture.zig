@@ -123,7 +123,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     // start drawing
-    ctx.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    gl.util.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     shader_program.use();
     vertex_array.use();
@@ -133,7 +133,7 @@ fn loop(ctx: *zp.Context) void {
         alg.Mat4.fromTranslate(alg.Vec3.new(0.5, 0.5, 0)).rotate(S.frame, alg.Vec3.forward()),
     );
 
-    ctx.drawElements(.triangles, 0, 6);
+    gl.util.drawElements(.triangles, 0, 6);
 }
 
 fn quit(ctx: *zp.Context) void {

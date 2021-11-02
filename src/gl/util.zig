@@ -1,5 +1,6 @@
 const gl = @import("gl.zig");
 
+/// check error of last opengl call
 pub fn checkError() void {
     switch (gl.getError()) {
         gl.GL_NO_ERROR => {},
@@ -11,6 +12,7 @@ pub fn checkError() void {
     }
 }
 
+/// convert zig primitive type into opengl enums
 pub fn dataType(comptime T: type) c_uint {
     return switch (T) {
         i8 => gl.GL_BYTE,
@@ -26,6 +28,7 @@ pub fn dataType(comptime T: type) c_uint {
     };
 }
 
+/// convert boolean value into opengl enums
 pub fn boolType(b: bool) u8 {
     return if (b) gl.GL_TRUE else gl.GL_FALSE;
 }
@@ -69,3 +72,58 @@ pub const PrimitiveType = enum(c_uint) {
     triangle_strip_adjacency = gl.GL_TRIANGLE_STRIP_ADJACENCY,
     triangles_adjacency = gl.GL_TRIANGLES_ADJACENCY,
 };
+
+/// toggle opengl capability
+pub fn toggleCapability(cap: Capability, on_off: bool) void {
+    if (on_off) {
+        gl.enable(@enumToInt(cap));
+    } else {
+        gl.disable(@enumToInt(cap));
+    }
+    checkError();
+}
+
+/// clear buffers
+pub fn clear(
+    clear_color: bool,
+    clear_depth: bool,
+    clear_stencil: bool,
+    color: ?[4]f32,
+) void {
+    var clear_flags: c_uint = 0;
+    if (clear_color) {
+        clear_flags |= gl.GL_COLOR_BUFFER_BIT;
+    }
+    if (clear_depth) {
+        clear_flags |= gl.GL_DEPTH_BUFFER_BIT;
+    }
+    if (clear_stencil) {
+        clear_flags |= gl.GL_STENCIL_BUFFER_BIT;
+    }
+    if (color) |rgba| {
+        gl.clearColor(rgba[0], rgba[1], rgba[2], rgba[3]);
+    }
+    gl.clear(clear_flags);
+    checkError();
+}
+
+/// issue draw call
+pub fn drawBuffer(primitive: PrimitiveType, offset: usize, vertex_count: usize) void {
+    gl.drawArrays(
+        @enumToInt(primitive),
+        @intCast(gl.GLint, offset),
+        @intCast(gl.GLsizei, vertex_count),
+    );
+    checkError();
+}
+
+/// issue draw call (only accept unsigned-integer indices!)
+pub fn drawElements(primitive: PrimitiveType, offset: usize, element_count: usize) void {
+    gl.drawElements(
+        @enumToInt(primitive),
+        @intCast(gl.GLsizei, element_count),
+        dataType(u32),
+        @intToPtr(*allowzero c_void, offset),
+    );
+    checkError();
+}

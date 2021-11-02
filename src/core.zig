@@ -130,66 +130,6 @@ pub const Context = struct {
             @floatToInt(i32, @intToFloat(f32, h) * yrel),
         );
     }
-
-    /// toggle opengl capability
-    pub fn toggleCapability(self: Context, cap: gl.Capability, on_off: bool) void {
-        _ = self;
-        if (on_off) {
-            gl.enable(@enumToInt(cap));
-        } else {
-            gl.disable(@enumToInt(cap));
-        }
-        gl.checkError();
-    }
-
-    /// clear buffers
-    pub fn clear(
-        self: Context,
-        clear_color: bool,
-        clear_depth: bool,
-        clear_stencil: bool,
-        color: ?[4]f32,
-    ) void {
-        _ = self;
-        var clear_flags: c_uint = 0;
-        if (clear_color) {
-            clear_flags |= gl.GL_COLOR_BUFFER_BIT;
-        }
-        if (clear_depth) {
-            clear_flags |= gl.GL_DEPTH_BUFFER_BIT;
-        }
-        if (clear_stencil) {
-            clear_flags |= gl.GL_STENCIL_BUFFER_BIT;
-        }
-        if (color) |rgba| {
-            gl.clearColor(rgba[0], rgba[1], rgba[2], rgba[3]);
-        }
-        gl.clear(clear_flags);
-        gl.checkError();
-    }
-
-    /// issue draw call
-    pub fn drawBuffer(self: Context, primitive: gl.PrimitiveType, offset: usize, vertex_count: usize) void {
-        _ = self;
-        gl.drawArrays(
-            @enumToInt(primitive),
-            @intCast(gl.GLint, offset),
-            @intCast(gl.GLsizei, vertex_count),
-        );
-        gl.checkError();
-    }
-
-    /// issue draw call (only accept unsigned-integer indices!)
-    pub fn drawElements(self: Context, primitive: gl.PrimitiveType, offset: usize, element_count: usize) void {
-        _ = self;
-        gl.drawElements(
-            @enumToInt(primitive),
-            @intCast(gl.GLsizei, element_count),
-            gl.dataType(u32),
-            @intToPtr(*allowzero c_void, offset),
-        );
-        gl.checkError();
-    }
 };
 
 /// application configurations

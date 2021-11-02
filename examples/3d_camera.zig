@@ -114,7 +114,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     shader_program.setUniformByName("u_texture2", texture2.tex.getTextureUnit());
 
     // enable depth test
-    ctx.toggleCapability(.depth_test, true);
+    gl.util.toggleCapability(.depth_test, true);
 
     std.log.info("game init", .{});
 }
@@ -194,7 +194,7 @@ fn loop(ctx: *zp.Context) void {
     ctx.getSize(&width, &height);
 
     // start drawing
-    ctx.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    gl.util.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     shader_program.use();
     vertex_array.use();
@@ -213,7 +213,7 @@ fn loop(ctx: *zp.Context) void {
     const mvp = projection.mult(camera.getViewMatrix()).mult(model);
     shader_program.setUniformByName("u_mvp", mvp);
 
-    ctx.drawBuffer(.triangles, 0, 36);
+    gl.util.drawBuffer(.triangles, 0, 36);
 }
 
 fn quit(ctx: *zp.Context) void {

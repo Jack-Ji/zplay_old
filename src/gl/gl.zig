@@ -2,7 +2,7 @@
 pub usingnamespace @import("api.zig");
 
 /// helper functions
-pub usingnamespace @import("util.zig");
+pub const util = @import("util.zig");
 
 /// shader program object
 pub const ShaderProgram = @import("ShaderProgram.zig");

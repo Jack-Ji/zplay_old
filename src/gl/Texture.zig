@@ -154,7 +154,7 @@ pub fn init(tt: TextureType) Self {
         .tt = tt,
     };
     gl.genTextures(1, &texture.id);
-    gl.checkError();
+    gl.util.checkError();
     return texture;
 }
 
@@ -163,7 +163,7 @@ pub fn deinit(self: *Self) void {
     self.id = undefined;
     self.tt = undefined;
     self.tu = undefined;
-    gl.checkError();
+    gl.util.checkError();
 }
 
 // activate and bind to given texture unit
@@ -171,7 +171,7 @@ pub fn bindToTextureUnit(self: *Self, unit: TextureUnit) void {
     self.tu = unit;
     gl.activeTexture(@enumToInt(self.tu));
     gl.bindTexture(@enumToInt(self.tt), self.id);
-    gl.checkError();
+    gl.util.checkError();
 }
 
 // get binded texture unit
@@ -184,7 +184,7 @@ pub fn getTextureUnit(self: Self) i32 {
 pub fn setWrapping(self: Self, coord: WrappingCoord, mode: WrappingMode) void {
     std.debug.assert(self.tt == .texture_2d);
     gl.texParameteri(gl.GL_TEXTURE_2D, @enumToInt(coord), @enumToInt(mode));
-    gl.checkError();
+    gl.util.checkError();
 }
 
 /// set border color, useful when using `WrappingMode.clamp_to_border`
@@ -231,7 +231,7 @@ pub fn updateImageData(
                 @intCast(c_int, width),
                 0,
                 @enumToInt(image_format),
-                gl.dataType(T),
+                gl.util.dataType(T),
                 data.ptr,
             );
         },
@@ -245,7 +245,7 @@ pub fn updateImageData(
                 @intCast(c_int, height.?),
                 0,
                 @enumToInt(image_format),
-                gl.dataType(T),
+                gl.util.dataType(T),
                 data.ptr,
             );
         },
@@ -259,7 +259,7 @@ pub fn updateImageData(
                 @intCast(c_int, height.?),
                 0,
                 @enumToInt(image_format),
-                gl.dataType(T),
+                gl.util.dataType(T),
                 data.ptr,
             );
         },
@@ -273,7 +273,7 @@ pub fn updateImageData(
                 @intCast(c_int, height.?),
                 0,
                 @enumToInt(image_format),
-                gl.dataType(T),
+                gl.util.dataType(T),
                 data.ptr,
             );
         },
@@ -293,7 +293,7 @@ pub fn updateImageData(
                 @intCast(c_int, height.?),
                 0,
                 @enumToInt(image_format),
-                gl.dataType(T),
+                gl.util.dataType(T),
                 data.ptr,
             );
         },
@@ -308,7 +308,7 @@ pub fn updateImageData(
                 @intCast(c_int, depth.?),
                 0,
                 @enumToInt(image_format),
-                gl.dataType(T),
+                gl.util.dataType(T),
                 data.ptr,
             );
         },
@@ -323,7 +323,7 @@ pub fn updateImageData(
                 @intCast(c_int, depth.?),
                 0,
                 @enumToInt(image_format),
-                gl.dataType(T),
+                gl.util.dataType(T),
                 data.ptr,
             );
         },
@@ -331,11 +331,11 @@ pub fn updateImageData(
             std.debug.panic("invalid operation!", .{});
         },
     }
-    gl.checkError();
+    gl.util.checkError();
 
     if (self.tt != .texture_rectangle and gen_mipmap) {
         gl.generateMipmap(@enumToInt(self.tt));
-        gl.checkError();
+        gl.util.checkError();
     }
 }
 
@@ -359,7 +359,7 @@ pub fn updateMultisampleData(
                 @enumToInt(texture_format),
                 width,
                 height,
-                gl.boolType(fixed_sample_location),
+                gl.util.boolType(fixed_sample_location),
             );
         },
         .texture_2d_multisample_array => {
@@ -371,14 +371,14 @@ pub fn updateMultisampleData(
                 width,
                 height,
                 depth.?,
-                gl.boolType(fixed_sample_location),
+                gl.util.boolType(fixed_sample_location),
             );
         },
         else => {
             std.debug.panic("invalid operation!", .{});
         },
     }
-    gl.checkError();
+    gl.util.checkError();
 }
 
 /// update buffer texture data
@@ -389,5 +389,5 @@ pub fn updateBufferTexture(
 ) void {
     std.debug.assert(self.tt == .texture_buffer);
     gl.texBuffer(gl.GL_TEXTURE_BUFFER, @enumToInt(texture_format), vbo);
-    gl.checkError();
+    gl.util.checkError();
 }

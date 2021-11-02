@@ -111,7 +111,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     cube_va.setAttribute(0, 3, f32, false, 3 * @sizeOf(f32), 0);
 
     // enable depth test
-    ctx.toggleCapability(.depth_test, true);
+    gl.util.toggleCapability(.depth_test, true);
 
     std.log.info("game init", .{});
 }
@@ -179,7 +179,7 @@ fn loop(ctx: *zp.Context) void {
     ctx.getSize(&width, &height);
 
     // start drawing
-    ctx.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
+    gl.util.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
 
     cube_va.use();
 
@@ -199,14 +199,14 @@ fn loop(ctx: *zp.Context) void {
     normal_shader_program.setUniformByName("u_mvp", mvp);
     normal_shader_program.setUniformByName("u_object_color", alg.Vec3.new(1, 0.5, 0.31));
     normal_shader_program.setUniformByName("u_light_color", alg.Vec3.new(1, 1, 1));
-    ctx.drawBuffer(.triangles, 0, 36);
+    gl.util.drawBuffer(.triangles, 0, 36);
 
     // draw light
     light_shader_program.use();
     model = alg.Mat4.fromScale(alg.Vec3.set(0.2)).translate(light_pos);
     mvp = projection.mult(camera.getViewMatrix()).mult(model);
     light_shader_program.setUniformByName("u_mvp", mvp);
-    ctx.drawBuffer(.triangles, 0, 36);
+    gl.util.drawBuffer(.triangles, 0, 36);
 }
 
 fn quit(ctx: *zp.Context) void {
