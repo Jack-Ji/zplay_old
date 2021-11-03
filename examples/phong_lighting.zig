@@ -34,13 +34,17 @@ const fragment_shader =
     \\uniform vec3 u_object_color;
     \\uniform vec3 u_light_color;
     \\uniform vec3 u_light_pos;
+    \\uniform vec3 u_view_pos;
     \\
     \\vec3 ambientColor(vec3 light_color, float strength)
     \\{
     \\    return light_color * strength;
     \\}
     \\
-    \\vec3 diffuseColor(vec3 light_color, vec3 light_pos, vec3 vertex_pos, vec3 vertex_normal)
+    \\vec3 diffuseColor(vec3 light_color,
+    \\                  vec3 light_pos,
+    \\                  vec3 vertex_pos,
+    \\                  vec3 vertex_normal)
     \\{
     \\    vec3 norm = normalize(vertex_normal);
     \\    vec3 light_dir = normalize(light_pos - vertex_pos);
@@ -48,12 +52,28 @@ const fragment_shader =
     \\    return light_color * diff;
     \\}
     \\
+    \\vec3 specularColor(vec3 light_color,
+    \\                   vec3 light_pos,
+    \\                   vec3 view_pos,
+    \\                   vec3 vertex_pos,
+    \\                   vec3 vertex_normal,
+    \\                   float spec_strength,
+    \\                   int shiness)
+    \\{
+    \\    vec3 norm = normalize(vertex_normal);
+    \\    vec3 view_dir = normalize(view_pos - vertex_pos);
+    \\    vec3 light_dir = normalize(light_pos - vertex_pos);
+    \\    vec3 reflect_dir = reflect(-light_dir, norm);
+    \\    return light_color * spec_strength * pow(max(dot(view_dir, reflect_dir), 0.0), shiness);
+    \\}
+    \\
     \\void main()
     \\{
     \\    vec3 ambient_color = ambientColor(u_light_color, 0.1);
     \\    vec3 diffuse_color = diffuseColor(u_light_color, u_light_pos, v_pos, v_normal);
+    \\    vec3 specular_color = specularColor(u_light_color, u_light_pos, u_view_pos, v_pos, v_normal, 0.5, 32);
     \\
-    \\    vec3 result = (ambient_color + diffuse_color) * u_object_color;
+    \\    vec3 result = (ambient_color + diffuse_color + specular_color) * u_object_color;
     \\    frag_color = vec4(result, 1.0);
     \\}
 ;
@@ -220,6 +240,7 @@ fn loop(ctx: *zp.Context) void {
     normal_shader_program.setUniformByName("u_object_color", alg.Vec3.new(1, 0.5, 0.31));
     normal_shader_program.setUniformByName("u_light_color", alg.Vec3.new(1, 1, 1));
     normal_shader_program.setUniformByName("u_light_pos", light_pos);
+    normal_shader_program.setUniformByName("u_view_pos", camera.position);
     gl.util.drawBuffer(.triangles, 0, 36);
 
     // draw light
