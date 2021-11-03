@@ -1,6 +1,6 @@
 const std = @import("std");
-const stb = @import("stb/stb.zig");
-const gl = @import("gl/gl.zig");
+const stb = @import("../lib.zig").stb;
+const gl = @import("gl.zig");
 const stb_image = stb.image;
 const Self = @This();
 

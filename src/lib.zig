@@ -13,8 +13,5 @@ pub const alg = @import("alg/src/main.zig");
 /// stb utilities
 pub const stb = @import("stb/stb.zig");
 
-/// 2d texture
-pub const Texture2D = @import("Texture2D.zig");
-
 /// 3d camera
 pub const Camera3D = @import("Camera3D.zig");

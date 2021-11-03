@@ -71,8 +71,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.bufferData(1, u32, &indices, .element_array_buffer, .static_draw);
 
     // load texture
-    const texture1 = try zp.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
-    const texture2 = try zp.Texture2D.init("assets/awesomeface.png", .texture_unit_1, true);
+    const texture1 = try gl.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
+    const texture2 = try gl.Texture2D.init("assets/awesomeface.png", .texture_unit_1, true);
 
     // only necessary when not using texture unit 0
     shader_program.use();

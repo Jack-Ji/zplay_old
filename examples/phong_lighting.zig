@@ -6,12 +6,21 @@ const alg = zp.alg;
 const vertex_shader =
     \\#version 330 core
     \\layout (location = 0) in vec3 a_pos;
+    \\layout (location = 1) in vec3 a_normal;
     \\
-    \\uniform mat4 u_mvp;
+    \\out vec3 v_pos;
+    \\out vec3 v_normal;
+    \\
+    \\uniform mat4 u_model;
+    \\uniform mat4 u_normal;
+    \\uniform mat4 u_view;
+    \\uniform mat4 u_project;
     \\
     \\void main()
     \\{
-    \\    gl_Position = u_mvp * vec4(a_pos, 1.0);
+    \\    gl_Position = u_project * u_view * u_model * vec4(a_pos, 1.0);
+    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
+    \\    v_normal = mat3(u_normal) * a_normal;
     \\}
 ;
 
@@ -19,15 +28,32 @@ const fragment_shader =
     \\#version 330 core
     \\out vec4 frag_color;
     \\
+    \\in vec3 v_pos;
+    \\in vec3 v_normal;
+    \\
     \\uniform vec3 u_object_color;
     \\uniform vec3 u_light_color;
+    \\uniform vec3 u_light_pos;
+    \\
+    \\vec3 ambientColor(vec3 light_color, float strength)
+    \\{
+    \\    return light_color * strength;
+    \\}
+    \\
+    \\vec3 diffuseColor(vec3 light_color, vec3 light_pos, vec3 vertex_pos, vec3 vertex_normal)
+    \\{
+    \\    vec3 norm = normalize(vertex_normal);
+    \\    vec3 light_dir = normalize(light_pos - vertex_pos);
+    \\    float diff = max(dot(norm, light_dir), 0.0);
+    \\    return light_color * diff;
+    \\}
     \\
     \\void main()
     \\{
-    \\    float ambient_strenth = 0.1;
-    \\    vec3 ambient_color = ambient_strenth * u_light_color;
+    \\    vec3 ambient_color = ambientColor(u_light_color, 0.1);
+    \\    vec3 diffuse_color = diffuseColor(u_light_color, u_light_pos, v_pos, v_normal);
     \\
-    \\    vec3 result = ambient_color * u_object_color;
+    \\    vec3 result = (ambient_color + diffuse_color) * u_object_color;
     \\    frag_color = vec4(result, 1.0);
     \\}
 ;
@@ -44,56 +70,56 @@ const light_shader =
 
 var normal_shader_program: gl.ShaderProgram = undefined;
 var light_shader_program: gl.ShaderProgram = undefined;
-var light_pos = alg.Vec3.new(1.2, 1, -2);
+var light_pos = alg.Vec3.new(1.2, 1, 2);
 var cube_va: gl.VertexArray = undefined;
 var camera = zp.Camera3D.fromPositionAndTarget(
-    alg.Vec3.new(0, 0, 3),
+    alg.Vec3.new(1, 2, 3),
     alg.Vec3.zero(),
     null,
 );
 
 const vertices = [_]f32{
-    -0.5, -0.5, -0.5,
-    0.5,  -0.5, -0.5,
-    0.5,  0.5,  -0.5,
-    0.5,  0.5,  -0.5,
-    -0.5, 0.5,  -0.5,
-    -0.5, -0.5, -0.5,
+    -0.5, -0.5, -0.5, 0.0,  0.0,  -1.0,
+    0.5,  -0.5, -0.5, 0.0,  0.0,  -1.0,
+    0.5,  0.5,  -0.5, 0.0,  0.0,  -1.0,
+    0.5,  0.5,  -0.5, 0.0,  0.0,  -1.0,
+    -0.5, 0.5,  -0.5, 0.0,  0.0,  -1.0,
+    -0.5, -0.5, -0.5, 0.0,  0.0,  -1.0,
 
-    -0.5, -0.5, 0.5,
-    0.5,  -0.5, 0.5,
-    0.5,  0.5,  0.5,
-    0.5,  0.5,  0.5,
-    -0.5, 0.5,  0.5,
-    -0.5, -0.5, 0.5,
+    -0.5, -0.5, 0.5,  0.0,  0.0,  1.0,
+    0.5,  -0.5, 0.5,  0.0,  0.0,  1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,
+    -0.5, 0.5,  0.5,  0.0,  0.0,  1.0,
+    -0.5, -0.5, 0.5,  0.0,  0.0,  1.0,
 
-    -0.5, 0.5,  0.5,
-    -0.5, 0.5,  -0.5,
-    -0.5, -0.5, -0.5,
-    -0.5, -0.5, -0.5,
-    -0.5, -0.5, 0.5,
-    -0.5, 0.5,  0.5,
+    -0.5, 0.5,  0.5,  -1.0, 0.0,  0.0,
+    -0.5, 0.5,  -0.5, -1.0, 0.0,  0.0,
+    -0.5, -0.5, -0.5, -1.0, 0.0,  0.0,
+    -0.5, -0.5, -0.5, -1.0, 0.0,  0.0,
+    -0.5, -0.5, 0.5,  -1.0, 0.0,  0.0,
+    -0.5, 0.5,  0.5,  -1.0, 0.0,  0.0,
 
-    0.5,  0.5,  0.5,
-    0.5,  0.5,  -0.5,
-    0.5,  -0.5, -0.5,
-    0.5,  -0.5, -0.5,
-    0.5,  -0.5, 0.5,
-    0.5,  0.5,  0.5,
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
+    0.5,  0.5,  -0.5, 1.0,  0.0,  0.0,
+    0.5,  -0.5, -0.5, 1.0,  0.0,  0.0,
+    0.5,  -0.5, -0.5, 1.0,  0.0,  0.0,
+    0.5,  -0.5, 0.5,  1.0,  0.0,  0.0,
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
 
-    -0.5, -0.5, -0.5,
-    0.5,  -0.5, -0.5,
-    0.5,  -0.5, 0.5,
-    0.5,  -0.5, 0.5,
-    -0.5, -0.5, 0.5,
-    -0.5, -0.5, -0.5,
+    -0.5, -0.5, -0.5, 0.0,  -1.0, 0.0,
+    0.5,  -0.5, -0.5, 0.0,  -1.0, 0.0,
+    0.5,  -0.5, 0.5,  0.0,  -1.0, 0.0,
+    0.5,  -0.5, 0.5,  0.0,  -1.0, 0.0,
+    -0.5, -0.5, 0.5,  0.0,  -1.0, 0.0,
+    -0.5, -0.5, -0.5, 0.0,  -1.0, 0.0,
 
-    -0.5, 0.5,  -0.5,
-    0.5,  0.5,  -0.5,
-    0.5,  0.5,  0.5,
-    0.5,  0.5,  0.5,
-    -0.5, 0.5,  0.5,
-    -0.5, 0.5,  -0.5,
+    -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,
+    0.5,  0.5,  -0.5, 0.0,  1.0,  0.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
+    -0.5, 0.5,  0.5,  0.0,  1.0,  0.0,
+    -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -108,7 +134,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     cube_va.use();
     defer cube_va.disuse();
     cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    cube_va.setAttribute(0, 3, f32, false, 3 * @sizeOf(f32), 0);
+    cube_va.setAttribute(0, 3, f32, false, 6 * @sizeOf(f32), 0);
+    cube_va.setAttribute(1, 3, f32, false, 6 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // enable depth test
     gl.util.toggleCapability(.depth_test, true);
@@ -117,12 +144,6 @@ fn init(ctx: *zp.Context) anyerror!void {
 }
 
 fn loop(ctx: *zp.Context) void {
-    const S = struct {
-        var frame: f32 = 0;
-        var axis = alg.Vec4.new(1, 1, 1, 0);
-    };
-    S.frame += 1;
-
     // camera movement
     const distance = ctx.delta_tick * camera.move_speed;
     if (ctx.isKeyPressed(.w)) {
@@ -182,30 +203,33 @@ fn loop(ctx: *zp.Context) void {
     gl.util.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
 
     cube_va.use();
-
-    normal_shader_program.use();
     const projection = alg.Mat4.perspective(
         45,
         @intToFloat(f32, width) / @intToFloat(f32, height),
         0.1,
         100,
     );
-    S.axis = alg.Mat4.fromRotation(1, alg.Vec3.new(-1, 1, -1)).multByVec4(S.axis);
-    var model = alg.Mat4.fromRotation(
-        S.frame,
-        alg.Vec3.new(S.axis.x, S.axis.y, S.axis.z),
-    );
-    var mvp = projection.mult(camera.getViewMatrix()).mult(model);
-    normal_shader_program.setUniformByName("u_mvp", mvp);
+
+    normal_shader_program.use();
+    var model = alg.Mat4.identity();
+    var normal = model.inv(); //TODO need further transpose operation
+    normal_shader_program.setUniformByName("u_model", model);
+    normal_shader_program.setUniformByName("u_normal", normal);
+    normal_shader_program.setUniformByName("u_view", camera.getViewMatrix());
+    normal_shader_program.setUniformByName("u_project", projection);
     normal_shader_program.setUniformByName("u_object_color", alg.Vec3.new(1, 0.5, 0.31));
     normal_shader_program.setUniformByName("u_light_color", alg.Vec3.new(1, 1, 1));
+    normal_shader_program.setUniformByName("u_light_pos", light_pos);
     gl.util.drawBuffer(.triangles, 0, 36);
 
     // draw light
     light_shader_program.use();
-    model = alg.Mat4.fromScale(alg.Vec3.set(0.2)).translate(light_pos);
-    mvp = projection.mult(camera.getViewMatrix()).mult(model);
-    light_shader_program.setUniformByName("u_mvp", mvp);
+    light_shader_program.setUniformByName(
+        "u_model",
+        alg.Mat4.fromScale(alg.Vec3.set(0.2)).translate(light_pos),
+    );
+    light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
+    light_shader_program.setUniformByName("u_project", projection);
     gl.util.drawBuffer(.triangles, 0, 36);
 }
 
