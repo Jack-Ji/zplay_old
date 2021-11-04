@@ -25,6 +25,7 @@ pub fn build(b: *std.build.Builder) void {
         "3d_camera",
         "phong_lighting",
     };
+    const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |name| {
         const exe = b.addExecutable(
             name,
@@ -43,6 +44,7 @@ pub fn build(b: *std.build.Builder) void {
             "run example " ++ name,
         );
         run_step.dependOn(&run_cmd.step);
+        build_examples.dependOn(&install_cmd.step);
     }
 }
 

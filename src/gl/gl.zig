@@ -12,6 +12,3 @@ pub const VertexArray = @import("VertexArray.zig");
 
 /// generic texture
 pub const Texture = @import("Texture.zig");
-
-/// 2d texture
-pub const Texture2D = @import("Texture2D.zig");

@@ -92,7 +92,7 @@ var normal_shader_program: gl.ShaderProgram = undefined;
 var light_shader_program: gl.ShaderProgram = undefined;
 var light_pos = alg.Vec3.new(1.2, 1, 2);
 var cube_va: gl.VertexArray = undefined;
-var camera = zp.Camera3D.fromPositionAndTarget(
+var camera = zp.util.Camera3D.fromPositionAndTarget(
     alg.Vec3.new(1, 2, 3),
     alg.Vec3.zero(),
     null,

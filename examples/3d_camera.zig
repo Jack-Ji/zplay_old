@@ -38,7 +38,7 @@ var shader_program: gl.ShaderProgram = undefined;
 var vertex_array: gl.VertexArray = undefined;
 var wireframe_mode = false;
 var fov: f32 = 45;
-var camera = zp.Camera3D.fromPositionAndTarget(
+var camera = zp.util.Camera3D.fromPositionAndTarget(
     alg.Vec3.new(0, 0, 3),
     alg.Vec3.zero(),
     null,
@@ -104,8 +104,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.setAttribute(1, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // load texture
-    const texture1 = try gl.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
-    const texture2 = try gl.Texture2D.init("assets/awesomeface.png", .texture_unit_1, true);
+    const texture1 = try zp.util.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
+    const texture2 = try zp.util.Texture2D.init("assets/awesomeface.png", .texture_unit_1, true);
 
     // only necessary when not using texture unit 0
     shader_program.use();

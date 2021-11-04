@@ -1,7 +1,7 @@
 const std = @import("std");
-const stb = @import("../lib.zig").stb;
-const gl = @import("gl.zig");
-const stb_image = stb.image;
+const zp = @import("../lib.zig");
+const gl = zp.gl;
+const stb_image = zp.stb.image;
 const Self = @This();
 
 pub const Error = error{
