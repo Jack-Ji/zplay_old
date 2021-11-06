@@ -18,3 +18,6 @@ pub const alg = @import("alg/src/main.zig");
 
 /// stb utilities
 pub const stb = @import("stb/stb.zig");
+
+/// dear imgui
+pub const dig = @import("cimgui/imgui.zig");

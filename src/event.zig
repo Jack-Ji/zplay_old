@@ -4,6 +4,7 @@ const sdl = @import("sdl");
 /// event definitions
 pub const WindowEvent = @import("event/WindowEvent.zig");
 pub const KeyboardEvent = @import("event/KeyboardEvent.zig");
+pub const TextInputEvent = @import("event/TextInputEvent.zig");
 pub const MouseEvent = @import("event/MouseEvent.zig");
 pub const GamepadEvent = @import("event/GamepadEvent.zig");
 pub const QuitEvent = struct {};
@@ -12,6 +13,7 @@ pub const QuitEvent = struct {};
 pub const Event = union(enum) {
     window_event: WindowEvent,
     keyboard_event: KeyboardEvent,
+    text_input_event: TextInputEvent,
     mouse_event: MouseEvent,
     gamepad_event: GamepadEvent,
     quit_event: QuitEvent,
@@ -26,6 +28,9 @@ pub const Event = union(enum) {
             },
             .key_down => |ee| Event{
                 .keyboard_event = KeyboardEvent.init(ee),
+            },
+            .text_input => |ee| Event{
+                .text_input_event = TextInputEvent.init(ee),
             },
             .mouse_motion => |ee| Event{
                 .mouse_event = MouseEvent.fromMotionEvent(ee),

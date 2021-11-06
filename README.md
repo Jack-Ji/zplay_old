@@ -9,4 +9,4 @@ A framework for game creation and creative coding, built from scratch.
 * sprite system (TODO)
 * collision system (TODO)
 * particle system (TODO)
-* UI system (TODO)
+* dear-imgui integration

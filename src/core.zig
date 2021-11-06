@@ -2,6 +2,7 @@ const std = @import("std");
 const sdl = @import("sdl");
 const c = sdl.c;
 const gl = @import("gl/gl.zig");
+const dig = @import("cimgui/imgui.zig");
 const event = @import("event.zig");
 
 /// application context
@@ -166,6 +167,9 @@ pub const Game = struct {
 
     /// relative mouse mode switch
     enable_relative_mouse_mode: bool = false,
+
+    /// dear imgui switch
+    enable_dear_imgui: bool = false,
 };
 
 /// entrance point, never return until application is killed
@@ -220,6 +224,11 @@ pub fn run(g: Game) !void {
     context.toggleVsyncMode(g.enable_vsync);
     context.toggleRelativeMouseMode(g.enable_relative_mouse_mode);
 
+    // setup imgui
+    if (g.enable_dear_imgui) {
+        try dig.init(context._window);
+    }
+
     // init before loop
     try g.init_fn(&context);
     defer g.quit_fn(&context);
@@ -242,5 +251,9 @@ pub fn run(g: Game) !void {
 
         // swap buffers
         sdl.gl.swapWindow(context._window);
+    }
+
+    if (g.enable_dear_imgui) {
+        dig.deinit();
     }
 }

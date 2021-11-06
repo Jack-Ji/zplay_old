@@ -24,6 +24,7 @@ pub fn build(b: *std.build.Builder) void {
         "cubes",
         "3d_camera",
         "phong_lighting",
+        "imgui_demo",
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |name| {
@@ -51,6 +52,7 @@ pub fn build(b: *std.build.Builder) void {
 pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.build.Target) void {
     var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
     if (b.is_release) flags.append("-Os") catch unreachable;
+    flags.append("-Wno-return-type-c-linkage") catch unreachable;
 
     // link sdl
     const sdl = @import("src/sdl/Sdk.zig").init(b);
@@ -81,6 +83,29 @@ pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.bu
         flags.items,
     );
     exe.linkLibrary(stb);
+
+    // link cimgui
+    var cimgui = exe.builder.addStaticLibrary("cimgui", null);
+    cimgui.linkLibC();
+    cimgui.linkLibCpp();
+    if (exe.target.isWindows()) {
+        cimgui.linkSystemLibrary("winmm");
+        cimgui.linkSystemLibrary("user32");
+        cimgui.linkSystemLibrary("imm32");
+        cimgui.linkSystemLibrary("gdi32");
+    }
+    cimgui.addIncludeDir("src/cimgui/c");
+    cimgui.addCSourceFiles(&.{
+        "src/cimgui/c/imgui.cpp",
+        "src/cimgui/c/imgui_demo.cpp",
+        "src/cimgui/c/imgui_draw.cpp",
+        "src/cimgui/c/imgui_tables.cpp",
+        "src/cimgui/c/imgui_widgets.cpp",
+        "src/cimgui/c/cimgui.cpp",
+        "src/cimgui/c/imgui_impl_opengl3.cpp",
+        "src/cimgui/c/imgui_impl_opengl3_wrapper.cpp",
+    }, flags.items);
+    exe.linkLibrary(cimgui);
 
     // use zplay
     exe.addPackage(.{

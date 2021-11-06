@@ -57,14 +57,14 @@ const fragment_shader =
     \\                   vec3 view_pos,
     \\                   vec3 vertex_pos,
     \\                   vec3 vertex_normal,
-    \\                   float spec_strength,
+    \\                   float specular_strength,
     \\                   int shiness)
     \\{
     \\    vec3 norm = normalize(vertex_normal);
     \\    vec3 view_dir = normalize(view_pos - vertex_pos);
     \\    vec3 light_dir = normalize(light_pos - vertex_pos);
     \\    vec3 reflect_dir = reflect(-light_dir, norm);
-    \\    return light_color * spec_strength * pow(max(dot(view_dir, reflect_dir), 0.0), shiness);
+    \\    return light_color * specular_strength * pow(max(dot(view_dir, reflect_dir), 0.0), shiness);
     \\}
     \\
     \\void main()
