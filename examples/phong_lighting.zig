@@ -31,25 +31,34 @@ const fragment_shader =
     \\in vec3 v_pos;
     \\in vec3 v_normal;
     \\
-    \\uniform vec3 u_object_color;
     \\uniform vec3 u_light_color;
     \\uniform vec3 u_light_pos;
     \\uniform vec3 u_view_pos;
     \\
-    \\vec3 ambientColor(vec3 light_color, float strength)
+    \\struct Material {
+    \\    vec3 ambient;
+    \\    vec3 diffuse;
+    \\    vec3 specular;
+    \\    float shiness;
+    \\};
+    \\uniform Material u_material;
+    \\
+    \\vec3 ambientColor(vec3 light_color,
+    \\                  vec3 material_ambient)
     \\{
-    \\    return light_color * strength;
+    \\    return light_color * material_ambient;
     \\}
     \\
     \\vec3 diffuseColor(vec3 light_color,
     \\                  vec3 light_pos,
     \\                  vec3 vertex_pos,
-    \\                  vec3 vertex_normal)
+    \\                  vec3 vertex_normal,
+    \\                  vec3 material_diffuse)
     \\{
     \\    vec3 norm = normalize(vertex_normal);
     \\    vec3 light_dir = normalize(light_pos - vertex_pos);
     \\    float diff = max(dot(norm, light_dir), 0.0);
-    \\    return light_color * diff;
+    \\    return light_color * (diff * material_diffuse);
     \\}
     \\
     \\vec3 specularColor(vec3 light_color,
@@ -57,23 +66,27 @@ const fragment_shader =
     \\                   vec3 view_pos,
     \\                   vec3 vertex_pos,
     \\                   vec3 vertex_normal,
-    \\                   float specular_strength,
-    \\                   int shiness)
+    \\                   vec3 material_specular,
+    \\                   float material_shiness)
     \\{
     \\    vec3 norm = normalize(vertex_normal);
     \\    vec3 view_dir = normalize(view_pos - vertex_pos);
     \\    vec3 light_dir = normalize(light_pos - vertex_pos);
     \\    vec3 reflect_dir = reflect(-light_dir, norm);
-    \\    return light_color * specular_strength * pow(max(dot(view_dir, reflect_dir), 0.0), shiness);
+    \\    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material_shiness);
+    \\    return light_color * (spec * material_specular);
     \\}
     \\
     \\void main()
     \\{
-    \\    vec3 ambient_color = ambientColor(u_light_color, 0.1);
-    \\    vec3 diffuse_color = diffuseColor(u_light_color, u_light_pos, v_pos, v_normal);
-    \\    vec3 specular_color = specularColor(u_light_color, u_light_pos, u_view_pos, v_pos, v_normal, 0.5, 32);
+    \\    vec3 ambient_color = ambientColor(u_light_color, u_material.ambient);
+    \\    vec3 diffuse_color = diffuseColor(u_light_color, u_light_pos,
+    \\                                      v_pos, v_normal, u_material.diffuse);
+    \\    vec3 specular_color = specularColor(u_light_color, u_light_pos, u_view_pos,
+    \\                                        v_pos, v_normal, u_material.specular,
+    \\                                        u_material.shiness);
     \\
-    \\    vec3 result = (ambient_color + diffuse_color + specular_color) * u_object_color;
+    \\    vec3 result = ambient_color + diffuse_color + specular_color;
     \\    frag_color = vec4(result, 1.0);
     \\}
 ;
@@ -97,6 +110,26 @@ var camera = zp.util.Camera3D.fromPositionAndTarget(
     alg.Vec3.zero(),
     null,
 );
+var materials = [_]zp.util.Material{
+    zp.util.Material.init(
+        alg.Vec3.new(1, 0.5, 0.31),
+        alg.Vec3.new(1, 0.5, 0.31),
+        alg.Vec3.new(0.5, 0.5, 0.5),
+        32,
+    ),
+    zp.util.Material.emerald,
+    zp.util.Material.jade,
+    zp.util.Material.obsidian,
+    zp.util.Material.pearl,
+    zp.util.Material.ruby,
+    zp.util.Material.turquoise,
+    zp.util.Material.brass,
+    zp.util.Material.bronze,
+    zp.util.Material.chrome,
+    zp.util.Material.copper,
+    zp.util.Material.gold,
+    zp.util.Material.silver,
+};
 
 const vertices = [_]f32{
     -0.5, -0.5, -0.5, 0.0,  0.0,  -1.0,
@@ -164,6 +197,10 @@ fn init(ctx: *zp.Context) anyerror!void {
 }
 
 fn loop(ctx: *zp.Context) void {
+    const S = struct {
+        var current_material: usize = 0;
+    };
+
     // camera movement
     const distance = ctx.delta_tick * camera.move_speed;
     if (ctx.isKeyPressed(.w)) {
@@ -194,6 +231,20 @@ fn loop(ctx: *zp.Context) void {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
                         .f1 => ctx.toggleFullscreeen(null),
+                        .up => {
+                            if (S.current_material == 0) {
+                                S.current_material = materials.len - 1;
+                            } else {
+                                S.current_material -= 1;
+                            }
+                        },
+                        .down => {
+                            if (S.current_material == materials.len - 1) {
+                                S.current_material = 0;
+                            } else {
+                                S.current_material += 1;
+                            }
+                        },
                         else => {},
                     }
                 }
@@ -237,10 +288,10 @@ fn loop(ctx: *zp.Context) void {
     normal_shader_program.setUniformByName("u_normal", normal);
     normal_shader_program.setUniformByName("u_view", camera.getViewMatrix());
     normal_shader_program.setUniformByName("u_project", projection);
-    normal_shader_program.setUniformByName("u_object_color", alg.Vec3.new(1, 0.5, 0.31));
     normal_shader_program.setUniformByName("u_light_color", alg.Vec3.new(1, 1, 1));
     normal_shader_program.setUniformByName("u_light_pos", light_pos);
     normal_shader_program.setUniformByName("u_view_pos", camera.position);
+    materials[S.current_material].apply(&normal_shader_program, "u_material");
     gl.util.drawBuffer(.triangles, 0, 36);
 
     // draw light

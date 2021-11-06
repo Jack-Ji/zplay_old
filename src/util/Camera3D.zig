@@ -1,7 +1,6 @@
 const std = @import("std");
 const sdl = @import("sdl");
 const zp = @import("../lib.zig");
-const Context = zp.Context;
 const alg = zp.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
