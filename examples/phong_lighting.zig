@@ -31,9 +31,15 @@ const fragment_shader =
     \\in vec3 v_pos;
     \\in vec3 v_normal;
     \\
-    \\uniform vec3 u_light_color;
-    \\uniform vec3 u_light_pos;
     \\uniform vec3 u_view_pos;
+    \\
+    \\struct Light {
+    \\    vec3 ambient;
+    \\    vec3 diffuse;
+    \\    vec3 specular;
+    \\    vec3 position;
+    \\};
+    \\uniform Light u_light;
     \\
     \\struct Material {
     \\    vec3 ambient;
@@ -79,10 +85,10 @@ const fragment_shader =
     \\
     \\void main()
     \\{
-    \\    vec3 ambient_color = ambientColor(u_light_color, u_material.ambient);
-    \\    vec3 diffuse_color = diffuseColor(u_light_color, u_light_pos,
+    \\    vec3 ambient_color = ambientColor(u_light.ambient, u_material.ambient);
+    \\    vec3 diffuse_color = diffuseColor(u_light.diffuse, u_light.position,
     \\                                      v_pos, v_normal, u_material.diffuse);
-    \\    vec3 specular_color = specularColor(u_light_color, u_light_pos, u_view_pos,
+    \\    vec3 specular_color = specularColor(u_light.specular, u_light.position, u_view_pos,
     \\                                        v_pos, v_normal, u_material.specular,
     \\                                        u_material.shiness);
     \\
@@ -103,32 +109,37 @@ const light_shader =
 
 var normal_shader_program: gl.ShaderProgram = undefined;
 var light_shader_program: gl.ShaderProgram = undefined;
-var light_pos = alg.Vec3.new(1.2, 1, 2);
 var cube_va: gl.VertexArray = undefined;
 var camera = zp.util.Camera3D.fromPositionAndTarget(
     alg.Vec3.new(1, 2, 3),
     alg.Vec3.zero(),
     null,
 );
-var materials = [_]zp.util.Material{
-    zp.util.Material.init(
+var light = zp.util.Light3D.init(
+    alg.Vec3.new(0.2, 0.2, 0.2),
+    alg.Vec3.new(0.5, 0.5, 0.5),
+    alg.Vec3.new(1, 1, 1),
+    alg.Vec3.new(1.2, 1, 2),
+);
+var materials = [_]zp.util.Material3D{
+    zp.util.Material3D.init(
         alg.Vec3.new(1, 0.5, 0.31),
         alg.Vec3.new(1, 0.5, 0.31),
         alg.Vec3.new(0.5, 0.5, 0.5),
         32,
     ),
-    zp.util.Material.emerald,
-    zp.util.Material.jade,
-    zp.util.Material.obsidian,
-    zp.util.Material.pearl,
-    zp.util.Material.ruby,
-    zp.util.Material.turquoise,
-    zp.util.Material.brass,
-    zp.util.Material.bronze,
-    zp.util.Material.chrome,
-    zp.util.Material.copper,
-    zp.util.Material.gold,
-    zp.util.Material.silver,
+    zp.util.Material3D.emerald,
+    zp.util.Material3D.jade,
+    zp.util.Material3D.obsidian,
+    zp.util.Material3D.pearl,
+    zp.util.Material3D.ruby,
+    zp.util.Material3D.turquoise,
+    zp.util.Material3D.brass,
+    zp.util.Material3D.bronze,
+    zp.util.Material3D.chrome,
+    zp.util.Material3D.copper,
+    zp.util.Material3D.gold,
+    zp.util.Material3D.silver,
 };
 
 const vertices = [_]f32{
@@ -288,9 +299,8 @@ fn loop(ctx: *zp.Context) void {
     normal_shader_program.setUniformByName("u_normal", normal);
     normal_shader_program.setUniformByName("u_view", camera.getViewMatrix());
     normal_shader_program.setUniformByName("u_project", projection);
-    normal_shader_program.setUniformByName("u_light_color", alg.Vec3.new(1, 1, 1));
-    normal_shader_program.setUniformByName("u_light_pos", light_pos);
     normal_shader_program.setUniformByName("u_view_pos", camera.position);
+    light.apply(&normal_shader_program, "u_light");
     materials[S.current_material].apply(&normal_shader_program, "u_material");
     gl.util.drawBuffer(.triangles, 0, 36);
 
@@ -298,7 +308,7 @@ fn loop(ctx: *zp.Context) void {
     light_shader_program.use();
     light_shader_program.setUniformByName(
         "u_model",
-        alg.Mat4.fromScale(alg.Vec3.set(0.2)).translate(light_pos),
+        alg.Mat4.fromScale(alg.Vec3.set(0.2)).translate(light.position),
     );
     light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
     light_shader_program.setUniformByName("u_project", projection);
