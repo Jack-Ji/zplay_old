@@ -36,6 +36,7 @@ euler: Vec3 = undefined,
 /// i/o state
 move_speed: f32 = 2.5,
 mouse_sensitivity: f32 = 0.25,
+zoom: f32 = 45.0,
 
 /// create a 3d camera using position and target
 pub fn fromPositionAndTarget(pos: Vec3, target: Vec3, world_up: ?Vec3) Self {

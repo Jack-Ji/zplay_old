@@ -8,18 +8,18 @@ const Mat4 = alg.Mat4;
 const Self = @This();
 
 /// light properties
+position: Vec3 = undefined,
 ambient: Vec3 = undefined,
 diffuse: Vec3 = undefined,
 specular: Vec3 = undefined,
-position: Vec3 = undefined,
 
 /// create a new light
-pub fn init(ambient: Vec3, diffuse: Vec3, specular: Vec3, position: Vec3) Self {
+pub fn init(position: Vec3, ambient: Vec3, diffuse: Vec3, specular: ?Vec3) Self {
     return .{
+        .position = position,
         .ambient = ambient,
         .diffuse = diffuse,
-        .specular = specular,
-        .position = position,
+        .specular = specular orelse Vec3.new(1.0, 1.0, 1.0),
     };
 }
 

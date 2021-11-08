@@ -37,7 +37,6 @@ const fragment_shader =
 var shader_program: gl.ShaderProgram = undefined;
 var vertex_array: gl.VertexArray = undefined;
 var wireframe_mode = false;
-var fov: f32 = 45;
 var camera = zp.util.Camera3D.fromPositionAndTarget(
     alg.Vec3.new(0, 0, 3),
     alg.Vec3.zero(),
@@ -173,12 +172,12 @@ fn loop(ctx: *zp.Context) void {
                         );
                     },
                     .wheel => |scroll| {
-                        fov -= @intToFloat(f32, scroll.scroll_y);
-                        if (fov < 1) {
-                            fov = 1;
+                        camera.zoom -= @intToFloat(f32, scroll.scroll_y);
+                        if (camera.zoom < 1) {
+                            camera.zoom = 1;
                         }
-                        if (fov > 45) {
-                            fov = 45;
+                        if (camera.zoom > 45) {
+                            camera.zoom = 45;
                         }
                     },
                     else => {},
@@ -200,7 +199,7 @@ fn loop(ctx: *zp.Context) void {
     vertex_array.use();
 
     const projection = alg.Mat4.perspective(
-        fov,
+        camera.zoom,
         @intToFloat(f32, width) / @intToFloat(f32, height),
         0.1,
         100,

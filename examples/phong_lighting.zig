@@ -101,9 +101,11 @@ const light_shader =
     \\#version 330 core
     \\out vec4 frag_color;
     \\
+    \\uniform vec3 u_color;
+    \\
     \\void main()
     \\{
-    \\    frag_color = vec4(1);
+    \\    frag_color = vec4(u_color, 1);
     \\}
 ;
 
@@ -116,10 +118,10 @@ var camera = zp.util.Camera3D.fromPositionAndTarget(
     null,
 );
 var light = zp.util.Light3D.init(
+    alg.Vec3.new(1.2, 1, 2),
     alg.Vec3.new(0.2, 0.2, 0.2),
     alg.Vec3.new(0.5, 0.5, 0.5),
-    alg.Vec3.new(1, 1, 1),
-    alg.Vec3.new(1.2, 1, 2),
+    null,
 );
 var materials = [_]zp.util.Material3D{
     zp.util.Material3D.init(
@@ -281,12 +283,21 @@ fn loop(ctx: *zp.Context) void {
     var height: i32 = undefined;
     ctx.getSize(&width, &height);
 
+    // update light color
+    var light_color = alg.Vec3.new(
+        std.math.sin(ctx.tick * 2.0),
+        std.math.sin(ctx.tick * 0.7),
+        std.math.sin(ctx.tick * 1.3),
+    );
+    light.ambient = light_color.scale(0.2);
+    light.diffuse = light_color.scale(0.5);
+
     // start drawing
-    gl.util.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
+    gl.util.clear(true, true, false, [_]f32{ 0.2, 0.2, 0.2, 1.0 });
 
     cube_va.use();
     const projection = alg.Mat4.perspective(
-        45,
+        camera.zoom,
         @intToFloat(f32, width) / @intToFloat(f32, height),
         0.1,
         100,
@@ -312,6 +323,7 @@ fn loop(ctx: *zp.Context) void {
     );
     light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
     light_shader_program.setUniformByName("u_project", projection);
+    light_shader_program.setUniformByName("u_color", light_color);
     gl.util.drawBuffer(.triangles, 0, 36);
 }
 
