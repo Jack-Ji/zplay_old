@@ -170,9 +170,9 @@ pub fn init(ambient: Vec3, diffuse: Vec3, specular: Vec3, shiness: f32) Self {
 }
 
 /// apply material in the shader
-pub fn apply(self: Self, program: *gl.ShaderProgram, comptime name: [:0]const u8) void {
-    program.setUniformByName(name ++ ".ambient", self.ambient);
-    program.setUniformByName(name ++ ".diffuse", self.diffuse);
-    program.setUniformByName(name ++ ".specular", self.specular);
-    program.setUniformByName(name ++ ".shiness", self.shiness);
+pub fn apply(self: Self, program: *gl.ShaderProgram, comptime uniform_name: [:0]const u8) void {
+    program.setUniformByName(uniform_name ++ ".ambient", self.ambient);
+    program.setUniformByName(uniform_name ++ ".diffuse", self.diffuse);
+    program.setUniformByName(uniform_name ++ ".specular", self.specular);
+    program.setUniformByName(uniform_name ++ ".shiness", self.shiness);
 }

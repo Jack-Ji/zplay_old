@@ -294,7 +294,7 @@ fn loop(ctx: *zp.Context) void {
 
     normal_shader_program.use();
     var model = alg.Mat4.identity();
-    var normal = model.inv(); //TODO need further transpose operation
+    var normal = model.inv().transpose();
     normal_shader_program.setUniformByName("u_model", model);
     normal_shader_program.setUniformByName("u_normal", normal);
     normal_shader_program.setUniformByName("u_view", camera.getViewMatrix());
