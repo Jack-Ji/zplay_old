@@ -37,13 +37,38 @@ const fragment_shader =
     \\
     \\uniform vec3 u_view_pos;
     \\
-    \\struct Light {
+    \\struct DirectionalLight {
+    \\    vec3 ambient;
+    \\    vec3 diffuse;
+    \\    vec3 specular;
+    \\    vec3 direction;
+    \\};
+    \\uniform DirectionalLight u_directional_light;
+    \\
+    \\struct PointLight {
     \\    vec3 ambient;
     \\    vec3 diffuse;
     \\    vec3 specular;
     \\    vec3 position;
+    \\    float constant;
+    \\    float linear;
+    \\    float quadratic;
     \\};
-    \\uniform Light u_light;
+    \\uniform PointLight u_point_light;
+    \\
+    \\struct SpotLight {
+    \\    vec3 ambient;
+    \\    vec3 diffuse;
+    \\    vec3 specular;
+    \\    vec3 position;
+    \\    vec3 direction;
+    \\    float constant;
+    \\    float linear;
+    \\    float quadratic;
+    \\    float cutoff;
+    \\    float outer_cutoff;
+    \\};
+    \\uniform SpotLight u_spot_light;
     \\
     \\struct Material {
     \\    sampler2D diffuse;
@@ -58,51 +83,89 @@ const fragment_shader =
     \\    return light_color * material_ambient;
     \\}
     \\
-    \\vec3 diffuseColor(vec3 light_color,
-    \\                  vec3 light_pos,
-    \\                  vec3 vertex_pos,
+    \\vec3 diffuseColor(vec3 light_dir,
+    \\                  vec3 light_color,
     \\                  vec3 vertex_normal,
     \\                  vec3 material_diffuse)
     \\{
     \\    vec3 norm = normalize(vertex_normal);
-    \\    vec3 light_dir = normalize(light_pos - vertex_pos);
     \\    float diff = max(dot(norm, light_dir), 0.0);
     \\    return light_color * (diff * material_diffuse);
     \\}
     \\
-    \\vec3 specularColor(vec3 light_color,
-    \\                   vec3 light_pos,
-    \\                   vec3 view_pos,
-    \\                   vec3 vertex_pos,
+    \\vec3 specularColor(vec3 light_dir,
+    \\                   vec3 light_color,
+    \\                   vec3 view_dir,
     \\                   vec3 vertex_normal,
     \\                   vec3 material_specular,
     \\                   float material_shiness)
     \\{
     \\    vec3 norm = normalize(vertex_normal);
-    \\    vec3 view_dir = normalize(view_pos - vertex_pos);
-    \\    vec3 light_dir = normalize(light_pos - vertex_pos);
     \\    vec3 reflect_dir = reflect(-light_dir, norm);
     \\    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material_shiness);
     \\    return light_color * (spec * material_specular);
     \\}
     \\
+    \\vec3 applyDirectionalLight(DirectionalLight light)
+    \\{
+    \\    vec3 light_dir = -light.direction;
+    \\    vec3 view_dir = normalize(u_view_pos - v_pos);
+    \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
+    \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
+    \\
+    \\    vec3 ambient_color = ambientColor(light.ambient, material_diffuse);
+    \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
+    \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
+    \\                                        v_normal, material_specular, u_material.shiness);
+    \\    vec3 result = ambient_color + diffuse_color + specular_color;
+    \\    return result;
+    \\}
+    \\
+    \\vec3 applyPointLight(PointLight light)
+    \\{
+    \\    vec3 light_dir = normalize(light.position - v_pos);
+    \\    vec3 view_dir = normalize(u_view_pos - v_pos);
+    \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
+    \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
+    \\    float distance = length(light.position - v_pos);
+    \\    float attenuation = 1.0 / (light.constant + light.linear * distance +
+    \\              light.quadratic * distance * distance);
+    \\
+    \\    vec3 ambient_color = ambientColor(light.ambient, material_diffuse);
+    \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
+    \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
+    \\                                        v_normal, material_specular, u_material.shiness);
+    \\    vec3 result = (ambient_color + diffuse_color + specular_color) * attenuation;
+    \\    return result;
+    \\}
+    \\
+    \\vec3 applySpotLight(SpotLight light)
+    \\{
+    \\    vec3 light_dir = normalize(light.position - v_pos);
+    \\    vec3 view_dir = normalize(u_view_pos - v_pos);
+    \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
+    \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
+    \\    float distance = length(light.position - v_pos);
+    \\    float attenuation = 1.0 / (light.constant + light.linear * distance +
+    \\              light.quadratic * distance * distance);
+    \\    float theta = dot(light_dir, normalize(-light.direction));
+    \\    float epsilon = light.cutoff - light.outer_cutoff;
+    \\    float intensity = clamp((theta - light.outer_cutoff) / epsilon, 0.0, 1.0);
+    \\
+    \\    vec3 ambient_color = ambientColor(light.ambient, material_diffuse);
+    \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
+    \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
+    \\                                        v_normal, material_specular, u_material.shiness);
+    \\    vec3 result = ambient_color + (diffuse_color + specular_color) * intensity;
+    \\
+    \\    return result * attenuation;
+    \\}
+    \\
     \\void main()
     \\{
-    \\    vec3 ambient_color = ambientColor(u_light.ambient,
-    \\                                      vec3(texture(u_material.diffuse, v_tex)));
-    \\    vec3 diffuse_color = diffuseColor(u_light.diffuse,
-    \\                                      u_light.position,
-    \\                                      v_pos,
-    \\                                      v_normal,
-    \\                                      vec3(texture(u_material.diffuse, v_tex)));
-    \\    vec3 specular_color = specularColor(u_light.specular,
-    \\                                        u_light.position,
-    \\                                        u_view_pos,
-    \\                                        v_pos,
-    \\                                        v_normal,
-    \\                                        vec3(texture(u_material.specular, v_tex)),
-    \\                                        u_material.shiness);
-    \\    vec3 result = ambient_color + diffuse_color + specular_color;
+    \\    //vec3 result = applyDirectionalLight(u_directional_light);
+    \\    //vec3 result = applyPointLight(u_point_light);
+    \\    vec3 result = applySpotLight(u_spot_light);
     \\    frag_color = vec4(result, 1.0);
     \\}
 ;
@@ -128,10 +191,18 @@ var camera = zp.util.Camera3D.fromPositionAndTarget(
     null,
 );
 var light = zp.util.Light3D.init(
-    alg.Vec3.new(1.2, 1, 2),
-    alg.Vec3.new(0.2, 0.2, 0.2),
-    alg.Vec3.new(0.5, 0.5, 0.5),
-    null,
+    .{
+        .spot = .{
+            .ambient = alg.Vec3.new(0.2, 0.2, 0.2),
+            .diffuse = alg.Vec3.new(0.5, 0.5, 0.5),
+            .position = alg.Vec3.new(1.2, 1, 2),
+            .direction = alg.Vec3.new(1.2, 1, 2).negate(),
+            .linear = 0.09,
+            .quadratic = 0.032,
+            .cutoff = std.math.cos(alg.toRadians(@as(f32, 12.5))),
+            .outer_cutoff = std.math.cos(alg.toRadians(@as(f32, 17.5))),
+        },
+    },
 );
 var material: zp.util.Material3D = undefined;
 
@@ -178,6 +249,19 @@ const vertices = [_]f32{
     0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0,
     -0.5, 0.5,  0.5,  0.0,  1.0,  0.0,  0.0, 0.0,
     -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,  0.0, 1.0,
+};
+
+const cube_positions = [_]alg.Vec3{
+    alg.Vec3.new(0.0, 0.0, 0.0),
+    alg.Vec3.new(2.0, 5.0, -15.0),
+    alg.Vec3.new(-1.5, -2.2, -2.5),
+    alg.Vec3.new(-3.8, -2.0, -12.3),
+    alg.Vec3.new(2.4, -0.4, -3.5),
+    alg.Vec3.new(-1.7, 3.0, -7.5),
+    alg.Vec3.new(1.3, -2.0, -2.5),
+    alg.Vec3.new(1.5, 2.0, -2.5),
+    alg.Vec3.new(1.5, 0.2, -1.5),
+    alg.Vec3.new(-1.3, 1.0, -1.5),
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -268,13 +352,13 @@ fn loop(ctx: *zp.Context) void {
     ctx.getSize(&width, &height);
 
     // update light color
-    var light_color = alg.Vec3.new(
-        std.math.sin(ctx.tick * 2.0),
-        std.math.sin(ctx.tick * 0.7),
-        std.math.sin(ctx.tick * 1.3),
-    );
-    light.ambient = light_color.scale(0.2);
-    light.diffuse = light_color.scale(0.5);
+    var light_color = alg.Vec3.one();
+    //var light_color = alg.Vec3.new(
+    //    std.math.sin(ctx.tick * 2.0),
+    //    std.math.sin(ctx.tick * 0.7),
+    //    std.math.sin(ctx.tick * 1.3),
+    //);
+    light.updateColors(light_color.scale(0.2), light_color.scale(0.5), null);
 
     // start drawing
     gl.util.clear(true, true, false, [_]f32{ 0.2, 0.2, 0.2, 1.0 });
@@ -288,27 +372,34 @@ fn loop(ctx: *zp.Context) void {
     );
 
     normal_shader_program.use();
-    var model = alg.Mat4.identity();
-    var normal = model.inv().transpose();
-    normal_shader_program.setUniformByName("u_model", model);
-    normal_shader_program.setUniformByName("u_normal", normal);
     normal_shader_program.setUniformByName("u_view", camera.getViewMatrix());
     normal_shader_program.setUniformByName("u_project", projection);
     normal_shader_program.setUniformByName("u_view_pos", camera.position);
-    light.apply(&normal_shader_program, "u_light");
+    light.apply(&normal_shader_program, "u_spot_light");
     material.apply(&normal_shader_program, "u_material");
-    gl.util.drawBuffer(.triangles, 0, 36);
+    for (cube_positions) |pos, i| {
+        const model = alg.Mat4.fromRotation(
+            20 * @intToFloat(f32, i),
+            alg.Vec3.new(1, 0.3, 0.5),
+        ).translate(pos);
+        const normal = model.inv().transpose();
+        normal_shader_program.setUniformByName("u_model", model);
+        normal_shader_program.setUniformByName("u_normal", normal);
+        gl.util.drawBuffer(.triangles, 0, 36);
+    }
 
     // draw light
-    light_shader_program.use();
-    light_shader_program.setUniformByName(
-        "u_model",
-        alg.Mat4.fromScale(alg.Vec3.set(0.2)).translate(light.position),
-    );
-    light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
-    light_shader_program.setUniformByName("u_project", projection);
-    light_shader_program.setUniformByName("u_color", light_color);
-    gl.util.drawBuffer(.triangles, 0, 36);
+    if (light.getPosition()) |pos| {
+        light_shader_program.use();
+        light_shader_program.setUniformByName(
+            "u_model",
+            alg.Mat4.fromScale(alg.Vec3.set(0.2)).translate(pos),
+        );
+        light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
+        light_shader_program.setUniformByName("u_project", projection);
+        light_shader_program.setUniformByName("u_color", light_color);
+        gl.util.drawBuffer(.triangles, 0, 36);
+    }
 }
 
 fn quit(ctx: *zp.Context) void {
