@@ -199,8 +199,8 @@ var light = zp.util.Light3D.init(
             .direction = alg.Vec3.new(1.2, 1, 2).negate(),
             .linear = 0.09,
             .quadratic = 0.032,
-            .cutoff = std.math.cos(alg.toRadians(@as(f32, 12.5))),
-            .outer_cutoff = std.math.cos(alg.toRadians(@as(f32, 17.5))),
+            .cutoff = 12.5,
+            .outer_cutoff = 17.5,
         },
     },
 );

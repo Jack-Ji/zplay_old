@@ -4,7 +4,6 @@ const zp = @import("../lib.zig");
 const gl = zp.gl;
 const alg = zp.alg;
 const Vec3 = alg.Vec3;
-const Mat4 = alg.Mat4;
 const Self = @This();
 
 /// light type
@@ -14,7 +13,7 @@ pub const Type = enum {
     spot,
 };
 
-/// light property type
+/// light properties
 pub const Data = union(Type) {
     directional: struct {
         ambient: Vec3,
@@ -135,8 +134,8 @@ pub fn apply(self: Self, program: *gl.ShaderProgram, comptime uniform_name: [:0]
             program.setUniformByName(uniform_name ++ ".constant", d.constant);
             program.setUniformByName(uniform_name ++ ".linear", d.linear);
             program.setUniformByName(uniform_name ++ ".quadratic", d.quadratic);
-            program.setUniformByName(uniform_name ++ ".cutoff", d.cutoff);
-            program.setUniformByName(uniform_name ++ ".outer_cutoff", d.outer_cutoff);
+            program.setUniformByName(uniform_name ++ ".cutoff", std.math.cos(alg.toRadians(d.cutoff)));
+            program.setUniformByName(uniform_name ++ ".outer_cutoff", std.math.cos(alg.toRadians(d.outer_cutoff)));
         },
     }
 }
