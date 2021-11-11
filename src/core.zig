@@ -162,6 +162,15 @@ pub const Game = struct {
     /// display switch
     enable_fullscreen: bool = false,
 
+    /// borderless window
+    enable_borderless: bool = false,
+
+    /// minimize window
+    enable_minimized: bool = false,
+
+    /// maximize window
+    enable_maximized: bool = false,
+
     // vsync switch
     enable_vsync: bool = true,
 
@@ -200,6 +209,15 @@ pub fn run(g: Game) !void {
         .mouse_focus = true,
         .opengl = true,
     };
+    if (g.enable_borderless) {
+        flags.borderless = true;
+    }
+    if (g.enable_minimized) {
+        flags.minimized = true;
+    }
+    if (g.enable_maximized) {
+        flags.maximized = true;
+    }
     context._window = try sdl.createWindow(
         g.title,
         g.pos_x,
