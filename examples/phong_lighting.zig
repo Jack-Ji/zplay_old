@@ -226,13 +226,13 @@ var spot_lights = [_]zp.util.Light3D{
         .{
             .spot = .{
                 .ambient = alg.Vec3.new(0.2, 0.2, 0.2),
-                .diffuse = alg.Vec3.new(0.5, 0.5, 0.5),
+                .diffuse = alg.Vec3.new(0.8, 0.1, 0.1),
                 .position = alg.Vec3.new(1.2, 1, 2),
                 .direction = alg.Vec3.new(1.2, 1, 2).negate(),
                 .linear = 0.09,
                 .quadratic = 0.032,
                 .cutoff = 12.5,
-                .outer_cutoff = 17.5,
+                .outer_cutoff = 14.5,
             },
         },
     ),
@@ -384,20 +384,6 @@ fn loop(ctx: *zp.Context) void {
     var height: i32 = undefined;
     ctx.getSize(&width, &height);
 
-    // update light color
-    var light_color = alg.Vec3.one();
-    //var light_color = alg.Vec3.new(
-    //    std.math.sin(ctx.tick * 2.0),
-    //    std.math.sin(ctx.tick * 0.7),
-    //    std.math.sin(ctx.tick * 1.3),
-    //);
-    for (point_lights) |*light| {
-        light.updateColors(light_color.scale(0.2), light_color.scale(0.5), null);
-    }
-    for (spot_lights) |*light| {
-        light.updateColors(light_color.scale(0.2), light_color.scale(0.5), null);
-    }
-
     // start drawing
     gl.util.clear(true, true, false, [_]f32{ 0.2, 0.2, 0.2, 1.0 });
 
@@ -447,7 +433,7 @@ fn loop(ctx: *zp.Context) void {
         );
         light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
         light_shader_program.setUniformByName("u_project", projection);
-        light_shader_program.setUniformByName("u_color", light_color);
+        light_shader_program.setUniformByName("u_color", alg.Vec3.one());
         gl.util.drawBuffer(.triangles, 0, 36);
     }
     for (spot_lights) |light| {
@@ -458,7 +444,7 @@ fn loop(ctx: *zp.Context) void {
         );
         light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
         light_shader_program.setUniformByName("u_project", projection);
-        light_shader_program.setUniformByName("u_color", light_color);
+        light_shader_program.setUniformByName("u_color", alg.Vec3.one());
         gl.util.drawBuffer(.triangles, 0, 36);
     }
 }

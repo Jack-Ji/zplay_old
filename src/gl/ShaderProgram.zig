@@ -8,6 +8,10 @@ const allocator = std.heap.raw_c_allocator;
 id: gl.GLuint = undefined,
 
 /// uniform location cache
+/// Q: Why use string cache?
+/// A: Because we don't know where the given uniform name resides in(static, stack, heap),
+///    which means it could be disappeared/invalid in anytime! So, we clone it to make sure
+///    the memory is valid as long as shader is living.
 uniform_locs: std.StringHashMap(gl.GLint) = undefined,
 string_cache: std.ArrayList([]u8) = undefined,
 
