@@ -108,34 +108,101 @@ pub fn updateColors(self: *Self, ambient: ?Vec3, diffuse: ?Vec3, specular: ?Vec3
 }
 
 /// apply light in the shader
-pub fn apply(self: Self, program: *gl.ShaderProgram, comptime uniform_name: [:0]const u8) void {
+pub fn apply(self: Self, program: *gl.ShaderProgram, uniform_name: [:0]const u8) void {
+    const allocator = std.heap.raw_c_allocator;
+    var buf = allocator.alloc(u8, uniform_name.len + 64) catch unreachable;
+    defer allocator.free(buf);
+
     switch (self.data) {
         .directional => |d| {
-            program.setUniformByName(uniform_name ++ ".ambient", d.ambient);
-            program.setUniformByName(uniform_name ++ ".diffuse", d.diffuse);
-            program.setUniformByName(uniform_name ++ ".specular", d.specular);
-            program.setUniformByName(uniform_name ++ ".direction", d.direction);
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.ambient", .{uniform_name}) catch unreachable,
+                d.ambient,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.diffuse", .{uniform_name}) catch unreachable,
+                d.diffuse,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.specular", .{uniform_name}) catch unreachable,
+                d.specular,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.direction", .{uniform_name}) catch unreachable,
+                d.direction,
+            );
         },
         .point => |d| {
-            program.setUniformByName(uniform_name ++ ".ambient", d.ambient);
-            program.setUniformByName(uniform_name ++ ".diffuse", d.diffuse);
-            program.setUniformByName(uniform_name ++ ".specular", d.specular);
-            program.setUniformByName(uniform_name ++ ".position", d.position);
-            program.setUniformByName(uniform_name ++ ".constant", d.constant);
-            program.setUniformByName(uniform_name ++ ".linear", d.linear);
-            program.setUniformByName(uniform_name ++ ".quadratic", d.quadratic);
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.ambient", .{uniform_name}) catch unreachable,
+                d.ambient,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.diffuse", .{uniform_name}) catch unreachable,
+                d.diffuse,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.specular", .{uniform_name}) catch unreachable,
+                d.specular,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.position", .{uniform_name}) catch unreachable,
+                d.position,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.constant", .{uniform_name}) catch unreachable,
+                d.constant,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.linear", .{uniform_name}) catch unreachable,
+                d.linear,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.quadratic", .{uniform_name}) catch unreachable,
+                d.quadratic,
+            );
         },
         .spot => |d| {
-            program.setUniformByName(uniform_name ++ ".ambient", d.ambient);
-            program.setUniformByName(uniform_name ++ ".diffuse", d.diffuse);
-            program.setUniformByName(uniform_name ++ ".specular", d.specular);
-            program.setUniformByName(uniform_name ++ ".position", d.position);
-            program.setUniformByName(uniform_name ++ ".direction", d.direction);
-            program.setUniformByName(uniform_name ++ ".constant", d.constant);
-            program.setUniformByName(uniform_name ++ ".linear", d.linear);
-            program.setUniformByName(uniform_name ++ ".quadratic", d.quadratic);
-            program.setUniformByName(uniform_name ++ ".cutoff", std.math.cos(alg.toRadians(d.cutoff)));
-            program.setUniformByName(uniform_name ++ ".outer_cutoff", std.math.cos(alg.toRadians(d.outer_cutoff)));
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.ambient", .{uniform_name}) catch unreachable,
+                d.ambient,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.diffuse", .{uniform_name}) catch unreachable,
+                d.diffuse,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.specular", .{uniform_name}) catch unreachable,
+                d.specular,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.position", .{uniform_name}) catch unreachable,
+                d.position,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.direction", .{uniform_name}) catch unreachable,
+                d.direction,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.constant", .{uniform_name}) catch unreachable,
+                d.constant,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.linear", .{uniform_name}) catch unreachable,
+                d.linear,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.quadratic", .{uniform_name}) catch unreachable,
+                d.quadratic,
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.cutoff", .{uniform_name}) catch unreachable,
+                std.math.cos(alg.toRadians(d.cutoff)),
+            );
+            program.setUniformByName(
+                std.fmt.bufPrintZ(buf, "{s}.outer_cutoff", .{uniform_name}) catch unreachable,
+                std.math.cos(alg.toRadians(d.outer_cutoff)),
+            );
         },
     }
 }

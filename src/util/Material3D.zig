@@ -20,17 +20,21 @@ pub fn init(texture: Texture2D, specular: Texture2D, shiness: f32) Self {
 }
 
 /// apply material in the shader
-pub fn apply(self: Self, program: *gl.ShaderProgram, comptime uniform_name: [:0]const u8) void {
+pub fn apply(self: Self, program: *gl.ShaderProgram, uniform_name: [:0]const u8) void {
+    const allocator = std.heap.raw_c_allocator;
+    var buf = allocator.alloc(u8, uniform_name.len + 64) catch unreachable;
+    defer allocator.free(buf);
+
     program.setUniformByName(
-        uniform_name ++ ".diffuse",
+        std.fmt.bufPrintZ(buf, "{s}.diffuse", .{uniform_name}) catch unreachable,
         self.diffuse_map.tex.getTextureUnit(),
     );
     program.setUniformByName(
-        uniform_name ++ ".specular",
+        std.fmt.bufPrintZ(buf, "{s}.specular", .{uniform_name}) catch unreachable,
         self.specular_map.tex.getTextureUnit(),
     );
     program.setUniformByName(
-        uniform_name ++ ".shiness",
+        std.fmt.bufPrintZ(buf, "{s}.shiness", .{uniform_name}) catch unreachable,
         self.shiness,
     );
 }

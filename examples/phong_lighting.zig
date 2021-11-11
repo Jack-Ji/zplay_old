@@ -54,7 +54,9 @@ const fragment_shader =
     \\    float linear;
     \\    float quadratic;
     \\};
-    \\uniform PointLight u_point_light;
+    \\#define NR_POINT_LIGHTS 16
+    \\uniform int u_point_light_count;
+    \\uniform PointLight u_point_lights[NR_POINT_LIGHTS];
     \\
     \\struct SpotLight {
     \\    vec3 ambient;
@@ -68,7 +70,9 @@ const fragment_shader =
     \\    float cutoff;
     \\    float outer_cutoff;
     \\};
-    \\uniform SpotLight u_spot_light;
+    \\#define NR_SPOT_LIGHTS 16
+    \\uniform int u_spot_light_count;
+    \\uniform SpotLight u_spot_lights[NR_SPOT_LIGHTS];
     \\
     \\struct Material {
     \\    sampler2D diffuse;
@@ -163,9 +167,13 @@ const fragment_shader =
     \\
     \\void main()
     \\{
-    \\    //vec3 result = applyDirectionalLight(u_directional_light);
-    \\    //vec3 result = applyPointLight(u_point_light);
-    \\    vec3 result = applySpotLight(u_spot_light);
+    \\    vec3 result = applyDirectionalLight(u_directional_light);
+    \\    for (int i = 0; i < u_point_light_count; i++) {
+    \\      result += applyPointLight(u_point_lights[i]);
+    \\    }
+    \\    for (int i = 0; i < u_spot_light_count; i++) {
+    \\      result += applySpotLight(u_spot_lights[i]);
+    \\    }
     \\    frag_color = vec4(result, 1.0);
     \\}
 ;
@@ -190,20 +198,45 @@ var camera = zp.util.Camera3D.fromPositionAndTarget(
     alg.Vec3.zero(),
     null,
 );
-var light = zp.util.Light3D.init(
+var dir_light = zp.util.Light3D.init(
     .{
-        .spot = .{
-            .ambient = alg.Vec3.new(0.2, 0.2, 0.2),
-            .diffuse = alg.Vec3.new(0.5, 0.5, 0.5),
-            .position = alg.Vec3.new(1.2, 1, 2),
-            .direction = alg.Vec3.new(1.2, 1, 2).negate(),
-            .linear = 0.09,
-            .quadratic = 0.032,
-            .cutoff = 12.5,
-            .outer_cutoff = 17.5,
+        .directional = .{
+            .ambient = alg.Vec3.new(0.1, 0.1, 0.1),
+            .diffuse = alg.Vec3.new(0.1, 0.1, 0.1),
+            .specular = alg.Vec3.new(0.1, 0.1, 0.1),
+            .direction = alg.Vec3.down(),
         },
     },
 );
+var point_lights = [_]zp.util.Light3D{
+    zp.util.Light3D.init(
+        .{
+            .point = .{
+                .ambient = alg.Vec3.new(0.2, 0.2, 0.2),
+                .diffuse = alg.Vec3.new(0.5, 0.5, 0.5),
+                .position = alg.Vec3.new(1.2, 1, -2),
+                .linear = 0.09,
+                .quadratic = 0.032,
+            },
+        },
+    ),
+};
+var spot_lights = [_]zp.util.Light3D{
+    zp.util.Light3D.init(
+        .{
+            .spot = .{
+                .ambient = alg.Vec3.new(0.2, 0.2, 0.2),
+                .diffuse = alg.Vec3.new(0.5, 0.5, 0.5),
+                .position = alg.Vec3.new(1.2, 1, 2),
+                .direction = alg.Vec3.new(1.2, 1, 2).negate(),
+                .linear = 0.09,
+                .quadratic = 0.032,
+                .cutoff = 12.5,
+                .outer_cutoff = 17.5,
+            },
+        },
+    ),
+};
 var material: zp.util.Material3D = undefined;
 
 // position, normal, texture coord
@@ -358,7 +391,12 @@ fn loop(ctx: *zp.Context) void {
     //    std.math.sin(ctx.tick * 0.7),
     //    std.math.sin(ctx.tick * 1.3),
     //);
-    light.updateColors(light_color.scale(0.2), light_color.scale(0.5), null);
+    for (point_lights) |*light| {
+        light.updateColors(light_color.scale(0.2), light_color.scale(0.5), null);
+    }
+    for (spot_lights) |*light| {
+        light.updateColors(light_color.scale(0.2), light_color.scale(0.5), null);
+    }
 
     // start drawing
     gl.util.clear(true, true, false, [_]f32{ 0.2, 0.2, 0.2, 1.0 });
@@ -375,7 +413,19 @@ fn loop(ctx: *zp.Context) void {
     normal_shader_program.setUniformByName("u_view", camera.getViewMatrix());
     normal_shader_program.setUniformByName("u_project", projection);
     normal_shader_program.setUniformByName("u_view_pos", camera.position);
-    light.apply(&normal_shader_program, "u_spot_light");
+    dir_light.apply(&normal_shader_program, "u_directional_light");
+    normal_shader_program.setUniformByName("u_point_light_count", point_lights.len);
+    for (point_lights) |*light, i| {
+        const name = std.fmt.allocPrintZ(std.testing.allocator, "u_point_lights[{d}]", .{i}) catch unreachable;
+        defer std.testing.allocator.free(name);
+        light.apply(&normal_shader_program, name);
+    }
+    normal_shader_program.setUniformByName("u_spot_light_count", spot_lights.len);
+    for (spot_lights) |*light, i| {
+        const name = std.fmt.allocPrintZ(std.testing.allocator, "u_spot_lights[{d}]", .{i}) catch unreachable;
+        defer std.testing.allocator.free(name);
+        light.apply(&normal_shader_program, name);
+    }
     material.apply(&normal_shader_program, "u_material");
     for (cube_positions) |pos, i| {
         const model = alg.Mat4.fromRotation(
@@ -388,12 +438,23 @@ fn loop(ctx: *zp.Context) void {
         gl.util.drawBuffer(.triangles, 0, 36);
     }
 
-    // draw light
-    if (light.getPosition()) |pos| {
+    // draw lights
+    for (point_lights) |light| {
         light_shader_program.use();
         light_shader_program.setUniformByName(
             "u_model",
-            alg.Mat4.fromScale(alg.Vec3.set(0.2)).translate(pos),
+            alg.Mat4.fromScale(alg.Vec3.set(0.1)).translate(light.getPosition().?),
+        );
+        light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
+        light_shader_program.setUniformByName("u_project", projection);
+        light_shader_program.setUniformByName("u_color", light_color);
+        gl.util.drawBuffer(.triangles, 0, 36);
+    }
+    for (spot_lights) |light| {
+        light_shader_program.use();
+        light_shader_program.setUniformByName(
+            "u_model",
+            alg.Mat4.fromScale(alg.Vec3.set(0.1)).translate(light.getPosition().?),
         );
         light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
         light_shader_program.setUniformByName("u_project", projection);

@@ -2,12 +2,14 @@ const std = @import("std");
 const gl = @import("gl.zig");
 const alg = @import("../lib.zig").alg;
 const Self = @This();
+const allocator = std.heap.raw_c_allocator;
 
 /// id of shader program
 id: gl.GLuint = undefined,
 
 /// uniform location cache
 uniform_locs: std.StringHashMap(gl.GLint) = undefined,
+string_cache: std.ArrayList([]u8) = undefined,
 
 /// init shader program
 pub fn init(
@@ -56,7 +58,8 @@ pub fn init(
     gl.util.checkError();
 
     // init uniform location cache
-    program.uniform_locs = std.StringHashMap(gl.GLint).init(std.heap.raw_c_allocator);
+    program.uniform_locs = std.StringHashMap(gl.GLint).init(allocator);
+    program.string_cache = std.ArrayList([]u8).init(allocator);
 
     return program;
 }
@@ -66,6 +69,10 @@ pub fn deinit(self: *Self) void {
     gl.deleteProgram(self.id);
     self.id = undefined;
     self.uniform_locs.deinit();
+    for (self.string_cache) |s| {
+        allocator.free(s);
+    }
+    self.string_cache.deinit();
     gl.util.checkError();
 }
 
@@ -78,7 +85,6 @@ pub fn use(self: Self) void {
 /// stop using shader program
 pub fn disuse(self: Self) void {
     _ = self;
-
     gl.useProgram(0);
     gl.util.checkError();
 }
@@ -104,9 +110,11 @@ pub fn setUniformByName(self: *Self, name: [:0]const u8, v: anytype) void {
         }
 
         // save into cache
-        self.uniform_locs.put(name, loc) catch unreachable;
+        const cloned_name = allocator.dupe(u8, name) catch unreachable;
+        self.uniform_locs.put(cloned_name, loc) catch unreachable;
+        self.string_cache.append(cloned_name) catch unreachable;
     }
-    self._setUniformByLocation(loc, v);
+    self.setUniform(loc, v);
 }
 
 /// set uniform value with location
@@ -116,17 +124,15 @@ pub fn setUniformByLocation(self: Self, loc: gl.GLuint, v: anytype) void {
     if (current_program != self.id) {
         std.debug.panic("invalid operation, must use program first!, is using {d}", .{current_program});
     }
-
-    self._setUniformByLocation(@intCast(gl.GLuint, loc), v);
+    self.setUniform(@intCast(gl.GLuint, loc), v);
 }
 
 /// internal generic function for setting uniform value
-fn _setUniformByLocation(self: Self, loc: gl.GLint, v: anytype) void {
+fn setUniform(self: Self, loc: gl.GLint, v: anytype) void {
     _ = self;
-
     switch (@TypeOf(v)) {
         bool => gl.uniform1i(loc, gl.boolType(v)),
-        i32 => gl.uniform1i(loc, v),
+        i32, comptime_int, usize => gl.uniform1i(loc, @intCast(gl.GLint, v)),
         []i32 => gl.uniform1iv(loc, v.len, v.ptr),
         [2]i32 => gl.uniform2iv(loc, 1, &v),
         [3]i32 => gl.uniform3iv(loc, 1, &v),
