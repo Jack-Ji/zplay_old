@@ -7,7 +7,6 @@ const gl = zp.gl;
 const alg = zp.alg;
 const Mat4 = alg.Mat4;
 const Vec3 = alg.Vec3;
-const Texture2D = zp.texture.Texture2D;
 const Self = @This();
 
 const max_point_light_num = 16;
@@ -303,6 +302,7 @@ pub fn end(self: Self) void {
 pub fn render(
     self: *Self,
     vertex_array: gl.VertexArray,
+    use_elements: bool,
     primitive: gl.util.PrimitiveType,
     offset: usize,
     vertex_count: usize,
@@ -326,5 +326,9 @@ pub fn render(
     // issue draw call
     vertex_array.use();
     defer vertex_array.disuse();
-    gl.util.drawBuffer(primitive, offset, vertex_count);
+    if (use_elements) {
+        gl.util.drawElements(primitive, offset, vertex_count);
+    } else {
+        gl.util.drawBuffer(primitive, offset, vertex_count);
+    }
 }

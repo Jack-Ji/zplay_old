@@ -6,34 +6,12 @@ const PhongRenderer = zp.@"3d".PhongRenderer;
 const Camera = zp.@"3d".Camera;
 const Light = zp.@"3d".Light;
 const Material = zp.@"3d".Material;
+const SimpleRenderer = zp.@"3d".SimpleRenderer;
 
-const vertex_shader =
-    \\#version 330 core
-    \\layout (location = 0) in vec3 a_pos;
-    \\
-    \\out vec3 vertex_color;
-    \\
-    \\uniform mat4 u_mvp;
-    \\
-    \\void main()
-    \\{
-    \\    gl_Position = u_mvp * vec4(a_pos, 1.0);
-    \\}
-;
-
-const fragment_shader =
-    \\#version 330 core
-    \\out vec4 frag_color;
-    \\
-    \\void main()
-    \\{
-    \\    frag_color = vec4(1.0);
-    \\}
-;
-
+var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
-var shader_program: gl.ShaderProgram = undefined;
-var cube_va: gl.VertexArray = undefined;
+var regular_cube_va: gl.VertexArray = undefined;
+var lighting_cube_va: gl.VertexArray = undefined;
 var material: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
     alg.Vec3.new(1, 2, 3),
@@ -41,49 +19,49 @@ var camera = Camera.fromPositionAndTarget(
     null,
 );
 
-// position, normal, texture coord
+// position, normal, texture coord, optional color
 const vertices = [_]f32{
-    -0.5, -0.5, -0.5, 0.0,  0.0,  -1.0, 0.0, 0.0,
-    0.5,  -0.5, -0.5, 0.0,  0.0,  -1.0, 1.0, 0.0,
-    0.5,  0.5,  -0.5, 0.0,  0.0,  -1.0, 1.0, 1.0,
-    0.5,  0.5,  -0.5, 0.0,  0.0,  -1.0, 1.0, 1.0,
-    -0.5, 0.5,  -0.5, 0.0,  0.0,  -1.0, 0.0, 1.0,
-    -0.5, -0.5, -0.5, 0.0,  0.0,  -1.0, 0.0, 0.0,
+    -0.5, -0.5, -0.5, 0.0,  0.0,  -1.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+    0.5,  -0.5, -0.5, 0.0,  0.0,  -1.0, 1.0, 0.0, 1.0, 1.0, 1.0,
+    0.5,  0.5,  -0.5, 0.0,  0.0,  -1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    0.5,  0.5,  -0.5, 0.0,  0.0,  -1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    -0.5, 0.5,  -0.5, 0.0,  0.0,  -1.0, 0.0, 1.0, 1.0, 1.0, 1.0,
+    -0.5, -0.5, -0.5, 0.0,  0.0,  -1.0, 0.0, 0.0, 1.0, 1.0, 1.0,
 
-    -0.5, -0.5, 0.5,  0.0,  0.0,  1.0,  0.0, 0.0,
-    0.5,  -0.5, 0.5,  0.0,  0.0,  1.0,  1.0, 0.0,
-    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0, 1.0,
-    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0, 1.0,
-    -0.5, 0.5,  0.5,  0.0,  0.0,  1.0,  0.0, 1.0,
-    -0.5, -0.5, 0.5,  0.0,  0.0,  1.0,  0.0, 0.0,
+    -0.5, -0.5, 0.5,  0.0,  0.0,  1.0,  0.0, 0.0, 1.0, 1.0, 1.0,
+    0.5,  -0.5, 0.5,  0.0,  0.0,  1.0,  1.0, 0.0, 1.0, 1.0, 1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0, 1.0, 1.0, 1.0, 1.0,
+    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0, 1.0, 1.0, 1.0, 1.0,
+    -0.5, 0.5,  0.5,  0.0,  0.0,  1.0,  0.0, 1.0, 1.0, 1.0, 1.0,
+    -0.5, -0.5, 0.5,  0.0,  0.0,  1.0,  0.0, 0.0, 1.0, 1.0, 1.0,
 
-    -0.5, 0.5,  0.5,  -1.0, 0.0,  0.0,  1.0, 0.0,
-    -0.5, 0.5,  -0.5, -1.0, 0.0,  0.0,  1.0, 1.0,
-    -0.5, -0.5, -0.5, -1.0, 0.0,  0.0,  0.0, 1.0,
-    -0.5, -0.5, -0.5, -1.0, 0.0,  0.0,  0.0, 1.0,
-    -0.5, -0.5, 0.5,  -1.0, 0.0,  0.0,  0.0, 0.0,
-    -0.5, 0.5,  0.5,  -1.0, 0.0,  0.0,  1.0, 0.0,
+    -0.5, 0.5,  0.5,  -1.0, 0.0,  0.0,  1.0, 0.0, 1.0, 1.0, 1.0,
+    -0.5, 0.5,  -0.5, -1.0, 0.0,  0.0,  1.0, 1.0, 1.0, 1.0, 1.0,
+    -0.5, -0.5, -0.5, -1.0, 0.0,  0.0,  0.0, 1.0, 1.0, 1.0, 1.0,
+    -0.5, -0.5, -0.5, -1.0, 0.0,  0.0,  0.0, 1.0, 1.0, 1.0, 1.0,
+    -0.5, -0.5, 0.5,  -1.0, 0.0,  0.0,  0.0, 0.0, 1.0, 1.0, 1.0,
+    -0.5, 0.5,  0.5,  -1.0, 0.0,  0.0,  1.0, 0.0, 1.0, 1.0, 1.0,
 
-    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0,
-    0.5,  0.5,  -0.5, 1.0,  0.0,  0.0,  1.0, 1.0,
-    0.5,  -0.5, -0.5, 1.0,  0.0,  0.0,  0.0, 1.0,
-    0.5,  -0.5, -0.5, 1.0,  0.0,  0.0,  0.0, 1.0,
-    0.5,  -0.5, 0.5,  1.0,  0.0,  0.0,  0.0, 0.0,
-    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0,
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0, 1.0, 1.0, 1.0,
+    0.5,  0.5,  -0.5, 1.0,  0.0,  0.0,  1.0, 1.0, 1.0, 1.0, 1.0,
+    0.5,  -0.5, -0.5, 1.0,  0.0,  0.0,  0.0, 1.0, 1.0, 1.0, 1.0,
+    0.5,  -0.5, -0.5, 1.0,  0.0,  0.0,  0.0, 1.0, 1.0, 1.0, 1.0,
+    0.5,  -0.5, 0.5,  1.0,  0.0,  0.0,  0.0, 0.0, 1.0, 1.0, 1.0,
+    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0, 1.0, 1.0, 1.0,
 
-    -0.5, -0.5, -0.5, 0.0,  -1.0, 0.0,  0.0, 1.0,
-    0.5,  -0.5, -0.5, 0.0,  -1.0, 0.0,  1.0, 1.0,
-    0.5,  -0.5, 0.5,  0.0,  -1.0, 0.0,  1.0, 0.0,
-    0.5,  -0.5, 0.5,  0.0,  -1.0, 0.0,  1.0, 0.0,
-    -0.5, -0.5, 0.5,  0.0,  -1.0, 0.0,  0.0, 0.0,
-    -0.5, -0.5, -0.5, 0.0,  -1.0, 0.0,  0.0, 1.0,
+    -0.5, -0.5, -0.5, 0.0,  -1.0, 0.0,  0.0, 1.0, 1.0, 1.0, 1.0,
+    0.5,  -0.5, -0.5, 0.0,  -1.0, 0.0,  1.0, 1.0, 1.0, 1.0, 1.0,
+    0.5,  -0.5, 0.5,  0.0,  -1.0, 0.0,  1.0, 0.0, 1.0, 1.0, 1.0,
+    0.5,  -0.5, 0.5,  0.0,  -1.0, 0.0,  1.0, 0.0, 1.0, 1.0, 1.0,
+    -0.5, -0.5, 0.5,  0.0,  -1.0, 0.0,  0.0, 0.0, 1.0, 1.0, 1.0,
+    -0.5, -0.5, -0.5, 0.0,  -1.0, 0.0,  0.0, 1.0, 1.0, 1.0, 1.0,
 
-    -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,  0.0, 1.0,
-    0.5,  0.5,  -0.5, 0.0,  1.0,  0.0,  1.0, 1.0,
-    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0,
-    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0,
-    -0.5, 0.5,  0.5,  0.0,  1.0,  0.0,  0.0, 0.0,
-    -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,  0.0, 1.0,
+    -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,  0.0, 1.0, 1.0, 1.0, 1.0,
+    0.5,  0.5,  -0.5, 0.0,  1.0,  0.0,  1.0, 1.0, 1.0, 1.0, 1.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0, 1.0, 1.0, 1.0,
+    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0, 1.0, 1.0, 1.0,
+    -0.5, 0.5,  0.5,  0.0,  1.0,  0.0,  0.0, 0.0, 1.0, 1.0, 1.0,
+    -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,  0.0, 1.0, 1.0, 1.0, 1.0,
 };
 
 const cube_positions = [_]alg.Vec3{
@@ -101,6 +79,9 @@ const cube_positions = [_]alg.Vec3{
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
+
+    // simple renderer
+    simple_renderer = SimpleRenderer.init(null);
 
     // phong renderer
     phong_renderer = PhongRenderer.init(std.testing.allocator);
@@ -134,17 +115,22 @@ fn init(ctx: *zp.Context) anyerror!void {
         },
     }));
 
-    // shader program
-    shader_program = gl.ShaderProgram.init(vertex_shader, fragment_shader);
+    // vertex array for regular scene
+    regular_cube_va = gl.VertexArray.init(5);
+    regular_cube_va.use();
+    regular_cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
+    regular_cube_va.setAttribute(0, 0, 3, f32, false, 11 * @sizeOf(f32), 0);
+    regular_cube_va.setAttribute(0, 1, 3, f32, false, 11 * @sizeOf(f32), 8 * @sizeOf(f32));
+    regular_cube_va.disuse();
 
-    // vertex array
-    cube_va = gl.VertexArray.init(5);
-    cube_va.use();
-    defer cube_va.disuse();
-    cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    cube_va.setAttribute(0, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
-    cube_va.setAttribute(0, 1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
-    cube_va.setAttribute(0, 2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
+    // vertex array for lighting scene
+    lighting_cube_va = gl.VertexArray.init(5);
+    lighting_cube_va.use();
+    lighting_cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
+    lighting_cube_va.setAttribute(0, 0, 3, f32, false, 11 * @sizeOf(f32), 0);
+    lighting_cube_va.setAttribute(0, 1, 3, f32, false, 11 * @sizeOf(f32), 3 * @sizeOf(f32));
+    lighting_cube_va.setAttribute(0, 2, 2, f32, false, 11 * @sizeOf(f32), 6 * @sizeOf(f32));
+    lighting_cube_va.disuse();
 
     // material init
     var diffuse_texture = try zp.texture.Texture2D.init("assets/container2.png", null, false);
@@ -233,25 +219,39 @@ fn loop(ctx: *zp.Context) void {
             20 * @intToFloat(f32, i),
             alg.Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
-        phong_renderer.render(cube_va, .triangles, 0, 36, model, projection, camera, material) catch unreachable;
+        phong_renderer.render(lighting_cube_va, false, .triangles, 0, 36, model, projection, camera, material) catch unreachable;
     }
     phong_renderer.end();
 
     // draw lights
-    shader_program.use();
-    defer shader_program.disuse();
-    cube_va.use();
-    const view = camera.getViewMatrix();
+    simple_renderer.begin(null);
     for (phong_renderer.point_lights.items) |light| {
         const model = alg.Mat4.fromScale(alg.Vec3.set(0.1)).translate(light.getPosition().?);
-        shader_program.setUniformByName("u_mvp", projection.mult(view).mult(model));
-        gl.util.drawBuffer(.triangles, 0, 36);
+        simple_renderer.render(
+            regular_cube_va,
+            false,
+            .triangles,
+            0,
+            36,
+            model,
+            projection,
+            camera,
+        ) catch unreachable;
     }
     for (phong_renderer.spot_lights.items) |light| {
         const model = alg.Mat4.fromScale(alg.Vec3.set(0.1)).translate(light.getPosition().?);
-        shader_program.setUniformByName("u_mvp", projection.mult(view).mult(model));
-        gl.util.drawBuffer(.triangles, 0, 36);
+        simple_renderer.render(
+            regular_cube_va,
+            false,
+            .triangles,
+            0,
+            36,
+            model,
+            projection,
+            camera,
+        ) catch unreachable;
     }
+    simple_renderer.end();
 }
 
 fn quit(ctx: *zp.Context) void {

@@ -1,33 +1,11 @@
 const std = @import("std");
 const zp = @import("zplay");
 const gl = zp.gl;
+const alg = zp.alg;
+const Mat4 = alg.Mat4;
+const SimpleRenderer = zp.@"3d".SimpleRenderer;
 
-const vertex_shader =
-    \\#version 330 core
-    \\layout (location = 0) in vec3 a_pos;
-    \\layout (location = 1) in vec3 a_color;
-    \\
-    \\out vec3 vertex_color;
-    \\
-    \\void main()
-    \\{
-    \\    gl_Position = vec4(a_pos, 1.0);
-    \\    vertex_color = a_color;
-    \\}
-;
-
-const fragment_shader =
-    \\#version 330 core
-    \\in vec3 vertex_color;
-    \\out vec4 frag_color;
-    \\
-    \\void main()
-    \\{
-    \\    frag_color = vec4(vertex_color, 1.0);
-    \\}
-;
-
-var shader_program: gl.ShaderProgram = undefined;
+var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: gl.VertexArray = undefined;
 
 const vertices = [_]f32{
@@ -40,8 +18,8 @@ const vertices = [_]f32{
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
-    // shader program
-    shader_program = gl.ShaderProgram.init(vertex_shader, fragment_shader);
+    // simple renderer
+    simple_renderer = SimpleRenderer.init(null);
 
     // vertex array
     vertex_array = gl.VertexArray.init(5);
@@ -83,9 +61,19 @@ fn loop(ctx: *zp.Context) void {
     _ = ctx;
 
     gl.util.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
-    shader_program.use();
-    vertex_array.use();
-    gl.util.drawBuffer(.triangles, 0, 3);
+
+    simple_renderer.begin(null);
+    simple_renderer.render(
+        vertex_array,
+        false,
+        .triangles,
+        0,
+        3,
+        Mat4.identity(),
+        Mat4.identity(),
+        null,
+    ) catch unreachable;
+    simple_renderer.end();
 }
 
 fn quit(ctx: *zp.Context) void {

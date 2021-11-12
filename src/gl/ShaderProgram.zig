@@ -138,7 +138,7 @@ pub fn setUniformByLocation(self: Self, loc: gl.GLuint, v: anytype) void {
 fn setUniform(self: Self, loc: gl.GLint, v: anytype) void {
     _ = self;
     switch (@TypeOf(v)) {
-        bool => gl.uniform1i(loc, gl.boolType(v)),
+        bool => gl.uniform1i(loc, gl.util.boolType(v)),
         i32, comptime_int, usize => gl.uniform1i(loc, @intCast(gl.GLint, v)),
         []i32 => gl.uniform1iv(loc, v.len, v.ptr),
         [2]i32 => gl.uniform2iv(loc, 1, &v),

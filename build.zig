@@ -19,7 +19,6 @@ pub fn build(b: *std.build.Builder) void {
         "simple_window",
         "simple_triangle",
         "flashing_triangle",
-        "indexed_drawing",
         "2d_texture",
         "cubes",
         "3d_camera",

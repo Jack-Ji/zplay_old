@@ -2,41 +2,12 @@ const std = @import("std");
 const zp = @import("zplay");
 const gl = zp.gl;
 const alg = zp.alg;
+const SimpleRenderer = zp.@"3d".SimpleRenderer;
+const Texture2D = zp.texture.Texture2D;
 
-const vertex_shader =
-    \\#version 330 core
-    \\layout (location = 0) in vec3 a_pos;
-    \\layout (location = 1) in vec2 a_tex;
-    \\
-    \\uniform mat4 u_mvp;
-    \\
-    \\out vec2 v_tex;
-    \\
-    \\void main()
-    \\{
-    \\    gl_Position = u_mvp * vec4(a_pos, 1.0);
-    \\    v_tex = a_tex;
-    \\}
-;
-
-const fragment_shader =
-    \\#version 330 core
-    \\out vec4 frag_color;
-    \\
-    \\in vec2 v_tex;
-    \\
-    \\uniform sampler2D u_texture1;
-    \\uniform sampler2D u_texture2;
-    \\
-    \\void main()
-    \\{
-    \\    frag_color = mix(texture(u_texture1, v_tex), texture(u_texture2, v_tex), 0.2);
-    \\}
-;
-
-var shader_program: gl.ShaderProgram = undefined;
+var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: gl.VertexArray = undefined;
-var wireframe_mode = false;
+var texture: Texture2D = undefined;
 var camera = zp.@"3d".Camera.fromPositionAndTarget(
     alg.Vec3.new(0, 0, 3),
     alg.Vec3.zero(),
@@ -44,7 +15,7 @@ var camera = zp.@"3d".Camera.fromPositionAndTarget(
 );
 
 const vertices = [_]f32{
-    // positions, texture coords
+    // positions, texture
     -0.5, -0.5, -0.5, 0.0, 0.0,
     0.5,  -0.5, -0.5, 1.0, 0.0,
     0.5,  0.5,  -0.5, 1.0, 1.0,
@@ -91,8 +62,8 @@ const vertices = [_]f32{
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
-    // shader program
-    shader_program = gl.ShaderProgram.init(vertex_shader, fragment_shader);
+    // simple renderer
+    simple_renderer = SimpleRenderer.init(null);
 
     // vertex array
     vertex_array = gl.VertexArray.init(5);
@@ -100,17 +71,10 @@ fn init(ctx: *zp.Context) anyerror!void {
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
     vertex_array.setAttribute(0, 0, 3, f32, false, 5 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, 1, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, 2, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // load texture
-    const texture1 = try zp.texture.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
-    const texture2 = try zp.texture.Texture2D.init("assets/awesomeface.png", .texture_unit_1, true);
-
-    // only necessary when not using texture unit 0
-    shader_program.use();
-    defer shader_program.disuse();
-    shader_program.setUniformByName("u_texture1", texture1.tex.getTextureUnit());
-    shader_program.setUniformByName("u_texture2", texture2.tex.getTextureUnit());
+    texture = try zp.texture.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
 
     // enable depth test
     gl.util.toggleCapability(.depth_test, true);
@@ -195,9 +159,6 @@ fn loop(ctx: *zp.Context) void {
     // start drawing
     gl.util.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
-    shader_program.use();
-    vertex_array.use();
-
     const projection = alg.Mat4.perspective(
         camera.zoom,
         @intToFloat(f32, width) / @intToFloat(f32, height),
@@ -209,10 +170,19 @@ fn loop(ctx: *zp.Context) void {
         S.frame,
         alg.Vec3.new(S.axis.x, S.axis.y, S.axis.z),
     );
-    const mvp = projection.mult(camera.getViewMatrix()).mult(model);
-    shader_program.setUniformByName("u_mvp", mvp);
 
-    gl.util.drawBuffer(.triangles, 0, 36);
+    simple_renderer.begin(texture);
+    simple_renderer.render(
+        vertex_array,
+        false,
+        .triangles,
+        0,
+        36,
+        model,
+        projection,
+        camera,
+    ) catch unreachable;
+    simple_renderer.end();
 }
 
 fn quit(ctx: *zp.Context) void {
