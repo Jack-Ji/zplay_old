@@ -39,6 +39,8 @@ const fs_header =
     \\in vec3 v_pos;
     \\in vec3 v_color;
     \\in vec2 v_tex;
+    \\
+    \\
 ;
 
 const default_fs_body =

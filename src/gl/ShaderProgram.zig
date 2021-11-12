@@ -33,7 +33,11 @@ pub fn init(
     gl.getShaderiv(vshader, gl.GL_COMPILE_STATUS, &success);
     if (success == 0) {
         gl.getShaderInfoLog(vshader, 512, &log_size, &shader_log);
-        std.debug.panic("compile vertex shader failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
+        std.debug.panic(
+            "compile vertex shader failed, error log:\n{s}" ++
+                "\n\n>>>>> full shader source <<<<<\n{s}\n",
+            .{ shader_log[0..@intCast(usize, log_size)], prettifySource(vs_source) },
+        );
     }
     gl.util.checkError();
 
@@ -45,7 +49,11 @@ pub fn init(
     gl.getShaderiv(fshader, gl.GL_COMPILE_STATUS, &success);
     if (success == 0) {
         gl.getShaderInfoLog(fshader, 512, &log_size, &shader_log);
-        std.debug.panic("compile fragment shader failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
+        std.debug.panic(
+            "compile fragment shader failed, error log:\n{s}" ++
+                "\n\n>>>>> full shader source <<<<<\n{s}\n",
+            .{ shader_log[0..@intCast(usize, log_size)], prettifySource(fs_source) },
+        );
     }
     gl.util.checkError();
 
@@ -57,7 +65,12 @@ pub fn init(
     gl.getProgramiv(program.id, gl.GL_LINK_STATUS, &success);
     if (success == 0) {
         gl.getProgramInfoLog(program.id, 512, &log_size, &shader_log);
-        std.debug.panic("link shader program failed: {s}", .{shader_log[0..@intCast(usize, log_size)]});
+        std.debug.panic(
+            "link shader program failed, error log:\n{s}" ++
+                "\n\n>>>>> vertex shader source <<<<<\n{s}" ++
+                "\n\n>>>>> fragment shader source <<<<<\n{s}\n",
+            .{ shader_log[0..@intCast(usize, log_size)], prettifySource(vs_source), prettifySource(fs_source) },
+        );
     }
     gl.util.checkError();
 
@@ -161,4 +174,18 @@ fn setUniform(self: Self, loc: gl.GLint, v: anytype) void {
         else => std.debug.panic("unsupported type {s}", .{@typeName(@TypeOf(v))}),
     }
     gl.util.checkError();
+}
+
+/// caller is responsible for freeing the returned buffer
+fn prettifySource(source: [:0]const u8) []u8 {
+    const buf = allocator.alloc(u8, 16 * 1024) catch unreachable;
+    var line_num: usize = 1;
+    var it = std.mem.split(u8, source, "\n");
+    var off: usize = 0;
+    while (it.next()) |s| : (line_num += 1) {
+        const ws = std.fmt.bufPrint(buf[off..], "{d:0>4}| {s}\n", .{ line_num, s }) catch unreachable;
+        off += ws.len;
+    }
+    std.debug.print("line_num is {d} {d}\n", .{ line_num, off });
+    return buf[0..off];
 }
