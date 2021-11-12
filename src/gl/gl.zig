@@ -1,7 +1,7 @@
 /// raw opengl api
 pub usingnamespace @import("api.zig");
 
-/// helper functions
+/// helper functions and types
 pub const util = @import("util.zig");
 
 /// shader program object

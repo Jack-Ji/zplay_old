@@ -2,7 +2,7 @@ const std = @import("std");
 const sdl = @import("sdl");
 const zp = @import("../lib.zig");
 const gl = zp.gl;
-const Texture2D = zp.util.Texture2D;
+const Texture2D = zp.texture.Texture2D;
 const Self = @This();
 
 /// material properties

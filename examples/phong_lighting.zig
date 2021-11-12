@@ -2,28 +2,22 @@ const std = @import("std");
 const zp = @import("zplay");
 const gl = zp.gl;
 const alg = zp.alg;
+const PhongRenderer = zp.@"3d".PhongRenderer;
+const Camera = zp.@"3d".Camera;
+const Light = zp.@"3d".Light;
+const Material = zp.@"3d".Material;
 
 const vertex_shader =
     \\#version 330 core
     \\layout (location = 0) in vec3 a_pos;
-    \\layout (location = 1) in vec3 a_normal;
-    \\layout (location = 2) in vec2 a_tex;
     \\
-    \\out vec3 v_pos;
-    \\out vec3 v_normal;
-    \\out vec2 v_tex;
+    \\out vec3 vertex_color;
     \\
-    \\uniform mat4 u_model;
-    \\uniform mat4 u_normal;
-    \\uniform mat4 u_view;
-    \\uniform mat4 u_project;
+    \\uniform mat4 u_mvp;
     \\
     \\void main()
     \\{
-    \\    gl_Position = u_project * u_view * u_model * vec4(a_pos, 1.0);
-    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
-    \\    v_normal = mat3(u_normal) * a_normal;
-    \\    v_tex = a_tex;
+    \\    gl_Position = u_mvp * vec4(a_pos, 1.0);
     \\}
 ;
 
@@ -31,213 +25,21 @@ const fragment_shader =
     \\#version 330 core
     \\out vec4 frag_color;
     \\
-    \\in vec3 v_pos;
-    \\in vec3 v_normal;
-    \\in vec2 v_tex;
-    \\
-    \\uniform vec3 u_view_pos;
-    \\
-    \\struct DirectionalLight {
-    \\    vec3 ambient;
-    \\    vec3 diffuse;
-    \\    vec3 specular;
-    \\    vec3 direction;
-    \\};
-    \\uniform DirectionalLight u_directional_light;
-    \\
-    \\struct PointLight {
-    \\    vec3 ambient;
-    \\    vec3 diffuse;
-    \\    vec3 specular;
-    \\    vec3 position;
-    \\    float constant;
-    \\    float linear;
-    \\    float quadratic;
-    \\};
-    \\#define NR_POINT_LIGHTS 16
-    \\uniform int u_point_light_count;
-    \\uniform PointLight u_point_lights[NR_POINT_LIGHTS];
-    \\
-    \\struct SpotLight {
-    \\    vec3 ambient;
-    \\    vec3 diffuse;
-    \\    vec3 specular;
-    \\    vec3 position;
-    \\    vec3 direction;
-    \\    float constant;
-    \\    float linear;
-    \\    float quadratic;
-    \\    float cutoff;
-    \\    float outer_cutoff;
-    \\};
-    \\#define NR_SPOT_LIGHTS 16
-    \\uniform int u_spot_light_count;
-    \\uniform SpotLight u_spot_lights[NR_SPOT_LIGHTS];
-    \\
-    \\struct Material {
-    \\    sampler2D diffuse;
-    \\    sampler2D specular;
-    \\    float shiness;
-    \\};
-    \\uniform Material u_material;
-    \\
-    \\vec3 ambientColor(vec3 light_color,
-    \\                  vec3 material_ambient)
-    \\{
-    \\    return light_color * material_ambient;
-    \\}
-    \\
-    \\vec3 diffuseColor(vec3 light_dir,
-    \\                  vec3 light_color,
-    \\                  vec3 vertex_normal,
-    \\                  vec3 material_diffuse)
-    \\{
-    \\    vec3 norm = normalize(vertex_normal);
-    \\    float diff = max(dot(norm, light_dir), 0.0);
-    \\    return light_color * (diff * material_diffuse);
-    \\}
-    \\
-    \\vec3 specularColor(vec3 light_dir,
-    \\                   vec3 light_color,
-    \\                   vec3 view_dir,
-    \\                   vec3 vertex_normal,
-    \\                   vec3 material_specular,
-    \\                   float material_shiness)
-    \\{
-    \\    vec3 norm = normalize(vertex_normal);
-    \\    vec3 reflect_dir = reflect(-light_dir, norm);
-    \\    float spec = pow(max(dot(view_dir, reflect_dir), 0.0), material_shiness);
-    \\    return light_color * (spec * material_specular);
-    \\}
-    \\
-    \\vec3 applyDirectionalLight(DirectionalLight light)
-    \\{
-    \\    vec3 light_dir = -light.direction;
-    \\    vec3 view_dir = normalize(u_view_pos - v_pos);
-    \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
-    \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
-    \\
-    \\    vec3 ambient_color = ambientColor(light.ambient, material_diffuse);
-    \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
-    \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
-    \\                                        v_normal, material_specular, u_material.shiness);
-    \\    vec3 result = ambient_color + diffuse_color + specular_color;
-    \\    return result;
-    \\}
-    \\
-    \\vec3 applyPointLight(PointLight light)
-    \\{
-    \\    vec3 light_dir = normalize(light.position - v_pos);
-    \\    vec3 view_dir = normalize(u_view_pos - v_pos);
-    \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
-    \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
-    \\    float distance = length(light.position - v_pos);
-    \\    float attenuation = 1.0 / (light.constant + light.linear * distance +
-    \\              light.quadratic * distance * distance);
-    \\
-    \\    vec3 ambient_color = ambientColor(light.ambient, material_diffuse);
-    \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
-    \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
-    \\                                        v_normal, material_specular, u_material.shiness);
-    \\    vec3 result = (ambient_color + diffuse_color + specular_color) * attenuation;
-    \\    return result;
-    \\}
-    \\
-    \\vec3 applySpotLight(SpotLight light)
-    \\{
-    \\    vec3 light_dir = normalize(light.position - v_pos);
-    \\    vec3 view_dir = normalize(u_view_pos - v_pos);
-    \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
-    \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
-    \\    float distance = length(light.position - v_pos);
-    \\    float attenuation = 1.0 / (light.constant + light.linear * distance +
-    \\              light.quadratic * distance * distance);
-    \\    float theta = dot(light_dir, normalize(-light.direction));
-    \\    float epsilon = light.cutoff - light.outer_cutoff;
-    \\    float intensity = clamp((theta - light.outer_cutoff) / epsilon, 0.0, 1.0);
-    \\
-    \\    vec3 ambient_color = ambientColor(light.ambient, material_diffuse);
-    \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
-    \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
-    \\                                        v_normal, material_specular, u_material.shiness);
-    \\    vec3 result = ambient_color + (diffuse_color + specular_color) * intensity;
-    \\
-    \\    return result * attenuation;
-    \\}
-    \\
     \\void main()
     \\{
-    \\    vec3 result = applyDirectionalLight(u_directional_light);
-    \\    for (int i = 0; i < u_point_light_count; i++) {
-    \\      result += applyPointLight(u_point_lights[i]);
-    \\    }
-    \\    for (int i = 0; i < u_spot_light_count; i++) {
-    \\      result += applySpotLight(u_spot_lights[i]);
-    \\    }
-    \\    frag_color = vec4(result, 1.0);
+    \\    frag_color = vec4(1.0);
     \\}
 ;
 
-const light_shader =
-    \\#version 330 core
-    \\out vec4 frag_color;
-    \\
-    \\uniform vec3 u_color;
-    \\
-    \\void main()
-    \\{
-    \\    frag_color = vec4(u_color, 1);
-    \\}
-;
-
-var normal_shader_program: gl.ShaderProgram = undefined;
-var light_shader_program: gl.ShaderProgram = undefined;
+var phong_renderer: PhongRenderer = undefined;
+var shader_program: gl.ShaderProgram = undefined;
 var cube_va: gl.VertexArray = undefined;
-var camera = zp.util.Camera3D.fromPositionAndTarget(
+var material: Material = undefined;
+var camera = Camera.fromPositionAndTarget(
     alg.Vec3.new(1, 2, 3),
     alg.Vec3.zero(),
     null,
 );
-var dir_light = zp.util.Light3D.init(
-    .{
-        .directional = .{
-            .ambient = alg.Vec3.new(0.1, 0.1, 0.1),
-            .diffuse = alg.Vec3.new(0.1, 0.1, 0.1),
-            .specular = alg.Vec3.new(0.1, 0.1, 0.1),
-            .direction = alg.Vec3.down(),
-        },
-    },
-);
-var point_lights = [_]zp.util.Light3D{
-    zp.util.Light3D.init(
-        .{
-            .point = .{
-                .ambient = alg.Vec3.new(0.2, 0.2, 0.2),
-                .diffuse = alg.Vec3.new(0.5, 0.5, 0.5),
-                .position = alg.Vec3.new(1.2, 1, -2),
-                .linear = 0.09,
-                .quadratic = 0.032,
-            },
-        },
-    ),
-};
-var spot_lights = [_]zp.util.Light3D{
-    zp.util.Light3D.init(
-        .{
-            .spot = .{
-                .ambient = alg.Vec3.new(0.2, 0.2, 0.2),
-                .diffuse = alg.Vec3.new(0.8, 0.1, 0.1),
-                .position = alg.Vec3.new(1.2, 1, 2),
-                .direction = alg.Vec3.new(1.2, 1, 2).negate(),
-                .linear = 0.09,
-                .quadratic = 0.032,
-                .cutoff = 12.5,
-                .outer_cutoff = 14.5,
-            },
-        },
-    ),
-};
-var material: zp.util.Material3D = undefined;
 
 // position, normal, texture coord
 const vertices = [_]f32{
@@ -300,23 +102,54 @@ const cube_positions = [_]alg.Vec3{
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
+    // phong renderer
+    phong_renderer = PhongRenderer.init(std.testing.allocator);
+    phong_renderer.setDirLight(Light.init(.{
+        .directional = .{
+            .ambient = alg.Vec3.new(0.1, 0.1, 0.1),
+            .diffuse = alg.Vec3.new(0.1, 0.1, 0.1),
+            .specular = alg.Vec3.new(0.1, 0.1, 0.1),
+            .direction = alg.Vec3.down(),
+        },
+    }));
+    _ = try phong_renderer.addLight(Light.init(.{
+        .point = .{
+            .ambient = alg.Vec3.new(0.2, 0.2, 0.2),
+            .diffuse = alg.Vec3.new(0.5, 0.5, 0.5),
+            .position = alg.Vec3.new(1.2, 1, -2),
+            .linear = 0.09,
+            .quadratic = 0.032,
+        },
+    }));
+    _ = try phong_renderer.addLight(Light.init(.{
+        .spot = .{
+            .ambient = alg.Vec3.new(0.2, 0.2, 0.2),
+            .diffuse = alg.Vec3.new(0.8, 0.1, 0.1),
+            .position = alg.Vec3.new(1.2, 1, 2),
+            .direction = alg.Vec3.new(1.2, 1, 2).negate(),
+            .linear = 0.09,
+            .quadratic = 0.032,
+            .cutoff = 12.5,
+            .outer_cutoff = 14.5,
+        },
+    }));
+
     // shader program
-    normal_shader_program = gl.ShaderProgram.init(vertex_shader, fragment_shader);
-    light_shader_program = gl.ShaderProgram.init(vertex_shader, light_shader);
+    shader_program = gl.ShaderProgram.init(vertex_shader, fragment_shader);
 
     // vertex array
     cube_va = gl.VertexArray.init(5);
     cube_va.use();
     defer cube_va.disuse();
     cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    cube_va.setAttribute(0, 3, f32, false, 8 * @sizeOf(f32), 0);
-    cube_va.setAttribute(1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
-    cube_va.setAttribute(2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
+    cube_va.setAttribute(0, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
+    cube_va.setAttribute(0, 1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
+    cube_va.setAttribute(0, 2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
 
     // material init
-    var diffuse_texture = try zp.util.Texture2D.init("assets/container2.png", null, false);
-    var specular_texture = try zp.util.Texture2D.init("assets/container2_specular.png", .texture_unit_1, false);
-    material = zp.util.Material3D.init(
+    var diffuse_texture = try zp.texture.Texture2D.init("assets/container2.png", null, false);
+    var specular_texture = try zp.texture.Texture2D.init("assets/container2_specular.png", .texture_unit_1, false);
+    material = Material.init(
         diffuse_texture,
         specular_texture,
         32,
@@ -384,67 +217,39 @@ fn loop(ctx: *zp.Context) void {
     var height: i32 = undefined;
     ctx.getSize(&width, &height);
 
-    // start drawing
+    // clear frame
     gl.util.clear(true, true, false, [_]f32{ 0.2, 0.2, 0.2, 1.0 });
 
-    cube_va.use();
+    // lighting scene
     const projection = alg.Mat4.perspective(
         camera.zoom,
         @intToFloat(f32, width) / @intToFloat(f32, height),
         0.1,
         100,
     );
-
-    normal_shader_program.use();
-    normal_shader_program.setUniformByName("u_view", camera.getViewMatrix());
-    normal_shader_program.setUniformByName("u_project", projection);
-    normal_shader_program.setUniformByName("u_view_pos", camera.position);
-    dir_light.apply(&normal_shader_program, "u_directional_light");
-    normal_shader_program.setUniformByName("u_point_light_count", point_lights.len);
-    for (point_lights) |*light, i| {
-        const name = std.fmt.allocPrintZ(std.testing.allocator, "u_point_lights[{d}]", .{i}) catch unreachable;
-        defer std.testing.allocator.free(name);
-        light.apply(&normal_shader_program, name);
-    }
-    normal_shader_program.setUniformByName("u_spot_light_count", spot_lights.len);
-    for (spot_lights) |*light, i| {
-        const name = std.fmt.allocPrintZ(std.testing.allocator, "u_spot_lights[{d}]", .{i}) catch unreachable;
-        defer std.testing.allocator.free(name);
-        light.apply(&normal_shader_program, name);
-    }
-    material.apply(&normal_shader_program, "u_material");
+    phong_renderer.begin();
     for (cube_positions) |pos, i| {
         const model = alg.Mat4.fromRotation(
             20 * @intToFloat(f32, i),
             alg.Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
-        const normal = model.inv().transpose();
-        normal_shader_program.setUniformByName("u_model", model);
-        normal_shader_program.setUniformByName("u_normal", normal);
-        gl.util.drawBuffer(.triangles, 0, 36);
+        phong_renderer.render(cube_va, .triangles, 0, 36, model, projection, camera, material) catch unreachable;
     }
+    phong_renderer.end();
 
     // draw lights
-    for (point_lights) |light| {
-        light_shader_program.use();
-        light_shader_program.setUniformByName(
-            "u_model",
-            alg.Mat4.fromScale(alg.Vec3.set(0.1)).translate(light.getPosition().?),
-        );
-        light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
-        light_shader_program.setUniformByName("u_project", projection);
-        light_shader_program.setUniformByName("u_color", alg.Vec3.one());
+    shader_program.use();
+    defer shader_program.disuse();
+    cube_va.use();
+    const view = camera.getViewMatrix();
+    for (phong_renderer.point_lights.items) |light| {
+        const model = alg.Mat4.fromScale(alg.Vec3.set(0.1)).translate(light.getPosition().?);
+        shader_program.setUniformByName("u_mvp", projection.mult(view).mult(model));
         gl.util.drawBuffer(.triangles, 0, 36);
     }
-    for (spot_lights) |light| {
-        light_shader_program.use();
-        light_shader_program.setUniformByName(
-            "u_model",
-            alg.Mat4.fromScale(alg.Vec3.set(0.1)).translate(light.getPosition().?),
-        );
-        light_shader_program.setUniformByName("u_view", camera.getViewMatrix());
-        light_shader_program.setUniformByName("u_project", projection);
-        light_shader_program.setUniformByName("u_color", alg.Vec3.one());
+    for (phong_renderer.spot_lights.items) |light| {
+        const model = alg.Mat4.fromScale(alg.Vec3.set(0.1)).translate(light.getPosition().?);
+        shader_program.setUniformByName("u_mvp", projection.mult(view).mult(model));
         gl.util.drawBuffer(.triangles, 0, 36);
     }
 }
@@ -457,9 +262,9 @@ fn quit(ctx: *zp.Context) void {
 
 pub fn main() anyerror!void {
     try zp.run(.{
-        .init_fn = init,
-        .loop_fn = loop,
-        .quit_fn = quit,
+        .initFn = init,
+        .loopFn = loop,
+        .quitFn = quit,
         .enable_relative_mouse_mode = true,
     });
 }

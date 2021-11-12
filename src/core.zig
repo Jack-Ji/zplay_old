@@ -137,13 +137,13 @@ pub const Context = struct {
 /// application configurations
 pub const Game = struct {
     /// called once before rendering loop starts
-    init_fn: fn (ctx: *Context) anyerror!void,
+    initFn: fn (ctx: *Context) anyerror!void,
 
     /// called every frame
-    loop_fn: fn (ctx: *Context) void,
+    loopFn: fn (ctx: *Context) void,
 
     /// called before life ends
-    quit_fn: fn (ctx: *Context) void,
+    quitFn: fn (ctx: *Context) void,
 
     /// window's title
     title: [:0]const u8 = "zplay",
@@ -248,8 +248,8 @@ pub fn run(g: Game) !void {
     }
 
     // init before loop
-    try g.init_fn(&context);
-    defer g.quit_fn(&context);
+    try g.initFn(&context);
+    defer g.quitFn(&context);
 
     // init time clock
     const counter_freq = @intToFloat(f32, c.SDL_GetPerformanceFrequency());
@@ -265,7 +265,7 @@ pub fn run(g: Game) !void {
         last_counter = counter;
 
         // main loop
-        g.loop_fn(&context);
+        g.loopFn(&context);
 
         // swap buffers
         sdl.gl.swapWindow(context._window);

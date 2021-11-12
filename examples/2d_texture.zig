@@ -65,14 +65,14 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, 3, f32, false, 8 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
-    vertex_array.setAttribute(2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
+    vertex_array.setAttribute(0, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, 1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, 2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
     vertex_array.bufferData(1, u32, &indices, .element_array_buffer, .static_draw);
 
     // load texture
-    const texture1 = try zp.util.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
-    const texture2 = try zp.util.Texture2D.init("assets/awesomeface.png", .texture_unit_1, true);
+    const texture1 = try zp.texture.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
+    const texture2 = try zp.texture.Texture2D.init("assets/awesomeface.png", .texture_unit_1, true);
 
     // only necessary when not using texture unit 0
     shader_program.use();
@@ -144,9 +144,9 @@ fn quit(ctx: *zp.Context) void {
 
 pub fn main() anyerror!void {
     try zp.run(.{
-        .init_fn = init,
-        .loop_fn = loop,
-        .quit_fn = quit,
+        .initFn = init,
+        .loopFn = loop,
+        .quitFn = quit,
         .enable_resizable = true,
     });
 }

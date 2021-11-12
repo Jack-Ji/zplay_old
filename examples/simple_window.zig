@@ -34,8 +34,8 @@ fn quit(ctx: *zp.Context) void {
 
 pub fn main() anyerror!void {
     try zp.run(.{
-        .init_fn = init,
-        .loop_fn = loop,
-        .quit_fn = quit,
+        .initFn = init,
+        .loopFn = loop,
+        .quitFn = quit,
     });
 }

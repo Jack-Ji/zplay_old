@@ -57,7 +57,7 @@ pub fn fromPositionAndEulerAngles(pos: Vec3, pitch: f32, yaw: f32, world_up: ?Ve
     camera.world_up = world_up orelse Vec3.up();
     camera.position = pos;
     camera.euler = Vec3.new(pitch, yaw - 90, 0);
-    camera._updateVectors();
+    camera.updateVectors();
     return camera;
 }
 
@@ -83,11 +83,11 @@ pub fn move(self: *Self, direction: MoveDirection, distance: f32) void {
 pub fn rotate(self: *Self, pitch: f32, yaw: f32) void {
     self.euler.x += pitch;
     self.euler.y += yaw;
-    self._updateVectors();
+    self.updateVectors();
 }
 
 /// update vectors: direction/right/up
-fn _updateVectors(self: *Self) void {
+fn updateVectors(self: *Self) void {
     if (self.euler.x > 89) {
         self.euler.x = 89;
     } else if (self.euler.x < -89) {

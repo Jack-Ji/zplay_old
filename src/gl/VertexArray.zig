@@ -94,6 +94,7 @@ pub fn bufferData(
 // set vertex attribute (will enable attribute afterwards)
 pub fn setAttribute(
     self: Self,
+    vbo_index: usize,
     loc: gl.GLuint,
     size: u32,
     comptime T: type,
@@ -101,7 +102,11 @@ pub fn setAttribute(
     stride: usize,
     offset: u32,
 ) void {
-    _ = self;
+    gl.bindBuffer(
+        @enumToInt(BufferTarget.array_buffer),
+        self.vbos[vbo_index],
+    );
+    gl.util.checkError();
 
     gl.vertexAttribPointer(
         loc,
@@ -124,7 +129,6 @@ pub fn use(self: Self) void {
 /// stop using vertex array
 pub fn disuse(self: Self) void {
     _ = self;
-
     gl.bindVertexArray(0);
     gl.util.checkError();
 }

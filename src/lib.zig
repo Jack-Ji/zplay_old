@@ -4,9 +4,6 @@ pub usingnamespace @import("core.zig");
 /// event definitions
 pub const event = @import("event.zig");
 
-/// util definitions
-pub const util = @import("util.zig");
-
 /// well known folders on various os
 pub const known_folders = @import("known_folders/known-folders.zig");
 
@@ -21,3 +18,9 @@ pub const stb = @import("stb/stb.zig");
 
 /// dear imgui
 pub const dig = @import("cimgui/imgui.zig");
+
+/// texture types
+pub const texture = @import("texture.zig");
+
+/// 3d toolkit
+pub const @"3d" = @import("3d.zig");

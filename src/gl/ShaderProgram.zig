@@ -93,12 +93,17 @@ pub fn disuse(self: Self) void {
     gl.util.checkError();
 }
 
-/// set uniform value with name
-pub fn setUniformByName(self: *Self, name: [:0]const u8, v: anytype) void {
+/// check if program is being used
+pub fn isUsing(self: Self) bool {
     var current_program: gl.GLint = undefined;
     gl.getIntegerv(gl.GL_CURRENT_PROGRAM, &current_program);
-    if (current_program != self.id) {
-        std.debug.panic("invalid operation, must use program first!, is using {d}", .{current_program});
+    return current_program == self.id;
+}
+
+/// set uniform value with name
+pub fn setUniformByName(self: *Self, name: [:0]const u8, v: anytype) void {
+    if (!self.isUsing()) {
+        std.debug.panic("invalid operation, must use program first!", .{});
     }
 
     var loc: gl.GLint = undefined;
@@ -123,10 +128,8 @@ pub fn setUniformByName(self: *Self, name: [:0]const u8, v: anytype) void {
 
 /// set uniform value with location
 pub fn setUniformByLocation(self: Self, loc: gl.GLuint, v: anytype) void {
-    var current_program: gl.GLuint = undefined;
-    gl.getIntegerv(gl.GL_CURRENT_PROGRAM, &current_program);
-    if (current_program != self.id) {
-        std.debug.panic("invalid operation, must use program first!, is using {d}", .{current_program});
+    if (!self.isUsing()) {
+        std.debug.panic("invalid operation, must use program first!", .{});
     }
     self.setUniform(@intCast(gl.GLuint, loc), v);
 }

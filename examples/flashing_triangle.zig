@@ -45,7 +45,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, 3, f32, false, 3 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, 0, 3, f32, false, 3 * @sizeOf(f32), 0);
 
     std.log.info("game init", .{});
 }
@@ -95,9 +95,9 @@ fn quit(ctx: *zp.Context) void {
 
 pub fn main() anyerror!void {
     try zp.run(.{
-        .init_fn = init,
-        .loop_fn = loop,
-        .quit_fn = quit,
+        .initFn = init,
+        .loopFn = loop,
+        .quitFn = quit,
         .enable_resizable = true,
     });
 }
