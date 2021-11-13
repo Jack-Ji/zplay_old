@@ -106,6 +106,13 @@ pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.bu
     }, flags.items);
     exe.linkLibrary(cimgui);
 
+    // link cgltf
+    var cgltf = exe.builder.addStaticLibrary("cgltf", null);
+    cgltf.linkLibC();
+    cgltf.addIncludeDir("src/cgltf/c");
+    cgltf.addCSourceFile("src/cgltf/c/cgltf_wrapper.c", flags.items);
+    exe.linkLibrary(cgltf);
+
     // use zplay
     exe.addPackage(.{
         .name = "zplay",
