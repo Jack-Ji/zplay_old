@@ -30,7 +30,7 @@ const vertices = [_]f32{
     -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top left
 };
 
-const indices = [_]u32{
+const indices = [_]u16{
     0, 1, 3, // 1st triangle
     1, 2, 3, // 2nd triangle
 };
@@ -49,7 +49,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.setAttribute(0, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
     vertex_array.setAttribute(0, 1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
     vertex_array.setAttribute(0, 2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
-    vertex_array.bufferData(1, u32, &indices, .element_array_buffer, .static_draw);
+    vertex_array.bufferData(1, u16, &indices, .element_array_buffer, .static_draw);
 
     // load texture
     texture1 = try zp.texture.Texture2D.init("assets/wall.jpg", null, false);

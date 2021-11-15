@@ -122,7 +122,7 @@ pub fn drawElements(primitive: PrimitiveType, offset: usize, element_count: usiz
     gl.drawElements(
         @enumToInt(primitive),
         @intCast(gl.GLsizei, element_count),
-        dataType(u32),
+        dataType(u16),
         @intToPtr(*allowzero c_void, offset),
     );
     checkError();
