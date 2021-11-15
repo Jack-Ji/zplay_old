@@ -62,7 +62,7 @@ fn setup(self: *Self) void {
     self.vertex_array.use();
     defer self.vertex_array.disuse();
 
-    // update vbo's data
+    // vertex buffer
     self.vertex_array.bufferData(
         vbo_idx,
         f32,
@@ -71,7 +71,16 @@ fn setup(self: *Self) void {
         .static_draw,
     );
 
-    // update ebo's data
+    // postion attribute
+    self.vertex_array.setAttribute(vbo_idx, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
+
+    // normal attribute
+    self.vertex_array.setAttribute(vbo_idx, 1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
+
+    // texture coordinate attribute
+    self.vertex_array.setAttribute(vbo_idx, 2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
+
+    // elment array buffer
     self.vertex_array.bufferData(
         ebo_idx,
         u16,
@@ -79,11 +88,6 @@ fn setup(self: *Self) void {
         .element_array_buffer,
         .static_draw,
     );
-
-    // define attributes
-    self.vertex_array.setAttribute(vbo_idx, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
-    self.vertex_array.setAttribute(vbo_idx, 1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
-    self.vertex_array.setAttribute(vbo_idx, 2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
 }
 
 /// free resources
