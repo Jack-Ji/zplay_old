@@ -81,6 +81,10 @@ pub fn bufferData(
         std.debug.panic("invalid vbo index", .{});
     }
 
+    if (target == .element_array_buffer and T != u16) {
+        std.debug.panic("invalid index type", .{});
+    }
+
     gl.bindBuffer(@enumToInt(target), self.vbos[vbo_index]);
     gl.bufferData(
         @enumToInt(target),
