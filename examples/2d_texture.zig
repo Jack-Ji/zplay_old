@@ -23,11 +23,11 @@ var texture2: Texture2D = undefined;
 var wireframe_mode = false;
 
 const vertices = [_]f32{
-    // positions, colors, texture coords
-    0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, // top right
-    0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, // bottom right
-    -0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, // bottom left
-    -0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, // top left
+    // positions, texture coords
+    0.5, 0.5, 0.0, 1.0, 1.0, // top right
+    0.5, -0.5, 0.0, 1.0, 0.0, // bottom right
+    -0.5, -0.5, 0.0, 0.0, 0.0, // bottom left
+    -0.5, 0.5, 0.0, 0.0, 1.0, // top left
 };
 
 const indices = [_]u16{
@@ -46,9 +46,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, 1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
-    vertex_array.setAttribute(0, 2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
+    vertex_array.setAttribute(0, 0, 3, f32, false, 5 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, 1, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
     vertex_array.bufferData(1, u16, &indices, .element_array_buffer, .static_draw);
 
     // load texture
@@ -102,7 +101,7 @@ fn loop(ctx: *zp.Context) void {
     gl.util.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     const model = alg.Mat4.fromTranslate(alg.Vec3.new(0.5, 0.5, 0)).rotate(S.frame, alg.Vec3.forward());
-    simple_renderer.begin(null);
+    simple_renderer.begin();
     simple_renderer.program.setUniformByName("u_texture1", texture1.tex.getTextureUnit());
     simple_renderer.program.setUniformByName("u_texture2", texture2.tex.getTextureUnit());
     simple_renderer.render(
@@ -113,6 +112,7 @@ fn loop(ctx: *zp.Context) void {
         6,
         model,
         Mat4.identity(),
+        null,
         null,
     ) catch unreachable;
     simple_renderer.end();

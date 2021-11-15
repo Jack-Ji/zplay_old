@@ -2,20 +2,20 @@ const std = @import("std");
 const zp = @import("zplay");
 const gl = zp.gl;
 const alg = zp.alg;
+const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
+const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
+const SimpleRenderer = zp.@"3d".SimpleRenderer;
 const PhongRenderer = zp.@"3d".PhongRenderer;
-const Camera = zp.@"3d".Camera;
 const Light = zp.@"3d".Light;
 const Material = zp.@"3d".Material;
-const SimpleRenderer = zp.@"3d".SimpleRenderer;
+const Mesh = zp.@"3d".Mesh;
 
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
-var regular_cube_va: gl.VertexArray = undefined;
-var lighting_cube_va: gl.VertexArray = undefined;
-var material: Material = undefined;
-var camera = Camera.fromPositionAndTarget(
+var mesh: Mesh = undefined;
+var camera = zp.@"3d".Camera.fromPositionAndTarget(
     Vec3.new(1, 2, 3),
     Vec3.zero(),
     null,
@@ -66,35 +66,18 @@ const vertices = [_]f32{
     -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,  0.0, 1.0,
 };
 
-const cube_positions = [_]Vec3{
-    Vec3.new(0.0, 0.0, 0.0),
-    Vec3.new(2.0, 5.0, -15.0),
-    Vec3.new(-1.5, -2.2, -2.5),
-    Vec3.new(-3.8, -2.0, -12.3),
-    Vec3.new(2.4, -0.4, -3.5),
-    Vec3.new(-1.7, 3.0, -7.5),
-    Vec3.new(1.3, -2.0, -2.5),
-    Vec3.new(1.5, 2.0, -2.5),
-    Vec3.new(1.5, 0.2, -1.5),
-    Vec3.new(-1.3, 1.0, -1.5),
+const indices = [_]u16{
+    0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    30, 31, 32, 33, 34, 35,
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
-    // simple renderer
+    // create renderer
     simple_renderer = SimpleRenderer.init(null);
-
-    // phong renderer
     phong_renderer = PhongRenderer.init(std.testing.allocator);
-    phong_renderer.setDirLight(Light.init(.{
-        .directional = .{
-            .ambient = Vec3.new(0.1, 0.1, 0.1),
-            .diffuse = Vec3.new(0.1, 0.1, 0.1),
-            .specular = Vec3.new(0.1, 0.1, 0.1),
-            .direction = Vec3.down(),
-        },
-    }));
     _ = try phong_renderer.addLight(Light.init(.{
         .point = .{
             .ambient = Vec3.new(0.2, 0.2, 0.2),
@@ -104,42 +87,20 @@ fn init(ctx: *zp.Context) anyerror!void {
             .quadratic = 0.032,
         },
     }));
-    _ = try phong_renderer.addLight(Light.init(.{
-        .spot = .{
-            .ambient = Vec3.new(0.2, 0.2, 0.2),
-            .diffuse = Vec3.new(0.8, 0.1, 0.1),
-            .position = Vec3.new(1.2, 1, 2),
-            .direction = Vec3.new(1.2, 1, 2).negate(),
-            .linear = 0.09,
-            .quadratic = 0.032,
-            .cutoff = 12.5,
-            .outer_cutoff = 14.5,
-        },
-    }));
 
-    // vertex array for regular scene
-    regular_cube_va = gl.VertexArray.init(5);
-    regular_cube_va.use();
-    regular_cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    regular_cube_va.setAttribute(0, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
-    regular_cube_va.disuse();
-
-    // vertex array for lighting scene
-    lighting_cube_va = gl.VertexArray.init(5);
-    lighting_cube_va.use();
-    lighting_cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    lighting_cube_va.setAttribute(0, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
-    lighting_cube_va.setAttribute(0, 1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
-    lighting_cube_va.setAttribute(0, 2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
-    lighting_cube_va.disuse();
-
-    // material init
+    // create mesh
     var diffuse_texture = try zp.texture.Texture2D.init("assets/container2.png", null, false);
     var specular_texture = try zp.texture.Texture2D.init("assets/container2_specular.png", .texture_unit_1, false);
-    material = Material.init(
+    var material = Material.init(
         diffuse_texture,
         specular_texture,
         32,
+    );
+    mesh = Mesh.init(
+        std.testing.allocator,
+        &vertices,
+        &indices,
+        material,
     );
 
     // enable depth test
@@ -149,6 +110,13 @@ fn init(ctx: *zp.Context) anyerror!void {
 }
 
 fn loop(ctx: *zp.Context) void {
+    const S = struct {
+        var frame: f32 = 0;
+        var axis = Vec4.new(1, 1, 1, 0);
+        var last_tick: ?f32 = null;
+    };
+    S.frame += 1;
+
     // camera movement
     const distance = ctx.delta_tick * camera.move_speed;
     if (ctx.isKeyPressed(.w)) {
@@ -179,6 +147,8 @@ fn loop(ctx: *zp.Context) void {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
                         .f1 => ctx.toggleFullscreeen(null),
+                        .m => ctx.toggleRelativeMouseMode(null),
+                        .v => ctx.toggleVsyncMode(null),
                         else => {},
                     }
                 }
@@ -192,6 +162,15 @@ fn loop(ctx: *zp.Context) void {
                             camera.mouse_sensitivity * @intToFloat(f32, motion.xrel),
                         );
                     },
+                    .wheel => |scroll| {
+                        camera.zoom -= @intToFloat(f32, scroll.scroll_y);
+                        if (camera.zoom < 1) {
+                            camera.zoom = 1;
+                        }
+                        if (camera.zoom > 45) {
+                            camera.zoom = 45;
+                        }
+                    },
                     else => {},
                 }
             },
@@ -204,50 +183,35 @@ fn loop(ctx: *zp.Context) void {
     var height: i32 = undefined;
     ctx.getSize(&width, &height);
 
-    // clear frame
-    gl.util.clear(true, true, false, [_]f32{ 0.2, 0.2, 0.2, 1.0 });
+    // start drawing
+    gl.util.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
-    // lighting scene
     const projection = Mat4.perspective(
         camera.zoom,
         @intToFloat(f32, width) / @intToFloat(f32, height),
         0.1,
         100,
     );
+    S.axis = Mat4.fromRotation(1, Vec3.new(-1, 1, -1)).multByVec4(S.axis);
+
     phong_renderer.begin();
-    for (cube_positions) |pos, i| {
-        const model = Mat4.fromRotation(
-            20 * @intToFloat(f32, i),
-            Vec3.new(1, 0.3, 0.5),
-        ).translate(pos);
-        phong_renderer.render(lighting_cube_va, false, .triangles, 0, 36, model, projection, camera, material) catch unreachable;
-    }
+    var model = Mat4.fromRotation(
+        S.frame,
+        Vec3.new(S.axis.x, S.axis.y, S.axis.z),
+    );
+    phong_renderer.renderMesh(
+        mesh,
+        model,
+        projection,
+        camera,
+    ) catch unreachable;
     phong_renderer.end();
 
-    // draw lights
     simple_renderer.begin();
     for (phong_renderer.point_lights.items) |light| {
-        const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        simple_renderer.render(
-            regular_cube_va,
-            false,
-            .triangles,
-            0,
-            36,
-            model,
-            projection,
-            camera,
-            SimpleRenderer.ColorSource{ .color = Vec3.one() },
-        ) catch unreachable;
-    }
-    for (phong_renderer.spot_lights.items) |light| {
-        const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        simple_renderer.render(
-            regular_cube_va,
-            false,
-            .triangles,
-            0,
-            36,
+        model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
+        simple_renderer.renderMesh(
+            mesh,
             model,
             projection,
             camera,

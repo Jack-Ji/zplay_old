@@ -109,7 +109,7 @@ pub const Context = struct {
     }
 
     /// get key status
-    pub fn isKeyPressed(self: Context, key: event.KeyboardEvent.ScanCode) bool {
+    pub fn isKeyPressed(self: Context, key: sdl.Scancode) bool {
         _ = self;
         const state = c.SDL_GetKeyboardState(null);
         return state[@enumToInt(key)] == 1;

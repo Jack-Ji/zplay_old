@@ -71,7 +71,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
     vertex_array.setAttribute(0, 0, 3, f32, false, 5 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, 2, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, 1, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // load texture
     texture = try zp.texture.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
@@ -171,7 +171,7 @@ fn loop(ctx: *zp.Context) void {
         alg.Vec3.new(S.axis.x, S.axis.y, S.axis.z),
     );
 
-    simple_renderer.begin(texture);
+    simple_renderer.begin();
     simple_renderer.render(
         vertex_array,
         false,
@@ -181,6 +181,7 @@ fn loop(ctx: *zp.Context) void {
         model,
         projection,
         camera,
+        SimpleRenderer.ColorSource{ .texture = texture },
     ) catch unreachable;
     simple_renderer.end();
 }

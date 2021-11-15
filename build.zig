@@ -17,12 +17,12 @@ pub fn build(b: *std.build.Builder) void {
     });
     const examples = [_][]const u8{
         "simple_window",
-        "simple_triangle",
-        "flashing_triangle",
+        "single_triangle",
         "2d_texture",
         "cubes",
         "3d_camera",
         "phong_lighting",
+        "mesh_lighting",
         "imgui_demo",
     };
     const build_examples = b.step("build_examples", "compile and install all examples");

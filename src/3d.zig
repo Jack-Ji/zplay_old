@@ -7,6 +7,9 @@ pub const Light = @import("3d/Light.zig");
 /// 3d material
 pub const Material = @import("3d/Material.zig");
 
+/// 3d mesh
+pub const Mesh = @import("3d/Mesh.zig");
+
 /// simple renderer
 pub const SimpleRenderer = @import("3d/SimpleRenderer.zig");
 

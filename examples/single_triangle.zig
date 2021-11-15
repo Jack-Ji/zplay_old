@@ -9,16 +9,15 @@ var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: gl.VertexArray = undefined;
 
 const vertices = [_]f32{
-    // positions     // colors
-    -0.5, -0.5, 0.0, 1.0, 0.0, 0.0,
-    0.5,  -0.5, 0.0, 0.0, 1.0, 0.0,
-    0.0,  0.5,  0.0, 0.0, 0.0, 1.0,
+    -0.5, -0.5, 0.0,
+    0.5,  -0.5, 0.0,
+    0.0,  0.5,  0.0,
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
-    // simple renderer
+    // create renderer
     simple_renderer = SimpleRenderer.init(null);
 
     // vertex array
@@ -26,8 +25,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, 0, 3, f32, false, 6 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, 1, 3, f32, false, 6 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, 0, 3, f32, false, 3 * @sizeOf(f32), 0);
 
     std.log.info("game init", .{});
 }
@@ -58,11 +56,15 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    _ = ctx;
-
     gl.util.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
-    simple_renderer.begin(null);
+    // update color and draw triangle
+    const color = alg.Vec3.new(
+        0.2,
+        0.3 + std.math.absFloat(std.math.sin(ctx.tick)),
+        0.3,
+    );
+    simple_renderer.begin();
     simple_renderer.render(
         vertex_array,
         false,
@@ -72,6 +74,7 @@ fn loop(ctx: *zp.Context) void {
         Mat4.identity(),
         Mat4.identity(),
         null,
+        SimpleRenderer.ColorSource{ .color = color },
     ) catch unreachable;
     simple_renderer.end();
 }

@@ -2,6 +2,7 @@ const std = @import("std");
 const Camera = @import("Camera.zig");
 const Light = @import("Light.zig");
 const Material = @import("Material.zig");
+const Mesh = @import("Mesh.zig");
 const zp = @import("../lib.zig");
 const gl = zp.gl;
 const alg = zp.alg;
@@ -127,7 +128,7 @@ const fs =
     \\
     \\vec3 applyDirectionalLight(DirectionalLight light)
     \\{
-    \\    vec3 light_dir = -light.direction;
+    \\    vec3 light_dir = normalize(-light.direction);
     \\    vec3 view_dir = normalize(u_view_pos - v_pos);
     \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
     \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
@@ -305,7 +306,7 @@ pub fn render(
     use_elements: bool,
     primitive: gl.util.PrimitiveType,
     offset: usize,
-    vertex_count: usize,
+    count: usize,
     model: Mat4,
     projection: Mat4,
     camera: Camera,
@@ -327,8 +328,29 @@ pub fn render(
     vertex_array.use();
     defer vertex_array.disuse();
     if (use_elements) {
-        gl.util.drawElements(primitive, offset, vertex_count);
+        gl.util.drawElements(primitive, offset, count);
     } else {
-        gl.util.drawBuffer(primitive, offset, vertex_count);
+        gl.util.drawBuffer(primitive, offset, count);
     }
+}
+
+/// render a mesh 
+pub fn renderMesh(
+    self: *Self,
+    mesh: Mesh,
+    model: Mat4,
+    projection: Mat4,
+    camera: Camera,
+) !void {
+    try self.render(
+        mesh.vertex_array,
+        true,
+        .triangles,
+        0,
+        mesh.vertex_indices.items.len,
+        model,
+        projection,
+        camera,
+        mesh.material,
+    );
 }
