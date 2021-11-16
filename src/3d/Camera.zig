@@ -88,11 +88,7 @@ pub fn rotate(self: *Self, pitch: f32, yaw: f32) void {
 
 /// update vectors: direction/right/up
 fn updateVectors(self: *Self) void {
-    if (self.euler.x > 89) {
-        self.euler.x = 89;
-    } else if (self.euler.x < -89) {
-        self.euler.x = -89;
-    }
+    self.euler.x = std.math.clamp(self.euler.x, -89, 89);
     const sin_pitch = std.math.sin(alg.toRadians(self.euler.x));
     const cos_pitch = std.math.cos(alg.toRadians(self.euler.x));
     const sin_yaw = std.math.sin(alg.toRadians(self.euler.y));
