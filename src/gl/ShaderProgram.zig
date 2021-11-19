@@ -113,12 +113,18 @@ pub fn isUsing(self: Self) bool {
     return current_program == self.id;
 }
 
-/// set uniform value with name
-pub fn setUniformByName(self: *Self, name: [:0]const u8, v: anytype) void {
-    if (!self.isUsing()) {
-        std.debug.panic("invalid operation, must use program first!", .{});
+/// get uniform block index
+pub fn getUniformBlockIndex(self: *Self, name: [:0]const u8) gl.GLuint {
+    var index: gl.GLuint = gl.getUniformBlockIndex(self.id, name.ptr);
+    gl.util.checkError();
+    if (index == gl.GL_INVALID_INDEX) {
+        std.debug.panic("can't find uniform block {s}", .{name});
     }
+    return index;
+}
 
+/// get uniform location (and cache them)
+pub fn getUniformLocation(self: *Self, name: [:0]const u8) gl.GLint {
     var loc: gl.GLint = undefined;
     if (self.uniform_locs.get(name)) |l| {
         // check cache first
@@ -136,6 +142,15 @@ pub fn setUniformByName(self: *Self, name: [:0]const u8, v: anytype) void {
         self.uniform_locs.put(cloned_name, loc) catch unreachable;
         self.string_cache.append(cloned_name) catch unreachable;
     }
+    return loc;
+}
+
+/// set uniform value with name
+pub fn setUniformByName(self: *Self, name: [:0]const u8, v: anytype) void {
+    if (!self.isUsing()) {
+        std.debug.panic("invalid operation, must use program first!", .{});
+    }
+    var loc = self.getUniformLocation(name);
     self.setUniform(loc, v);
 }
 
