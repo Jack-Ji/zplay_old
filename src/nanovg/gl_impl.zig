@@ -38,12 +38,12 @@ pub fn createContext(flags: CreateFlags) *api.NVGcontext {
     param.renderDelete = InternalContext.renderDelete;
     param.userPtr = internal_ctx;
     param.edgeAntiAlias = if (flags.enable_antialias) 1 else 0;
-    return api.createInternal(&param) orelse unreachable;
+    return api.nvgCreateInternal(&param) orelse unreachable;
 }
 
 /// delete NanoVG context
 pub fn deleteContext(ctx: *api.NVGcontext) void {
-    api.deleteInternal(ctx);
+    api.nvgDeleteInternal(ctx);
 }
 
 const image_nodelete_flag: c_int = 1 << 16;
@@ -159,7 +159,7 @@ const InternalContext = struct {
     view: [2]f32,
     texture_id: c_int,
     vertex_array: gl.VertexArray,
-    frag_size: c_int,
+    frag_size: usize,
     flags: CreateFlags,
 
     // per frame buffers
@@ -231,8 +231,8 @@ const InternalContext = struct {
     fn blendFuncSeparate(self: *Self, blend: Blend) void {
         if (self.blend_func.src_rgb != blend.src_rgb or
             self.blend_func.dst_rgb != blend.dst_rgb or
-            self.src_alpha != blend.src_alpha or
-            self.dst_alpha != blend.dst_alpha)
+            self.blend_func.src_alpha != blend.src_alpha or
+            self.blend_func.dst_alpha != blend.dst_alpha)
         {
             self.blend_func = blend;
             gl.blendFuncSeparate(blend.src_rgb, blend.dst_rgb, blend.src_alpha, blend.dst_alpha);
@@ -244,9 +244,7 @@ const InternalContext = struct {
             if (t.id == 0) {
                 break t;
             }
-        } else {
-            break self.textures.addOne(.{}) catch unreachable;
-        };
+        } else self.textures.addOne() catch unreachable;
         self.texture_id += 1;
         tex.* = Texture{};
         tex.id = self.texture_id;
@@ -323,7 +321,11 @@ const InternalContext = struct {
         gl.stencilOpSeparate(gl.GL_BACK, gl.GL_KEEP, gl.GL_KEEP, gl.GL_DECR_WRAP);
         gl.disable(gl.GL_CULL_FACE);
         for (paths) |p| {
-            gl.drawArrays(gl.GL_TRIANGLE_FAN, p.fill_offset, p.fill_count);
+            gl.drawArrays(
+                gl.GL_TRIANGLE_FAN,
+                @intCast(c_int, p.fill_offset),
+                @intCast(c_int, p.fill_count),
+            );
         }
         gl.enable(gl.GL_CULL_FACE);
 
@@ -338,14 +340,22 @@ const InternalContext = struct {
             gl.stencilOp(gl.GL_KEEP, gl.GL_KEEP, gl.GL_KEEP);
             // draw fringes
             for (paths) |p| {
-                gl.drawArrays(gl.GL_TRIANGLE_STRIP, p.stroke_offset, p.stroke_count);
+                gl.drawArrays(
+                    gl.GL_TRIANGLE_STRIP,
+                    @intCast(c_int, p.stroke_offset),
+                    @intCast(c_int, p.stroke_count),
+                );
             }
         }
 
         // draw fill
         self.stencilFunc(gl.GL_NOTEQUAL, 0x0, 0xff);
         gl.stencilOp(gl.GL_ZERO, gl.GL_ZERO, gl.GL_ZERO);
-        gl.drawArrays(gl.GL_TRIANGLE_STRIP, call.triangle_offset, call.triangle_count);
+        gl.drawArrays(
+            gl.GL_TRIANGLE_STRIP,
+            @intCast(c_int, call.triangle_offset),
+            @intCast(c_int, call.triangle_count),
+        );
     }
 
     fn convexFill(self: *Self, call: *Call) void {
@@ -355,10 +365,18 @@ const InternalContext = struct {
         self.checkError();
 
         for (paths) |p| {
-            gl.drawArrays(gl.GL_TRIANGLE_FAN, p.fill_offset, p.fill_count);
+            gl.drawArrays(
+                gl.GL_TRIANGLE_FAN,
+                @intCast(c_int, p.fill_offset),
+                @intCast(c_int, p.fill_count),
+            );
             // draw fringes
             if (p.stroke_count > 0) {
-                gl.drawArrays(gl.GL_TRIANGLE_STRIP, p.stroke_offset, p.stroke_count);
+                gl.drawArrays(
+                    gl.GL_TRIANGLE_STRIP,
+                    @intCast(c_int, p.stroke_offset),
+                    @intCast(c_int, p.stroke_count),
+                );
             }
         }
     }
@@ -378,7 +396,11 @@ const InternalContext = struct {
             self.setUniforms(call.uniform_offset + self.frag_size, call.image);
             self.checkError();
             for (paths) |p| {
-                gl.drawArrays(gl.GL_TRIANGLE_STRIP, p.stroke_offset, p.stroke_count);
+                gl.drawArrays(
+                    gl.GL_TRIANGLE_STRIP,
+                    @intCast(c_int, p.stroke_offset),
+                    @intCast(c_int, p.stroke_count),
+                );
             }
 
             // Draw anti-aliased pixels.
@@ -386,7 +408,11 @@ const InternalContext = struct {
             self.stencilFunc(gl.GL_EQUAL, 0x00, 0xff);
             gl.stencilOp(gl.GL_KEEP, gl.GL_KEEP, gl.GL_KEEP);
             for (paths) |p| {
-                gl.drawArrays(gl.GL_TRIANGLE_STRIP, p.stroke_offset, p.stroke_count);
+                gl.drawArrays(
+                    gl.GL_TRIANGLE_STRIP,
+                    @intCast(c_int, p.stroke_offset),
+                    @intCast(c_int, p.stroke_count),
+                );
             }
 
             // clear stencil buffer.
@@ -395,7 +421,11 @@ const InternalContext = struct {
             gl.stencilOp(gl.GL_ZERO, gl.GL_ZERO, gl.GL_ZERO);
             self.checkError();
             for (paths) |p| {
-                gl.drawArrays(gl.GL_TRIANGLE_STRIP, p.stroke_offset, p.stroke_count);
+                gl.drawArrays(
+                    gl.GL_TRIANGLE_STRIP,
+                    @intCast(c_int, p.stroke_offset),
+                    @intCast(c_int, p.stroke_count),
+                );
             }
             gl.colorMask(gl.GL_TRUE, gl.GL_TRUE, gl.GL_TRUE, gl.GL_TRUE);
         } else {
@@ -403,7 +433,11 @@ const InternalContext = struct {
             self.checkError();
             // draw Strokes
             for (paths) |p| {
-                gl.drawArrays(gl.GL_TRIANGLE_STRIP, p.stroke_offset, p.stroke_count);
+                gl.drawArrays(
+                    gl.GL_TRIANGLE_STRIP,
+                    @intCast(c_int, p.stroke_offset),
+                    @intCast(c_int, p.stroke_count),
+                );
             }
         }
     }
@@ -411,12 +445,16 @@ const InternalContext = struct {
     fn triangles(self: *Self, call: *Call) void {
         self.setUniforms(call.uniform_offset, call.image);
         self.checkError();
-        gl.drawArrays(gl.GL_TRIANGLES, call.triangle_offset, call.triangle_count);
+        gl.drawArrays(
+            gl.GL_TRIANGLES,
+            @intCast(c_int, call.triangle_offset),
+            @intCast(c_int, call.triangle_count),
+        );
     }
 
-    fn maxVertCount(self: *Self, paths: []api.NVGpath) c_int {
+    fn maxVertCount(self: *Self, paths: []const api.NVGpath) usize {
         _ = self;
-        var count: c_int = 0;
+        var count: usize = 0;
         for (paths) |p| {
             count += p.nfill;
             count += p.nstroke;
@@ -435,7 +473,7 @@ const InternalContext = struct {
         return offset;
     }
 
-    fn allocVerts(self: *Self, n: c_int) usize {
+    fn allocVerts(self: *Self, n: usize) usize {
         var offset = self.verts.items.len;
         _ = self.verts.addManyAsArray(n) catch unreachable;
         return offset;
@@ -447,7 +485,7 @@ const InternalContext = struct {
         return offset;
     }
 
-    fn fragUniformPtr(self: *Self, i: c_int) *FragUniform {
+    fn fragUniformPtr(self: *Self, i: usize) *FragUniform {
         return @ptrCast(*FragUniform, &self.unifoms.items[i]);
     }
 
@@ -574,7 +612,7 @@ const InternalContext = struct {
             frag.type = .shader_fillimg;
 
             if (tex.type == api.NVG_TEXTURE_RGBA) {
-                frag.tex_type = if (tex.flags & api.NVG_IMAGE_PREMULTIPLIED) 0 else 1;
+                frag.tex_type = if ((tex.flags & api.NVG_IMAGE_PREMULTIPLIED) != 0) 0 else 1;
             } else {
                 frag.tex_type = 2;
             }
@@ -590,8 +628,8 @@ const InternalContext = struct {
         return 1;
     }
 
-    fn renderCreate(self: *Self) callconv(.C) c_int {
-        var alignment: c_int = 4;
+    fn renderCreate(uptr: ?*c_void) callconv(.C) c_int {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         const header = "#version 150 core\n";
         const aadef = "#define EDGE_AA 1\n";
         const vs = header ++
@@ -701,23 +739,39 @@ const InternalContext = struct {
 
         // Create UBOs
         gl.uniformBlockBinding(
-            self.shader.program,
-            self.shader.locs[@enumToInt(UniformLocation.loc_frag)],
+            self.shader.program.id,
+            @intCast(
+                c_uint,
+                self.shader.locs[@enumToInt(UniformLocation.loc_frag)],
+            ),
             @enumToInt(UniformBinding.frag_binding),
         );
+
+        var alignment: c_int = 4;
         gl.getIntegerv(gl.GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment);
-        self.frag_size = @sizeOf(FragUniform) + alignment - @sizeOf(FragUniform) % alignment;
+        self.frag_size = @intCast(
+            usize,
+            @sizeOf(FragUniform) + alignment - @rem(@sizeOf(FragUniform), alignment),
+        );
 
         // Some platforms does not allow to have samples to unset textures.
         // Create empty one which is bound when there's no texture specified.
-        self.dummy_tex = self.renderCreateTexture(api.NVG_TEXTURE_ALPHA, 1, 1, 0, null);
+        self.dummy_tex = Self.renderCreateTexture(uptr, api.NVG_TEXTURE_ALPHA, 1, 1, 0, null);
         self.checkError();
 
         gl.finish();
         return 1;
     }
 
-    fn renderCreateTexture(self: *Self, _type: c_int, w: c_int, h: c_int, flags: c_int, data: ?*const c_void) callconv(.C) c_int {
+    fn renderCreateTexture(
+        uptr: ?*c_void,
+        _type: c_int,
+        w: c_int,
+        h: c_int,
+        flags: c_int,
+        data: [*c]const u8,
+    ) callconv(.C) c_int {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         var tex = self.allocTexture();
         gl.genTextures(1, &tex.tex);
         tex.width = w;
@@ -738,33 +792,33 @@ const InternalContext = struct {
             gl.texImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RED, w, h, 0, gl.GL_RED, gl.GL_UNSIGNED_BYTE, data);
         }
 
-        if (flags & api.NVG_IMAGE_GENERATE_MIPMAPS) {
-            if (flags & api.NVG_IMAGE_NEAREST) {
+        if ((flags & api.NVG_IMAGE_GENERATE_MIPMAPS) != 0) {
+            if ((flags & api.NVG_IMAGE_NEAREST) != 0) {
                 gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST_MIPMAP_NEAREST);
             } else {
                 gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR_MIPMAP_LINEAR);
             }
         } else {
-            if (flags & api.NVG_IMAGE_NEAREST) {
+            if ((flags & api.NVG_IMAGE_NEAREST) != 0) {
                 gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST);
             } else {
                 gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR);
             }
         }
 
-        if (flags & api.NVG_IMAGE_NEAREST) {
+        if ((flags & api.NVG_IMAGE_NEAREST) != 0) {
             gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST);
         } else {
             gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR);
         }
 
-        if (flags & api.NVG_IMAGE_REPEATX) {
+        if ((flags & api.NVG_IMAGE_REPEATX) != 0) {
             gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_REPEAT);
         } else {
             gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_S, gl.GL_CLAMP_TO_EDGE);
         }
 
-        if (flags & api.NVG_IMAGE_REPEATY) {
+        if ((flags & api.NVG_IMAGE_REPEATY) != 0) {
             gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_REPEAT);
         } else {
             gl.texParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_WRAP_T, gl.GL_CLAMP_TO_EDGE);
@@ -776,7 +830,7 @@ const InternalContext = struct {
         gl.pixelStorei(gl.GL_UNPACK_SKIP_ROWS, 0);
 
         // The new way to build mipmaps on GLES and GL3
-        if (flags & api.NVG_IMAGE_GENERATE_MIPMAPS) {
+        if ((flags & api.NVG_IMAGE_GENERATE_MIPMAPS) != 0) {
             gl.generateMipmap(gl.GL_TEXTURE_2D);
         }
         self.checkError();
@@ -784,31 +838,33 @@ const InternalContext = struct {
         return tex.id;
     }
 
-    fn renderDeleteTexture(self: *Self, image: c_int) callconv(.C) c_int {
+    fn renderDeleteTexture(uptr: ?*c_void, image: c_int) callconv(.C) c_int {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         return if (self.deleteTexture(image)) 1 else 0;
     }
 
     fn renderUpdateTexture(
-        self: *Self,
+        uptr: ?*c_void,
         image: c_int,
         x: c_int,
         y: c_int,
         w: c_int,
         h: c_int,
-        data: ?*const c_void,
+        data: [*c]const u8,
     ) callconv(.C) c_int {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         var tex = self.findTexture(image);
         if (tex == null) return 0;
 
-        self.bindTexture(tex.tex);
+        self.bindTexture(tex.?.tex);
         defer self.bindTexture(0);
 
         gl.pixelStorei(gl.GL_UNPACK_ALIGNMENT, 1);
-        gl.pixelStorei(gl.GL_UNPACK_ROW_LENGTH, tex.width);
+        gl.pixelStorei(gl.GL_UNPACK_ROW_LENGTH, tex.?.width);
         gl.pixelStorei(gl.GL_UNPACK_SKIP_PIXELS, x);
         gl.pixelStorei(gl.GL_UNPACK_SKIP_ROWS, y);
 
-        if (tex.type == api.NVG_TEXTURE_RGBA) {
+        if (tex.?.type == api.NVG_TEXTURE_RGBA) {
             gl.texSubImage2D(gl.GL_TEXTURE_2D, 0, x, y, w, h, gl.GL_RGBA, gl.GL_UNSIGNED_BYTE, data);
         } else {
             gl.texSubImage2D(gl.GL_TEXTURE_2D, 0, x, y, w, h, gl.GL_RED, gl.GL_UNSIGNED_BYTE, data);
@@ -822,29 +878,33 @@ const InternalContext = struct {
         return 1;
     }
 
-    fn renderGetTextureSize(self: *Self, image: c_int, w: *c_int, h: *c_int) callconv(.C) c_int {
+    fn renderGetTextureSize(uptr: ?*c_void, image: c_int, w: [*c]c_int, h: [*c]c_int) callconv(.C) c_int {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         var tex = self.findTexture(image);
         if (tex == null) return 0;
 
-        w.* = tex.width;
-        h.* = tex.height;
+        w.* = tex.?.width;
+        h.* = tex.?.height;
         return 1;
     }
 
-    fn renderViewport(self: *Self, width: f32, height: f32, pixel_ratio: f32) callconv(.C) void {
+    fn renderViewport(uptr: ?*c_void, width: f32, height: f32, pixel_ratio: f32) callconv(.C) void {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         _ = pixel_ratio;
         self.view[0] = width;
         self.view[0] = height;
     }
 
-    fn renderCancel(self: *Self) callconv(.C) void {
-        self.verts.resize(0);
-        self.paths.resize(0);
-        self.calls.resize(0);
-        self.uniforms.resize(0);
+    fn renderCancel(uptr: ?*c_void) callconv(.C) void {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
+        self.verts.resize(0) catch unreachable;
+        self.paths.resize(0) catch unreachable;
+        self.calls.resize(0) catch unreachable;
+        self.uniforms.resize(0) catch unreachable;
     }
 
-    fn renderFlush(self: *Self) callconv(.C) void {
+    fn renderFlush(uptr: ?*c_void) callconv(.C) void {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         if (self.calls.items.len > 0) {
             // setup require GL state.
             self.shader.program.use();
@@ -881,7 +941,7 @@ const InternalContext = struct {
             );
             gl.bufferData(
                 gl.GL_UNIFORM_BUFFER,
-                self.uniforms.items.len,
+                @intCast(c_longlong, self.uniforms.items.len),
                 self.uniforms.items.ptr,
                 gl.GL_STREAM_DRAW,
             );
@@ -896,7 +956,7 @@ const InternalContext = struct {
             defer gl.bindBuffer(gl.GL_ARRAY_BUFFER, 0);
             gl.bufferData(
                 gl.GL_ARRAY_BUFFER,
-                self.verts.items.len * @sizeOf(api.NVGvertex),
+                @intCast(c_longlong, self.verts.items.len * @sizeOf(api.NVGvertex)),
                 self.verts.items.ptr,
                 gl.GL_STREAM_DRAW,
             );
@@ -925,7 +985,7 @@ const InternalContext = struct {
             gl.uniform1i(self.shader.locs[@enumToInt(UniformLocation.loc_tex)], 0);
             gl.uniform2fv(self.shader.locs[@enumToInt(UniformLocation.loc_viewsize)], 1, &self.view);
 
-            for (self.calls) |*c| {
+            for (self.calls.items) |*c| {
                 self.blendFuncSeparate(c.blend_func);
                 switch (c.type) {
                     .fill => self.fill(c),
@@ -940,25 +1000,26 @@ const InternalContext = struct {
         }
 
         // reset calls
-        self.renderCancel();
+        Self.renderCancel(uptr);
     }
 
     fn renderFill(
-        self: *Self,
-        paint: *api.NVGpaint,
+        uptr: ?*c_void,
+        paint: [*c]api.NVGpaint,
         comp_op: api.NVGcompositeOperationState,
-        scissor: *api.NVGscissor,
+        scissor: [*c]api.NVGscissor,
         fringe: f32,
         bounds: [*c]const f32,
         paths: [*c]const api.NVGpath,
         npaths: c_int,
     ) callconv(.C) void {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         var call = self.allocCall();
         call.type = .fill;
         call.triangle_count = 4;
         call.path_offset = self.allocPaths(npaths);
-        call.path_count = npaths;
-        call.image = paint.image;
+        call.path_count = @intCast(usize, npaths);
+        call.image = paint.*.image;
         call.blend_func = self.blendCompositeOperation(comp_op);
 
         if (npaths == 1 and paths[0].convex == 1) {
@@ -967,23 +1028,23 @@ const InternalContext = struct {
         }
 
         // allocate vertices for all the paths.
-        var maxverts = self.maxVertCount(paths[0..npaths]) + call.triangleCount;
+        var maxverts = self.maxVertCount(paths[0..@intCast(usize, npaths)]) + call.triangle_count;
         var offset = self.allocVerts(maxverts);
 
-        for (self.paths[call.path_offset .. call.path_offset + npaths]) |*p, i| {
+        for (self.paths.items[call.path_offset .. call.path_offset + @intCast(usize, npaths)]) |*p, i| {
             const path = &paths[i];
             p.* = .{};
             if (path.nfill > 0) {
                 p.fill_offset = offset;
-                p.fill_count = path.nfill;
-                self.verts.replaceRange(offset, path.nfill, path.fill[0..path.nfill]);
-                offset += path.nfill;
+                p.fill_count = @intCast(usize, path.nfill);
+                self.verts.replaceRange(offset, p.fill_count, path.fill[0..p.fill_count]) catch unreachable;
+                offset += p.fill_count;
             }
             if (path.nstroke > 0) {
                 p.stroke_offset = offset;
-                p.stroke_count = path.nstroke;
-                self.verts.replaceRange(offset, path.nstroke, path.stroke[0..path.nstroke]);
-                offset += path.nstroke;
+                p.stroke_count = @intCast(usize, path.nstroke);
+                self.verts.replaceRange(offset, p.stroke_count, path.stroke[0..p.stroke_count]) catch unreachable;
+                offset += p.stroke_count;
             }
         }
 
@@ -999,12 +1060,12 @@ const InternalContext = struct {
             call.uniform_offset = self.allocFragUniforms(2);
 
             // simple shader for stencil
-            var frag = self.fragUniformPtr(call.uniformOffset);
+            var frag = self.fragUniformPtr(call.uniform_offset);
             frag.* = std.mem.zeroes(FragUniform);
             frag.stroke_thr = -1.0;
-            frag.type = .shader_simple;
+            frag.type = @enumToInt(ShaderType.shader_simple);
             // fill shader
-            self.convertPaint(
+            _ = self.convertPaint(
                 self.fragUniformPtr(call.uniform_offset + self.frag_size),
                 paint,
                 scissor,
@@ -1015,7 +1076,7 @@ const InternalContext = struct {
         } else {
             call.uniform_offset = self.allocFragUniforms(1);
             // fill shader
-            self.convertPaint(
+            _ = self.convertPaint(
                 self.fragUniformPtr(call.uniform_offset),
                 paint,
                 scissor,
@@ -1029,34 +1090,35 @@ const InternalContext = struct {
     }
 
     fn renderStroke(
-        self: *Self,
-        paint: *api.NVGpaint,
+        uptr: ?*c_void,
+        paint: [*c]api.NVGpaint,
         comp_op: api.NVGcompositeOperationState,
-        scissor: *api.NVGscissor,
+        scissor: [*c]api.NVGscissor,
         fringe: f32,
         stroke_width: f32,
         paths: [*c]const api.NVGpath,
         npaths: c_int,
     ) callconv(.C) void {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         var call = self.allocCall();
         call.type = .stroke;
         call.path_offset = self.allocPaths(npaths);
-        call.path_count = npaths;
-        call.image = paint.image;
+        call.path_count = @intCast(usize, npaths);
+        call.image = paint.*.image;
         call.blend_func = self.blendCompositeOperation(comp_op);
 
         // allocate vertices for all the paths.
-        var maxverts = self.maxVertCount(paths[0..npaths]);
+        var maxverts = self.maxVertCount(paths[0..@intCast(usize, npaths)]);
         var offset = self.allocVerts(maxverts);
 
-        for (self.paths[call.path_offset .. call.path_offset + npaths]) |*p, i| {
+        for (self.paths.items[call.path_offset .. call.path_offset + @intCast(usize, npaths)]) |*p, i| {
             const path = &paths[i];
             p.* = .{};
             if (path.nstroke > 0) {
                 p.stroke_offset = offset;
-                p.stroke_count = path.nstroke;
-                self.verts.replaceRange(offset, path.nstroke, path.stroke[0..path.nstroke]);
-                offset += path.nstroke;
+                p.stroke_count = @intCast(usize, path.nstroke);
+                self.verts.replaceRange(offset, p.stroke_count, path.stroke[0..p.stroke_count]) catch unreachable;
+                offset += p.stroke_count;
             }
         }
 
@@ -1064,8 +1126,7 @@ const InternalContext = struct {
             // fill shader
             call.uniform_offset = self.allocFragUniforms(2);
 
-            self.convertPaint(
-                self,
+            _ = self.convertPaint(
                 self.fragUniformPtr(call.uniform_offset),
                 paint,
                 scissor,
@@ -1073,8 +1134,7 @@ const InternalContext = struct {
                 fringe,
                 -1.0,
             );
-            self.convertPaint(
-                self,
+            _ = self.convertPaint(
                 self.fragUniformPtr(call.uniform_offset + self.frag_size),
                 paint,
                 scissor,
@@ -1085,7 +1145,7 @@ const InternalContext = struct {
         } else {
             // Fill shader
             call.uniform_offset = self.allocFragUniforms(1);
-            self.convertPaint(
+            _ = self.convertPaint(
                 self.fragUniformPtr(call.uniform_offset),
                 paint,
                 scissor,
@@ -1099,34 +1159,36 @@ const InternalContext = struct {
     }
 
     fn renderTriangles(
-        self: *Self,
-        paint: *api.NVGpaint,
+        uptr: ?*c_void,
+        paint: [*c]api.NVGpaint,
         comp_op: api.NVGcompositeOperationState,
-        scissor: *api.NVGscissor,
-        verts: [*c]api.NVGvertex,
+        scissor: [*c]api.NVGscissor,
+        verts: [*c]const api.NVGvertex,
         nverts: c_int,
         fringe: f32,
     ) callconv(.C) void {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         var call = self.allocCall();
         call.type = .triangles;
-        call.image = paint.image;
+        call.image = paint.*.image;
         call.blend_func = self.blendCompositeOperation(comp_op);
 
         // allocate vertices for all the paths.
-        call.triangle_offset = self.allocVerts(nverts);
-        call.triangle_count = nverts;
-        self.verts.replaceRange(call.triangle_offset, nverts, verts[0..nverts]);
+        call.triangle_offset = self.allocVerts(@intCast(usize, nverts));
+        call.triangle_count = @intCast(usize, nverts);
+        self.verts.replaceRange(call.triangle_offset, call.triangle_count, verts[0..call.triangle_count]) catch unreachable;
 
         // fill shader
         call.uniform_offset = self.allocFragUniforms(1);
         var frag = self.fragUniformPtr(call.uniform_offset);
-        self.convertPaint(frag, paint, scissor, 1.0, fringe, -1.0);
-        frag.type = .shader_img;
+        _ = self.convertPaint(frag, paint, scissor, 1.0, fringe, -1.0);
+        frag.type = @enumToInt(ShaderType.shader_img);
 
         return;
     }
 
-    fn renderDelete(self: *Self) callconv(.C) void {
+    fn renderDelete(uptr: ?*c_void) callconv(.C) void {
+        var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         self.shader.deinit();
         self.vertex_array.deinit();
         for (self.textures.items) |t| {

@@ -24,6 +24,7 @@ pub fn build(b: *std.build.Builder) void {
         "phong_lighting",
         "mesh_lighting",
         "imgui_demo",
+        "vector_graphics",
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |name| {
@@ -112,6 +113,13 @@ pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.bu
     cgltf.addIncludeDir("src/cgltf/c");
     cgltf.addCSourceFile("src/cgltf/c/cgltf_wrapper.c", flags.items);
     exe.linkLibrary(cgltf);
+
+    // link nanovg
+    var nanovg = exe.builder.addStaticLibrary("nanovg", null);
+    nanovg.linkLibC();
+    nanovg.addIncludeDir("src/nanovg/c");
+    nanovg.addCSourceFile("src/nanovg/c/nanovg.c", flags.items);
+    exe.linkLibrary(nanovg);
 
     // use zplay
     exe.addPackage(.{
