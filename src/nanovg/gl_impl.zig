@@ -968,7 +968,7 @@ const InternalContext = struct {
 
         // allocate vertices for all the paths.
         var maxverts = self.maxVertCount(paths[0..npaths]) + call.triangleCount;
-        var offset = self.allocVerts(gl, maxverts);
+        var offset = self.allocVerts(maxverts);
 
         for (self.paths[call.path_offset .. call.path_offset + npaths]) |*p, i| {
             const path = &paths[i];
@@ -982,7 +982,7 @@ const InternalContext = struct {
             if (path.nstroke > 0) {
                 p.stroke_offset = offset;
                 p.stroke_count = path.nstroke;
-                self.verts.replaceRange(offset, path.stroke, path.stroke[0..path.nstroke]);
+                self.verts.replaceRange(offset, path.nstroke, path.stroke[0..path.nstroke]);
                 offset += path.nstroke;
             }
         }
@@ -999,7 +999,7 @@ const InternalContext = struct {
             call.uniform_offset = self.allocFragUniforms(2);
 
             // simple shader for stencil
-            var frag = self.fragUniformPtr(gl, call.uniformOffset);
+            var frag = self.fragUniformPtr(call.uniformOffset);
             frag.* = std.mem.zeroes(FragUniform);
             frag.stroke_thr = -1.0;
             frag.type = .shader_simple;
@@ -1024,6 +1024,104 @@ const InternalContext = struct {
                 -1.0,
             );
         }
+
+        return;
+    }
+
+    fn renderStroke(
+        self: *Self,
+        paint: *api.NVGpaint,
+        comp_op: api.NVGcompositeOperationState,
+        scissor: *api.NVGscissor,
+        fringe: f32,
+        stroke_width: f32,
+        paths: [*c]const api.NVGpath,
+        npaths: c_int,
+    ) callconv(.C) void {
+        var call = self.allocCall();
+        call.type = .stroke;
+        call.path_offset = self.allocPaths(npaths);
+        call.path_count = npaths;
+        call.image = paint.image;
+        call.blend_func = self.blendCompositeOperation(comp_op);
+
+        // allocate vertices for all the paths.
+        var maxverts = self.maxVertCount(paths[0..npaths]);
+        var offset = self.allocVerts(maxverts);
+
+        for (self.paths[call.path_offset .. call.path_offset + npaths]) |*p, i| {
+            const path = &paths[i];
+            p.* = .{};
+            if (path.nstroke > 0) {
+                p.stroke_offset = offset;
+                p.stroke_count = path.nstroke;
+                self.verts.replaceRange(offset, path.nstroke, path.stroke[0..path.nstroke]);
+                offset += path.nstroke;
+            }
+        }
+
+        if (self.flags.enable_stencil_strokes) {
+            // fill shader
+            call.uniform_offset = self.allocFragUniforms(2);
+
+            self.convertPaint(
+                self,
+                self.fragUniformPtr(call.uniform_offset),
+                paint,
+                scissor,
+                stroke_width,
+                fringe,
+                -1.0,
+            );
+            self.convertPaint(
+                self,
+                self.fragUniformPtr(call.uniform_offset + self.frag_size),
+                paint,
+                scissor,
+                stroke_width,
+                fringe,
+                1.0 - 0.5 / 255.0,
+            );
+        } else {
+            // Fill shader
+            call.uniform_offset = self.allocFragUniforms(1);
+            self.convertPaint(
+                self.fragUniformPtr(call.uniform_offset),
+                paint,
+                scissor,
+                stroke_width,
+                fringe,
+                -1.0,
+            );
+        }
+
+        return;
+    }
+
+    fn renderTriangles(
+        self: *Self,
+        paint: *api.NVGpaint,
+        comp_op: api.NVGcompositeOperationState,
+        scissor: *api.NVGscissor,
+        verts: [*c]api.NVGvertex,
+        nverts: c_int,
+        fringe: f32,
+    ) callconv(.C) void {
+        var call = self.allocCall();
+        call.type = .triangles;
+        call.image = paint.image;
+        call.blend_func = self.blendCompositeOperation(comp_op);
+
+        // allocate vertices for all the paths.
+        call.triangle_offset = self.allocVerts(nverts);
+        call.triangle_count = nverts;
+        self.verts.replaceRange(call.triangle_offset, nverts, verts[0..nverts]);
+
+        // fill shader
+        call.uniform_offset = self.allocFragUniforms(1);
+        var frag = self.fragUniformPtr(call.uniform_offset);
+        self.convertPaint(frag, paint, scissor, 1.0, fringe, -1.0);
+        frag.type = .shader_img;
 
         return;
     }
