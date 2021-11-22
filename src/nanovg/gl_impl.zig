@@ -283,17 +283,17 @@ const InternalContext = struct {
             gl.GL_UNIFORM_BUFFER,
             @enumToInt(UniformBinding.frag_binding),
             self.vertex_array.vbos[@enumToInt(BufferIndex.index_frag_buffer)],
-            offset,
+            @intCast(c_longlong, offset),
             @sizeOf(FragUniform),
         );
 
         var tex: ?*Texture = null;
         if (image != 0) {
-            tex = findTexture(image);
+            tex = self.findTexture(image);
         }
         // if no image is set, use empty texture
         if (tex == null) {
-            tex = findTexture(self.dummy_tex);
+            tex = self.findTexture(self.dummy_tex);
         }
         if (tex) |t| {
             self.bindTexture(t.tex);
@@ -456,8 +456,8 @@ const InternalContext = struct {
         _ = self;
         var count: usize = 0;
         for (paths) |p| {
-            count += p.nfill;
-            count += p.nstroke;
+            count += @intCast(usize, p.nfill);
+            count += @intCast(usize, p.nstroke);
         }
         return count;
     }
@@ -467,26 +467,26 @@ const InternalContext = struct {
         return call;
     }
 
-    fn allocPaths(self: *Self, n: c_int) usize {
+    fn allocPaths(self: *Self, n: usize) usize {
         var offset = self.paths.items.len;
-        _ = self.paths.addManyAsArray(n) catch unreachable;
+        self.paths.resize(offset + n) catch unreachable;
         return offset;
     }
 
     fn allocVerts(self: *Self, n: usize) usize {
         var offset = self.verts.items.len;
-        _ = self.verts.addManyAsArray(n) catch unreachable;
+        self.verts.resize(offset + n) catch unreachable;
         return offset;
     }
 
-    fn allocFragUniforms(self: *Self, n: c_int) usize {
+    fn allocFragUniforms(self: *Self, n: usize) usize {
         var offset = self.uniforms.items.len;
-        _ = self.verts.addManyAsArray(n * self.frag_size) catch unreachable;
+        self.uniforms.resize(offset + n * self.frag_size) catch unreachable;
         return offset;
     }
 
     fn fragUniformPtr(self: *Self, i: usize) *FragUniform {
-        return @ptrCast(*FragUniform, &self.unifoms.items[i]);
+        return @ptrCast(*FragUniform, @alignCast(@alignOf(*FragUniform), &self.uniforms.items[i]));
     }
 
     fn vset(self: *Self, vtx: *api.NVGvertex, x: f32, y: f32, u: f32, v: f32) void {
@@ -553,10 +553,11 @@ const InternalContext = struct {
 
     fn premulColor(self: *Self, c: api.NVGcolor) api.NVGcolor {
         _ = self;
-        c.unnamed_0.unnamed_0.r *= c.unnamed_0.unnamed_0.a;
-        c.unnamed_0.unnamed_0.g *= c.unnamed_0.unnamed_0.a;
-        c.unnamed_0.unnamed_0.b *= c.unnamed_0.unnamed_0.a;
-        return c;
+        var copy = c;
+        copy.unnamed_0.unnamed_0.r *= c.unnamed_0.unnamed_0.a;
+        copy.unnamed_0.unnamed_0.g *= c.unnamed_0.unnamed_0.a;
+        copy.unnamed_0.unnamed_0.b *= c.unnamed_0.unnamed_0.a;
+        return copy;
     }
 
     fn convertPaint(
@@ -572,8 +573,8 @@ const InternalContext = struct {
 
         frag.* = std.mem.zeroes(FragUniform);
 
-        frag.inner_color = premulColor(paint.innerColor);
-        frag.outer_color = premulColor(paint.outerColor);
+        frag.inner_color = self.premulColor(paint.innerColor);
+        frag.outer_color = self.premulColor(paint.outerColor);
 
         if (scissor.extent[0] < -0.5 or scissor.extent[1] < -0.5) {
             frag.scissor_ext[0] = 1.0;
@@ -581,12 +582,12 @@ const InternalContext = struct {
             frag.scissor_scale[0] = 1.0;
             frag.scissor_scale[1] = 1.0;
         } else {
-            api.transformInverse(&invxform, &scissor.xform);
-            self.xformToMat3x4(frag.scissorMat, invxform);
+            _ = api.nvgTransformInverse(&invxform, &scissor.xform);
+            self.xformToMat3x4(&frag.scissor_mat, &invxform);
             frag.scissor_ext[0] = scissor.extent[0];
             frag.scissor_ext[1] = scissor.extent[1];
             frag.scissor_scale[0] = std.math.sqrt(scissor.xform[0] * scissor.xform[0] + scissor.xform[2] * scissor.xform[2]) / fringe;
-            frag.scissorScale[1] = std.math.sqrt(scissor.xform[1] * scissor.xform[1] + scissor.xform[3] * scissor.xform[3]) / fringe;
+            frag.scissor_scale[1] = std.math.sqrt(scissor.xform[1] * scissor.xform[1] + scissor.xform[3] * scissor.xform[3]) / fringe;
         }
 
         frag.extent = paint.extent;
@@ -596,31 +597,31 @@ const InternalContext = struct {
         if (paint.image != 0) {
             var tex = self.findTexture(paint.image);
             if (tex == null) return 0;
-            if ((tex.flags & api.NVG_IMAGE_FLIPY) != 0) {
+            if ((tex.?.flags & api.NVG_IMAGE_FLIPY) != 0) {
                 var m1: [6]f32 = undefined;
                 var m2: [6]f32 = undefined;
-                api.transformTranslate(&m1, 0.0, frag.extent[1] * 0.5);
-                api.transformMultiply(&m1, &paint.xform);
-                api.transformScale(&m2, 1.0, -1.0);
-                api.transformMultiply(&m2, &m1);
-                api.transformTranslate(&m1, 0.0, -frag.extent[1] * 0.5);
-                api.transformMultiply(&m1, &m2);
-                api.transformInverse(&invxform, &m1);
+                _ = api.nvgTransformTranslate(&m1, 0.0, frag.extent[1] * 0.5);
+                _ = api.nvgTransformMultiply(&m1, &paint.xform);
+                _ = api.nvgTransformScale(&m2, 1.0, -1.0);
+                _ = api.nvgTransformMultiply(&m2, &m1);
+                _ = api.nvgTransformTranslate(&m1, 0.0, -frag.extent[1] * 0.5);
+                _ = api.nvgTransformMultiply(&m1, &m2);
+                _ = api.nvgTransformInverse(&invxform, &m1);
             } else {
-                api.transformInverse(&invxform, &paint.xform);
+                _ = api.nvgTransformInverse(&invxform, &paint.xform);
             }
-            frag.type = .shader_fillimg;
+            frag.type = @enumToInt(ShaderType.shader_fillimg);
 
-            if (tex.type == api.NVG_TEXTURE_RGBA) {
-                frag.tex_type = if ((tex.flags & api.NVG_IMAGE_PREMULTIPLIED) != 0) 0 else 1;
+            if (tex.?.type == api.NVG_TEXTURE_RGBA) {
+                frag.tex_type = if ((tex.?.flags & api.NVG_IMAGE_PREMULTIPLIED) != 0) 0 else 1;
             } else {
                 frag.tex_type = 2;
             }
         } else {
-            frag.type = .shader_fillgrad;
+            frag.type = @enumToInt(ShaderType.shader_fillgrad);
             frag.radius = paint.radius;
             frag.feather = paint.feather;
-            api.transformInverse(&invxform, &paint.xform);
+            _ = api.nvgTransformInverse(&invxform, &paint.xform);
         }
 
         self.xformToMat3x4(&frag.paint_mat, &invxform);
@@ -630,7 +631,7 @@ const InternalContext = struct {
 
     fn renderCreate(uptr: ?*c_void) callconv(.C) c_int {
         var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
-        const header = "#version 150 core\n";
+        const header = "#version 330 core\n";
         const aadef = "#define EDGE_AA 1\n";
         const vs = header ++
             \\layout (location = 0) in vec2 vertex;
@@ -643,7 +644,7 @@ const InternalContext = struct {
             \\    ftcoord = tcoord;
             \\    fpos = vertex;
             \\    gl_Position = vec4(2.0*vertex.x/viewSize.x - 1.0, 1.0 - 2.0*vertex.y/viewSize.y, 0, 1);
-            \\};
+            \\}
         ;
 
         const fs =
@@ -707,8 +708,8 @@ const InternalContext = struct {
             \\        // Calculate color fron texture
             \\        vec2 pt = (paintMat * vec3(fpos,1.0)).xy / extent;
             \\        vec4 color = texture(tex, pt);
-            \\        if (texType == 1) color = vec4(color.xyz*color.w,color.w);"
-            \\        if (texType == 2) color = vec4(color.x);"
+            \\        if (texType == 1) color = vec4(color.xyz*color.w,color.w);
+            \\        if (texType == 2) color = vec4(color.x);
             \\        // Apply color tint and alpha.
             \\        color *= innerCol;
             \\        // Combine alpha
@@ -718,13 +719,13 @@ const InternalContext = struct {
             \\        result = vec4(1,1,1,1);
             \\    } else if (type == 3) {		// Textured tris
             \\        vec4 color = texture(tex, ftcoord);
-            \\        if (texType == 1) color = vec4(color.xyz*color.w,color.w);"
-            \\        if (texType == 2) color = vec4(color.x);"
+            \\        if (texType == 1) color = vec4(color.xyz*color.w,color.w);
+            \\        if (texType == 2) color = vec4(color.x);
             \\        color *= scissor;
             \\        result = color * innerCol;
             \\    }
             \\    outColor = result;
-            \\};
+            \\}
         ;
 
         const aa_fs = header ++ aadef ++ fs;
@@ -1017,7 +1018,7 @@ const InternalContext = struct {
         var call = self.allocCall();
         call.type = .fill;
         call.triangle_count = 4;
-        call.path_offset = self.allocPaths(npaths);
+        call.path_offset = self.allocPaths(@intCast(usize, npaths));
         call.path_count = @intCast(usize, npaths);
         call.image = paint.*.image;
         call.blend_func = self.blendCompositeOperation(comp_op);
@@ -1102,7 +1103,7 @@ const InternalContext = struct {
         var self = @ptrCast(*Self, @alignCast(@alignOf(*Self), uptr).?);
         var call = self.allocCall();
         call.type = .stroke;
-        call.path_offset = self.allocPaths(npaths);
+        call.path_offset = self.allocPaths(@intCast(usize, npaths));
         call.path_count = @intCast(usize, npaths);
         call.image = paint.*.image;
         call.blend_func = self.blendCompositeOperation(comp_op);
@@ -1201,6 +1202,6 @@ const InternalContext = struct {
         self.paths.deinit();
         self.verts.deinit();
         self.uniforms.deinit();
-        self.allocator.free(self);
+        self.allocator.destroy(self);
     }
 };

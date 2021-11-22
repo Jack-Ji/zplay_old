@@ -86,7 +86,7 @@ pub fn deinit(self: *Self) void {
     gl.deleteProgram(self.id);
     self.id = undefined;
     self.uniform_locs.deinit();
-    for (self.string_cache) |s| {
+    for (self.string_cache.items) |s| {
         allocator.free(s);
     }
     self.string_cache.deinit();
