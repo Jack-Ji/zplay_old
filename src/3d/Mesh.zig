@@ -18,6 +18,7 @@ vertex_array: gl.VertexArray = undefined,
 /// vertices, each has 3 properties: position, normal, texture coord
 vertices: std.ArrayList(f32) = undefined,
 vertex_indices: std.ArrayList(u16) = undefined,
+owns_data: bool = false,
 
 /// material
 material: Material = undefined,
@@ -33,6 +34,7 @@ pub fn init(
         .vertex_array = gl.VertexArray.init(2),
         .vertices = std.ArrayList(f32).init(allocator),
         .vertex_indices = std.ArrayList(u16).init(allocator),
+        .owns_data = true,
         .material = material,
     };
     mesh.vertices.appendSlice(vertices) catch unreachable;
@@ -41,16 +43,18 @@ pub fn init(
     return mesh;
 }
 
-/// NOTE: create Mesh and take ownership of given arrays
+/// create Mesh, maybe taking ownership of given arrays
 pub fn fromArrayLists(
     vertices: std.ArrayList(f32),
     indices: std.ArrayList(u16),
     material: Material,
+    take_ownership: bool,
 ) Self {
     var mesh: Self = .{
         .vertex_array = gl.VertexArray.init(2),
         .vertices = vertices,
         .vertex_indices = indices,
+        .owns_data = take_ownership,
         .material = material,
     };
     mesh.setup();
@@ -93,6 +97,8 @@ fn setup(self: *Self) void {
 /// free resources
 pub fn deinit(self: *Self) void {
     self.vertex_array.deinit();
-    self.vertices.deinit();
-    self.vertex_indices.deinit();
+    if (self.owns_data) {
+        self.vertices.deinit();
+        self.vertex_indices.deinit();
+    }
 }
