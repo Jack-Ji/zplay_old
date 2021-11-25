@@ -15,6 +15,7 @@ const Mesh = zp.@"3d".Mesh;
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
 var mesh: Mesh = undefined;
+var material: Material = undefined;
 var camera = zp.@"3d".Camera.fromPositionAndTarget(
     Vec3.new(1, 2, 3),
     Vec3.zero(),
@@ -89,18 +90,19 @@ fn init(ctx: *zp.Context) anyerror!void {
     }));
 
     // create mesh
-    var diffuse_texture = try zp.texture.Texture2D.init("assets/container2.png", null, false);
-    var specular_texture = try zp.texture.Texture2D.init("assets/container2_specular.png", .texture_unit_1, false);
-    var material = Material.init(
-        diffuse_texture,
-        specular_texture,
-        32,
-    );
     mesh = Mesh.init(
         std.testing.allocator,
         &vertices,
         &indices,
-        material,
+    );
+
+    // create material
+    var diffuse_texture = try zp.texture.Texture2D.init("assets/container2.png", null, false);
+    var specular_texture = try zp.texture.Texture2D.init("assets/container2_specular.png", .texture_unit_1, false);
+    material = Material.init(
+        diffuse_texture,
+        specular_texture,
+        32,
     );
 
     // enable depth test
@@ -201,6 +203,7 @@ fn loop(ctx: *zp.Context) void {
     );
     phong_renderer.renderMesh(
         mesh,
+        material,
         model,
         projection,
         camera,

@@ -338,6 +338,7 @@ pub fn render(
 pub fn renderMesh(
     self: *Self,
     mesh: Mesh,
+    material: Material,
     model: Mat4,
     projection: Mat4,
     camera: Camera,
@@ -351,6 +352,6 @@ pub fn renderMesh(
         model,
         projection,
         camera,
-        mesh.material,
+        material,
     );
 }

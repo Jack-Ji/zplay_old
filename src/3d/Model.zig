@@ -1,11 +1,14 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const Material = @import("Material.zig");
 const Mesh = @import("Mesh.zig");
+const Material = @import("Material.zig");
 const zp = @import("../lib.zig");
 const alg = zp.alg;
 const cgltf = zp.cgltf;
 const Self = @This();
+
+/// memory allocator
+allocator: *std.mem.Allocator,
 
 /// gltf data being used
 gltf_data: *cgltf.cgltf_data = undefined,
@@ -18,9 +21,14 @@ pub fn init(allocator: *std.mem.Allocator, gltf_path: [:0]const u8) !Self {
     var data = try cgltf.parseFile(gltf_path, null);
 
     var i: usize = 0;
-    while (i < data.meshes_count) : (i+=1){
-    var mesh = data.meshes[i];
+    while (i < data.nodes_count) : (i += 1) {
+        var node = data.nodes[i];
+        _ = node;
     }
+
+    return .{
+        .allocator = allocator,
+    };
 }
 
 /// deallocate resources

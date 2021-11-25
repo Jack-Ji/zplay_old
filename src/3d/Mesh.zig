@@ -1,6 +1,5 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const Material = @import("Material.zig");
 const zp = @import("../lib.zig");
 const gl = zp.gl;
 const Texture2D = zp.texture.Texture2D;
@@ -20,22 +19,17 @@ vertices: std.ArrayList(f32) = undefined,
 vertex_indices: std.ArrayList(u16) = undefined,
 owns_data: bool = false,
 
-/// material
-material: Material = undefined,
-
 /// allocate and initialize Mesh instance
 pub fn init(
     allocator: *std.mem.Allocator,
     vertices: []const f32,
     indices: []const u16,
-    material: Material,
 ) Self {
     var mesh: Self = .{
         .vertex_array = gl.VertexArray.init(2),
         .vertices = std.ArrayList(f32).init(allocator),
         .vertex_indices = std.ArrayList(u16).init(allocator),
         .owns_data = true,
-        .material = material,
     };
     mesh.vertices.appendSlice(vertices) catch unreachable;
     mesh.vertex_indices.appendSlice(indices) catch unreachable;
@@ -47,7 +41,6 @@ pub fn init(
 pub fn fromArrayLists(
     vertices: std.ArrayList(f32),
     indices: std.ArrayList(u16),
-    material: Material,
     take_ownership: bool,
 ) Self {
     var mesh: Self = .{
@@ -55,7 +48,6 @@ pub fn fromArrayLists(
         .vertices = vertices,
         .vertex_indices = indices,
         .owns_data = take_ownership,
-        .material = material,
     };
     mesh.setup();
     return mesh;
