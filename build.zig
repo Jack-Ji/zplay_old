@@ -105,6 +105,16 @@ pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.bu
         "src/cimgui/c/imgui_impl_opengl3.cpp",
         "src/cimgui/c/imgui_impl_opengl3_wrapper.cpp",
     }, flags.items);
+    cimgui.addCSourceFiles(&.{
+        "src/cimgui/ext/cimplot/c/implot.cpp",
+        "src/cimgui/ext/cimplot/c/implot_items.cpp",
+        "src/cimgui/ext/cimplot/c/implot_demo.cpp",
+        "src/cimgui/ext/cimplot/c/cimplot.cpp",
+    }, flags.items);
+    cimgui.addCSourceFiles(&.{
+        "src/cimgui/ext/cimnodes/c/imnodes.cpp",
+        "src/cimgui/ext/cimnodes/c/cimnodes.cpp",
+    }, flags.items);
     exe.linkLibrary(cimgui);
 
     // link cgltf

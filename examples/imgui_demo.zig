@@ -34,6 +34,8 @@ fn loop(ctx: *zp.Context) void {
         var counter: i32 = 0;
         var show_demo_window = true;
         var show_another_window = true;
+        var show_plot_demo_window = true;
+        var show_nodes_demo_window = true;
         var clear_color = [4]f32{ 0.45, 0.55, 0.6, 1.0 };
     };
 
@@ -43,11 +45,12 @@ fn loop(ctx: *zp.Context) void {
         dig.beginFrame();
         defer dig.endFrame();
 
-        if (S.show_demo_window) dig.igShowDemoWindow(&S.show_demo_window);
         if (dig.igBegin("Hello, world!", null, 0)) {
             dig.igText("This is some useful text");
             _ = dig.igCheckbox("Demo Window", &S.show_demo_window);
             _ = dig.igCheckbox("Another Window", &S.show_another_window);
+            _ = dig.igCheckbox("Plot Demo Window", &S.show_plot_demo_window);
+            _ = dig.igCheckbox("Nodes Demo Window", &S.show_nodes_demo_window);
             _ = dig.igSliderFloat("float", &S.f, 0, 1, null, 0);
             _ = dig.igColorEdit3("clear color", &S.clear_color, 0);
             if (dig.igButton("Button", .{ .x = 0, .y = 0 }))
@@ -63,11 +66,30 @@ fn loop(ctx: *zp.Context) void {
             dig.igEnd();
         }
 
+        if (S.show_demo_window) {
+            dig.igShowDemoWindow(&S.show_demo_window);
+        }
+
         if (S.show_another_window) {
             if (dig.igBegin("Another Window", &S.show_another_window, 0)) {
                 dig.igText("Hello from another window!");
                 if (dig.igButton("Close Me", .{ .x = 0, .y = 0 }))
                     S.show_another_window = false;
+                dig.igEnd();
+            }
+        }
+
+        if (S.show_plot_demo_window) {
+            dig.ext.plot.ImPlot_ShowDemoWindow(&S.show_plot_demo_window);
+        }
+
+        if (S.show_nodes_demo_window) {
+            if (dig.igBegin("Nodes Demo Window", &S.show_nodes_demo_window, 0)) {
+                dig.ext.nodes.imnodes_BeginNodeEditor();
+                dig.ext.nodes.imnodes_BeginNode(-1);
+                dig.igDummy(.{ .x = 80, .y = 45 });
+                dig.ext.nodes.imnodes_EndNode();
+                dig.ext.nodes.imnodes_EndNodeEditor();
                 dig.igEnd();
             }
         }
@@ -86,6 +108,7 @@ pub fn main() anyerror!void {
         .loopFn = loop,
         .quitFn = quit,
         .enable_resizable = true,
+        .enable_maximized = true,
         .enable_dear_imgui = true,
     });
 }
