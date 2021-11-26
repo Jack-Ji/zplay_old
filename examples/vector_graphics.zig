@@ -51,6 +51,8 @@ fn loop(ctx: *zp.Context) void {
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
 
+    vctx.deinit();
+
     std.log.info("game quit", .{});
 }
 

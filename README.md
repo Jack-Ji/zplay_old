@@ -1,5 +1,5 @@
 # zplay
-A framework for game creation and creative coding, built from scratch.
+A simple framework intended for game/tool creation.
 
 ## Features
 * minimum dependency, only [SDL2](https://www.libsdl.org/) and OpenGL3 are needed
