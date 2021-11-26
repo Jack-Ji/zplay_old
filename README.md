@@ -12,3 +12,4 @@ A framework for game creation and creative coding, built from scratch.
 * particle system (TODO)
 * dear-imgui integration
 * dear-imgui extensions integration (implot/imnodes)
+* nanovg integration (WIP)
