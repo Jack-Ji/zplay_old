@@ -2,8 +2,8 @@
 A framework for game creation and creative coding, built from scratch.
 
 ## Features
-* minimum dependency, only [sdl2](https://www.libsdl.org/) and opengl are needed
-* support PC platforms: windows/mac/linux
+* minimum dependency, only [SDL2](https://www.libsdl.org/) and OpenGL3 are needed
+* support PC platforms: windows/linux (possibly macOS, don't know for sure)
 * support image formats: tga/png/jpeg
 * support audio formats: mp3/ogg (TODO)
 * glTF 2.0 file support
