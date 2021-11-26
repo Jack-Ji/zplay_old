@@ -152,9 +152,9 @@ pub fn render(
     vertex_array.use();
     defer vertex_array.disuse();
     if (use_elements) {
-        gl.util.drawElements(primitive, offset, count);
+        gl.util.drawElements(primitive, offset, count, null);
     } else {
-        gl.util.drawBuffer(primitive, offset, count);
+        gl.util.drawBuffer(primitive, offset, count, null);
     }
 }
 

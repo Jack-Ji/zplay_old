@@ -108,22 +108,41 @@ pub fn clear(
 }
 
 /// issue draw call
-pub fn drawBuffer(primitive: PrimitiveType, offset: usize, vertex_count: usize) void {
-    gl.drawArrays(
-        @enumToInt(primitive),
-        @intCast(gl.GLint, offset),
-        @intCast(gl.GLsizei, vertex_count),
-    );
+pub fn drawBuffer(primitive: PrimitiveType, offset: usize, vertex_count: usize, instance_count: ?usize) void {
+    if (instance_count) |count| {
+        gl.drawArraysInstanced(
+            @enumToInt(primitive),
+            @intCast(gl.GLint, offset),
+            @intCast(gl.GLsizei, vertex_count),
+            @intCast(gl.GLsizei, count),
+        );
+    } else {
+        gl.drawArrays(
+            @enumToInt(primitive),
+            @intCast(gl.GLint, offset),
+            @intCast(gl.GLsizei, vertex_count),
+        );
+    }
     checkError();
 }
 
 /// issue draw call (only accept unsigned-integer indices!)
-pub fn drawElements(primitive: PrimitiveType, offset: usize, element_count: usize) void {
-    gl.drawElements(
-        @enumToInt(primitive),
-        @intCast(gl.GLsizei, element_count),
-        dataType(u16),
-        @intToPtr(*allowzero c_void, offset),
-    );
+pub fn drawElements(primitive: PrimitiveType, offset: usize, element_count: usize, instance_count: ?usize) void {
+    if (instance_count) |count| {
+        gl.drawElementsInstanced(
+            @enumToInt(primitive),
+            @intCast(gl.GLsizei, element_count),
+            dataType(u16),
+            @intToPtr(*allowzero c_void, offset),
+            @intCast(gl.GLsizei, count),
+        );
+    } else {
+        gl.drawElements(
+            @enumToInt(primitive),
+            @intCast(gl.GLsizei, element_count),
+            dataType(u16),
+            @intToPtr(*allowzero c_void, offset),
+        );
+    }
     checkError();
 }
