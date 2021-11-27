@@ -134,8 +134,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     lighting_cube_va.disuse();
 
     // material init
-    var diffuse_texture = try zp.texture.Texture2D.init("assets/container2.png", null, false);
-    var specular_texture = try zp.texture.Texture2D.init("assets/container2_specular.png", .texture_unit_1, false);
+    var diffuse_texture = try zp.texture.Texture2D.fromFilePath("assets/container2.png", null, false);
+    var specular_texture = try zp.texture.Texture2D.fromFilePath("assets/container2_specular.png", .texture_unit_1, false);
     material = Material.init(
         diffuse_texture,
         specular_texture,

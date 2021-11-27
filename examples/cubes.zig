@@ -88,7 +88,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.setAttribute(0, 1, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // load texture
-    texture = try zp.texture.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
+    texture = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", .texture_unit_0, false);
 
     // enable depth test
     gl.util.toggleCapability(.depth_test, true);

@@ -51,8 +51,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.bufferData(1, u16, &indices, .element_array_buffer, .static_draw);
 
     // load texture
-    texture1 = try zp.texture.Texture2D.init("assets/wall.jpg", null, false);
-    texture2 = try zp.texture.Texture2D.init("assets/awesomeface.png", .texture_unit_1, false);
+    texture1 = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", null, false);
+    texture2 = try zp.texture.Texture2D.fromFilePath("assets/awesomeface.png", .texture_unit_1, false);
 
     std.log.info("game init", .{});
 }

@@ -11,12 +11,17 @@ specular_map: Texture2D = undefined,
 shiness: f32 = undefined,
 
 /// create a new material
-pub fn init(texture: Texture2D, specular: Texture2D, shiness: f32) Self {
+pub fn init(diffuse: Texture2D, specular: Texture2D, shiness: f32) Self {
     return .{
-        .diffuse_map = texture,
+        .diffuse_map = diffuse,
         .specular_map = specular,
         .shiness = shiness,
     };
+}
+
+/// deallocate resources
+pub fn deinit(self: *Self) void {
+    _ = self;
 }
 
 /// apply material in the shader

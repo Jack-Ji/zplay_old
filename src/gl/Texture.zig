@@ -76,6 +76,20 @@ pub const ImageFormat = enum(c_uint) {
     bgra = gl.GL_BGRA,
     depth_component = gl.GL_DEPTH_COMPONENT,
     depth_stencil = gl.GL_DEPTH_STENCIL,
+
+    pub fn getChannels(self: @This()) usize {
+        return switch (self) {
+            .red => 1,
+            .rg => 2,
+            .rgb => 3,
+            .bgr => 3,
+            .rgba => 4,
+            .bgra => 4,
+            else => {
+                std.debug.panic("not image format!", .{});
+            },
+        };
+    }
 };
 
 pub const TextureUnit = enum(c_uint) {

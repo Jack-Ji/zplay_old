@@ -45,52 +45,52 @@ fn loop(ctx: *zp.Context) void {
         dig.beginFrame();
         defer dig.endFrame();
 
-        if (dig.igBegin("Hello, world!", null, 0)) {
-            dig.igText("This is some useful text");
-            _ = dig.igCheckbox("Demo Window", &S.show_demo_window);
-            _ = dig.igCheckbox("Another Window", &S.show_another_window);
-            _ = dig.igCheckbox("Plot Demo Window", &S.show_plot_demo_window);
-            _ = dig.igCheckbox("Nodes Demo Window", &S.show_nodes_demo_window);
-            _ = dig.igSliderFloat("float", &S.f, 0, 1, null, 0);
-            _ = dig.igColorEdit3("clear color", &S.clear_color, 0);
-            if (dig.igButton("Button", .{ .x = 0, .y = 0 }))
+        if (dig.begin("Hello, world!", null, 0)) {
+            dig.text("This is some useful text");
+            _ = dig.checkbox("Demo Window", &S.show_demo_window);
+            _ = dig.checkbox("Another Window", &S.show_another_window);
+            _ = dig.checkbox("Plot Demo Window", &S.show_plot_demo_window);
+            _ = dig.checkbox("Nodes Demo Window", &S.show_nodes_demo_window);
+            _ = dig.sliderFloat("float", &S.f, 0, 1, null, 0);
+            _ = dig.colorEdit3("clear color", &S.clear_color, 0);
+            if (dig.button("Button", .{ .x = 0, .y = 0 }))
                 S.counter += 1;
-            dig.igSameLine(0, 0);
-            dig.igText("count = %d", S.counter);
+            dig.sameLine(0, 0);
+            dig.text("count = %d", S.counter);
 
-            const io = @ptrCast(*dig.ImGuiIO, dig.igGetIO());
+            const io = @ptrCast(*dig.ImGuiIO, dig.getIO());
             dig.custom.text(
                 "Application average {d:.3} ms/frame ({d:.1} FPS)",
                 .{ 1000 / io.Framerate, io.Framerate },
             );
-            dig.igEnd();
+            dig.end();
         }
 
         if (S.show_demo_window) {
-            dig.igShowDemoWindow(&S.show_demo_window);
+            dig.showDemoWindow(&S.show_demo_window);
         }
 
         if (S.show_another_window) {
-            if (dig.igBegin("Another Window", &S.show_another_window, 0)) {
-                dig.igText("Hello from another window!");
-                if (dig.igButton("Close Me", .{ .x = 0, .y = 0 }))
+            if (dig.begin("Another Window", &S.show_another_window, 0)) {
+                dig.text("Hello from another window!");
+                if (dig.button("Close Me", .{ .x = 0, .y = 0 }))
                     S.show_another_window = false;
-                dig.igEnd();
+                dig.end();
             }
         }
 
         if (S.show_plot_demo_window) {
-            dig.ext.plot.ImPlot_ShowDemoWindow(&S.show_plot_demo_window);
+            dig.ext.plot.showDemoWindow(&S.show_plot_demo_window);
         }
 
         if (S.show_nodes_demo_window) {
-            if (dig.igBegin("Nodes Demo Window", &S.show_nodes_demo_window, 0)) {
-                dig.ext.nodes.imnodes_BeginNodeEditor();
-                dig.ext.nodes.imnodes_BeginNode(-1);
-                dig.igDummy(.{ .x = 80, .y = 45 });
-                dig.ext.nodes.imnodes_EndNode();
-                dig.ext.nodes.imnodes_EndNodeEditor();
-                dig.igEnd();
+            if (dig.begin("Nodes Demo Window", &S.show_nodes_demo_window, 0)) {
+                dig.ext.nodes.beginNodeEditor();
+                dig.ext.nodes.beginNode(-1);
+                dig.dummy(.{ .x = 80, .y = 45 });
+                dig.ext.nodes.endNode();
+                dig.ext.nodes.endNodeEditor();
+                dig.end();
             }
         }
     }
