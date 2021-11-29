@@ -77,7 +77,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
     // create renderer
-    simple_renderer = SimpleRenderer.init(null);
+    simple_renderer = SimpleRenderer.init();
     phong_renderer = PhongRenderer.init(std.testing.allocator);
     _ = try phong_renderer.addLight(Light.init(.{
         .point = .{
@@ -211,6 +211,7 @@ fn loop(ctx: *zp.Context) void {
     phong_renderer.end();
 
     simple_renderer.begin();
+    simple_renderer.program.setAttributeDefaultValue(SimpleRenderer.ATTRIB_LOCATION_COLOR, Vec3.one());
     for (phong_renderer.point_lights.items) |light| {
         model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
         simple_renderer.renderMesh(
@@ -218,7 +219,7 @@ fn loop(ctx: *zp.Context) void {
             model,
             projection,
             camera,
-            SimpleRenderer.ColorSource{ .color = Vec3.one() },
+            null,
         ) catch unreachable;
     }
     simple_renderer.end();

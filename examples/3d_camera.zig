@@ -63,18 +63,18 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
     // simple renderer
-    simple_renderer = SimpleRenderer.init(null);
+    simple_renderer = SimpleRenderer.init();
 
     // vertex array
     vertex_array = gl.VertexArray.init(5);
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, 0, 3, f32, false, 5 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, 1, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 5 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_TEX, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // load texture
-    texture = try zp.texture.Texture2D.init("assets/wall.jpg", .texture_unit_0, false);
+    texture = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", .texture_unit_0, false);
 
     // enable depth test
     gl.util.toggleCapability(.depth_test, true);
@@ -181,7 +181,7 @@ fn loop(ctx: *zp.Context) void {
         model,
         projection,
         camera,
-        SimpleRenderer.ColorSource{ .texture = texture },
+        texture,
     ) catch unreachable;
     simple_renderer.end();
 }

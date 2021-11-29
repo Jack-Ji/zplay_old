@@ -83,7 +83,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
     // simple renderer
-    simple_renderer = SimpleRenderer.init(null);
+    simple_renderer = SimpleRenderer.init();
 
     // phong renderer
     phong_renderer = PhongRenderer.init(std.testing.allocator);
@@ -121,16 +121,48 @@ fn init(ctx: *zp.Context) anyerror!void {
     regular_cube_va = gl.VertexArray.init(5);
     regular_cube_va.use();
     regular_cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    regular_cube_va.setAttribute(0, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
+    regular_cube_va.setAttribute(
+        0,
+        SimpleRenderer.ATTRIB_LOCATION_POS,
+        3,
+        f32,
+        false,
+        8 * @sizeOf(f32),
+        0,
+    );
     regular_cube_va.disuse();
 
     // vertex array for lighting scene
     lighting_cube_va = gl.VertexArray.init(5);
     lighting_cube_va.use();
     lighting_cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    lighting_cube_va.setAttribute(0, 0, 3, f32, false, 8 * @sizeOf(f32), 0);
-    lighting_cube_va.setAttribute(0, 1, 3, f32, false, 8 * @sizeOf(f32), 3 * @sizeOf(f32));
-    lighting_cube_va.setAttribute(0, 2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
+    lighting_cube_va.setAttribute(
+        0,
+        PhongRenderer.ATTRIB_LOCATION_POS,
+        3,
+        f32,
+        false,
+        8 * @sizeOf(f32),
+        0,
+    );
+    lighting_cube_va.setAttribute(
+        0,
+        PhongRenderer.ATTRIB_LOCATION_NORMAL,
+        3,
+        f32,
+        false,
+        8 * @sizeOf(f32),
+        3 * @sizeOf(f32),
+    );
+    lighting_cube_va.setAttribute(
+        0,
+        PhongRenderer.ATTRIB_LOCATION_TEX,
+        2,
+        f32,
+        false,
+        8 * @sizeOf(f32),
+        6 * @sizeOf(f32),
+    );
     lighting_cube_va.disuse();
 
     // material init
@@ -226,6 +258,7 @@ fn loop(ctx: *zp.Context) void {
 
     // draw lights
     simple_renderer.begin();
+    simple_renderer.program.setAttributeDefaultValue(SimpleRenderer.ATTRIB_LOCATION_COLOR, Vec3.one());
     for (phong_renderer.point_lights.items) |light| {
         const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
         simple_renderer.render(
@@ -237,7 +270,7 @@ fn loop(ctx: *zp.Context) void {
             model,
             projection,
             camera,
-            SimpleRenderer.ColorSource{ .color = Vec3.one() },
+            null,
         ) catch unreachable;
     }
     for (phong_renderer.spot_lights.items) |light| {
@@ -251,7 +284,7 @@ fn loop(ctx: *zp.Context) void {
             model,
             projection,
             camera,
-            SimpleRenderer.ColorSource{ .color = Vec3.one() },
+            null,
         ) catch unreachable;
     }
     simple_renderer.end();

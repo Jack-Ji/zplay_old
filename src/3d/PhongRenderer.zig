@@ -19,6 +19,11 @@ pub const Error = error{
     renderer_not_active,
 };
 
+/// vertex attribute locations
+pub const ATTRIB_LOCATION_POS = 0;
+pub const ATTRIB_LOCATION_NORMAL = 1;
+pub const ATTRIB_LOCATION_TEX = 2;
+
 const vs =
     \\#version 330 core
     \\layout (location = 0) in vec3 a_pos;

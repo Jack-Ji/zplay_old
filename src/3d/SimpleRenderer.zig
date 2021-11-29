@@ -11,16 +11,16 @@ const Mat4 = alg.Mat4;
 const Texture2D = zp.texture.Texture2D;
 const Self = @This();
 
-/// fragment coloring method
-pub const ColorSource = union(enum) {
-    texture: Texture2D,
-    color: Vec3,
-};
+/// vertex attribute locations
+pub const ATTRIB_LOCATION_POS = 0;
+pub const ATTRIB_LOCATION_TEX = 1;
+pub const ATTRIB_LOCATION_COLOR = 2;
 
 const vs =
     \\#version 330 core
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 1) in vec2 a_tex;
+    \\layout (location = 2) in vec3 a_color;
     \\
     \\uniform mat4 u_model;
     \\uniform mat4 u_view;
@@ -28,36 +28,34 @@ const vs =
     \\
     \\out vec3 v_pos;
     \\out vec2 v_tex;
+    \\out vec3 v_color;
     \\
     \\void main()
     \\{
     \\    gl_Position = u_project * u_view * u_model * vec4(a_pos, 1.0);
     \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
     \\    v_tex = a_tex;
+    \\    v_color = a_color;
     \\}
 ;
 
-const fs_header =
+const fs =
     \\#version 330 core
     \\out vec4 frag_color;
     \\
     \\in vec3 v_pos;
     \\in vec2 v_tex;
+    \\in vec3 v_color;
     \\
-    \\
-;
-
-const default_fs_body =
     \\uniform bool u_use_texture;
     \\uniform sampler2D u_texture;
-    \\uniform vec3 u_color;
     \\
     \\void main()
     \\{
     \\    if (u_use_texture) {
     \\        frag_color = texture(u_texture, v_tex);
     \\    } else {
-    \\        frag_color = vec4(u_color, 1);
+    \\        frag_color = vec4(v_color, 1);
     \\    }
     \\}
 ;
@@ -65,31 +63,10 @@ const default_fs_body =
 /// lighting program
 program: gl.ShaderProgram = undefined,
 
-/// whether using custom shader
-using_custom_shader: bool = undefined,
-
 /// create a simple renderer
-pub fn init(custom_fs: ?[:0]const u8) Self {
-    const allocator = std.heap.raw_c_allocator;
-    var fsource: [:0]u8 = undefined;
-    if (custom_fs) |fs| {
-        fsource = std.fmt.allocPrintZ(
-            allocator,
-            "{s}{s}",
-            .{ fs_header, fs },
-        ) catch unreachable;
-    } else {
-        fsource = std.fmt.allocPrintZ(
-            allocator,
-            "{s}{s}",
-            .{ fs_header, default_fs_body },
-        ) catch unreachable;
-    }
-    defer allocator.free(fsource);
-
+pub fn init() Self {
     return .{
-        .program = gl.ShaderProgram.init(vs, fsource),
-        .using_custom_shader = if (custom_fs != null) true else false,
+        .program = gl.ShaderProgram.init(vs, fs),
     };
 }
 
@@ -119,7 +96,7 @@ pub fn render(
     model: Mat4,
     projection: Mat4,
     camera: ?Camera,
-    color_src: ?ColorSource,
+    texture: ?Texture2D,
 ) !void {
     if (!self.program.isUsing()) {
         return error.renderer_not_active;
@@ -133,19 +110,11 @@ pub fn render(
     } else {
         self.program.setUniformByName("u_view", Mat4.identity());
     }
-    if (!self.using_custom_shader) {
-        switch (color_src.?) {
-            .texture => |t| {
-                self.program.setUniformByName("u_use_texture", true);
-                self.program.setUniformByName("u_texture", t.tex.getTextureUnit());
-            },
-            .color => |c| {
-                self.program.setUniformByName("u_use_texture", false);
-                self.program.setUniformByName("u_color", c);
-            },
-        }
-    } else if (color_src != null) {
-        std.debug.panic("probably meanless paramter!", .{});
+    if (texture) |t| {
+        self.program.setUniformByName("u_use_texture", true);
+        self.program.setUniformByName("u_texture", t.tex.getTextureUnit());
+    } else {
+        self.program.setUniformByName("u_use_texture", false);
     }
 
     // issue draw call
@@ -165,7 +134,7 @@ pub fn renderMesh(
     model: Mat4,
     projection: Mat4,
     camera: Camera,
-    color_src: ?ColorSource,
+    texture: ?Texture2D,
 ) !void {
     try self.render(
         mesh.vertex_array,
@@ -176,6 +145,6 @@ pub fn renderMesh(
         model,
         projection,
         camera,
-        color_src,
+        texture,
     );
 }

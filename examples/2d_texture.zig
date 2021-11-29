@@ -6,20 +6,9 @@ const Mat4 = alg.Mat4;
 const SimpleRenderer = zp.@"3d".SimpleRenderer;
 const Texture2D = zp.texture.Texture2D;
 
-const fragment_shader =
-    \\uniform sampler2D u_texture1;
-    \\uniform sampler2D u_texture2;
-    \\
-    \\void main()
-    \\{
-    \\    frag_color = mix(texture(u_texture1, v_tex), texture(u_texture2, v_tex), 0.3);
-    \\}
-;
-
 var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: gl.VertexArray = undefined;
-var texture1: Texture2D = undefined;
-var texture2: Texture2D = undefined;
+var texture: Texture2D = undefined;
 var wireframe_mode = false;
 
 const vertices = [_]f32{
@@ -39,20 +28,19 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
     // simple renderer
-    simple_renderer = SimpleRenderer.init(fragment_shader);
+    simple_renderer = SimpleRenderer.init();
 
     // vertex array
     vertex_array = gl.VertexArray.init(5);
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, 0, 3, f32, false, 5 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, 1, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 5 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_TEX, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
     vertex_array.bufferData(1, u16, &indices, .element_array_buffer, .static_draw);
 
     // load texture
-    texture1 = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", null, false);
-    texture2 = try zp.texture.Texture2D.fromFilePath("assets/awesomeface.png", .texture_unit_1, false);
+    texture = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", null, false);
 
     std.log.info("game init", .{});
 }
@@ -102,8 +90,6 @@ fn loop(ctx: *zp.Context) void {
 
     const model = alg.Mat4.fromTranslate(alg.Vec3.new(0.5, 0.5, 0)).rotate(S.frame, alg.Vec3.forward());
     simple_renderer.begin();
-    simple_renderer.program.setUniformByName("u_texture1", texture1.tex.getTextureUnit());
-    simple_renderer.program.setUniformByName("u_texture2", texture2.tex.getTextureUnit());
     simple_renderer.render(
         vertex_array,
         true,
@@ -113,7 +99,7 @@ fn loop(ctx: *zp.Context) void {
         model,
         Mat4.identity(),
         null,
-        null,
+        texture,
     ) catch unreachable;
     simple_renderer.end();
 }

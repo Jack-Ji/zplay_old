@@ -36,9 +36,10 @@ pub fn loadBuffer(data: []const u8, gltf_path: ?[]const u8, options: ?api.cgltf_
     const parse_option = options orelse std.mem.zeroes(api.cgltf_options);
     const out: *api.cgltf_data = undefined;
     const result = api.cgltf_parse(&parse_option, data.ptr, data.len, &out);
-    if (result == api.cgltf_result_success) {
-        return out;
+    if (result != api.cgltf_result_success) {
+        return resultToError(result);
     }
+    errdefer free(out);
 
     if (gltf_path) |path| {
         result = api.cgltf_load_buffers(&parse_option, out, path.ptr);

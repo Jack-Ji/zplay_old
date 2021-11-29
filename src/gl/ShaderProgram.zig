@@ -167,12 +167,12 @@ fn setUniform(self: Self, loc: gl.GLint, v: anytype) void {
     _ = self;
     switch (@TypeOf(v)) {
         bool => gl.uniform1i(loc, gl.util.boolType(v)),
-        i32, comptime_int, usize => gl.uniform1i(loc, @intCast(gl.GLint, v)),
+        i32, c_int, comptime_int, usize => gl.uniform1i(loc, @intCast(gl.GLint, v)),
         []i32 => gl.uniform1iv(loc, v.len, v.ptr),
         [2]i32 => gl.uniform2iv(loc, 1, &v),
         [3]i32 => gl.uniform3iv(loc, 1, &v),
         [4]i32 => gl.uniform4iv(loc, 1, &v),
-        u32 => gl.uniform1ui(loc, v),
+        u32, c_uint => gl.uniform1ui(loc, @intCast(gl.GLuint, v)),
         []u32 => gl.uniform1uiv(loc, v.len, v.ptr),
         [2]u32 => gl.uniform2uiv(loc, 1, &v),
         [3]u32 => gl.uniform3uiv(loc, 1, &v),
@@ -186,6 +186,49 @@ fn setUniform(self: Self, loc: gl.GLint, v: anytype) void {
         alg.Vec3 => gl.uniform3f(loc, v.x, v.y, v.z),
         alg.Vec4 => gl.uniform4f(loc, v.x, v.y, v.z, v.w),
         alg.Mat4 => gl.uniformMatrix4fv(loc, 1, gl.GL_FALSE, v.getData()),
+        else => std.debug.panic("unsupported type {s}", .{@typeName(@TypeOf(v))}),
+    }
+    gl.util.checkError();
+}
+
+/// set default value for attribute
+pub fn setAttributeDefaultValue(self: Self, _loc: gl.GLint, v: anytype) void {
+    if (!self.isUsing()) {
+        std.debug.panic("invalid operation, must use program first!", .{});
+    }
+    const loc = @intCast(gl.GLuint, _loc);
+    switch (@TypeOf(v)) {
+        alg.Vec2 => gl.vertexAttrib2f(loc, v.x, v.y),
+        alg.Vec3 => gl.vertexAttrib3f(loc, v.x, v.y, v.z),
+        alg.Vec4 => gl.vertexAttrib4f(loc, v.x, v.y, v.z, v.w),
+        f32 => gl.vertexAttrib1f(loc, v),
+        i16 => gl.vertexAttrib1s(loc, v),
+        f64 => gl.vertexAttrib1d(loc, v),
+        i32, c_int, comptime_int, usize => gl.vertexAttribI1i(loc, @intCast(gl.GLint, v)),
+        u32, c_uint => gl.vertexAttribI1ui(loc, @intCast(gl.GLuint, v)),
+        [1]f32 => gl.vertexAttrib1fv(loc, &v),
+        [1]i16 => gl.vertexAttrib1sv(loc, &v),
+        [1]f64 => gl.vertexAttrib1dv(loc, &v),
+        [1]i32, [1]c_int => gl.vertexAttribI1iv(loc, @ptrCast([*c]gl.GLint, &v)),
+        [1]u32, [1]c_uint => gl.vertexAttribI1uiv(loc, @ptrCast([*c]gl.GLuint, &v)),
+        [2]f32 => gl.vertexAttrib2fv(loc, &v),
+        [2]i16 => gl.vertexAttrib2sv(loc, &v),
+        [2]f64 => gl.vertexAttrib2dv(loc, &v),
+        [2]i32, [2]c_int => gl.vertexAttribI2iv(loc, @ptrCast([*c]gl.GLint, &v)),
+        [2]u32, [2]c_uint => gl.vertexAttribI2uiv(loc, @ptrCast([*c]gl.GLuint, &v)),
+        [3]f32 => gl.vertexAttrib3fv(loc, &v),
+        [3]i16 => gl.vertexAttrib3sv(loc, &v),
+        [3]f64 => gl.vertexAttrib3dv(loc, &v),
+        [3]i32, [3]c_int => gl.vertexAttribI3iv(loc, @ptrCast([*c]gl.GLint, &v)),
+        [3]u32, [3]c_uint => gl.vertexAttribI3uiv(loc, @ptrCast([*c]gl.GLuint, &v)),
+        [4]f32 => gl.vertexAttrib4fv(loc, &v),
+        [4]i16 => gl.vertexAttrib4sv(loc, &v),
+        [4]f64 => gl.vertexAttrib4dv(loc, &v),
+        [4]i32, [4]c_int => gl.vertexAttrib4iv(loc, @ptrCast([*c]gl.GLint, &v)),
+        [4]i8 => gl.vertexAttrib4bv(loc, &v),
+        [4]u8 => gl.vertexAttrib4ubv(loc, &v),
+        [4]u16 => gl.vertexAttrib4usv(loc, &v),
+        [4]u32, [4]c_uint => gl.vertexAttrib4uiv(loc, @ptrCast([*c]gl.GLuint, &v)),
         else => std.debug.panic("unsupported type {s}", .{@typeName(@TypeOf(v))}),
     }
     gl.util.checkError();
