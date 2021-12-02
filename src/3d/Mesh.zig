@@ -12,18 +12,18 @@ const vbo_idx = 0;
 const ebo_idx = 1;
 
 /// vertex attribute type
-pub const VertexAttribute = enum {
+pub const VertexAttribute = enum(usize) {
     /// 3 float
-    position,
+    position = 0,
 
     /// 3 float
-    normal,
+    normal = 1,
 
     /// 2 float
-    texture_coord,
+    texture_coord = 2,
 
     /// 4 float
-    color,
+    color = 3,
 };
 const MAX_ATTRIB_NUM = 4;
 
@@ -38,6 +38,7 @@ vertex_num: usize = undefined,
 attribute_types: [MAX_ATTRIB_NUM]?VertexAttribute = .{null} ** MAX_ATTRIB_NUM,
 attribute_sizes: [MAX_ATTRIB_NUM]usize = .{0} ** MAX_ATTRIB_NUM,
 attribute_offsets: [MAX_ATTRIB_NUM]usize = .{0} ** MAX_ATTRIB_NUM,
+attribute_indices: [MAX_ATTRIB_NUM]?usize = .{null} ** MAX_ATTRIB_NUM,
 attribute_total_size: usize = 0,
 attribute_num: usize = undefined,
 owns_data: bool = false,
@@ -99,6 +100,7 @@ fn setup(self: *Self) void {
         if (i > 0) {
             self.attribute_offsets[i] = self.attribute_offsets[i - 1] + self.attribute_sizes[i - 1];
         }
+        self.attribute_indices[@enumToInt(t.?)] = i;
         self.attribute_total_size += self.attribute_sizes[i];
     } else MAX_ATTRIB_NUM;
 
@@ -141,17 +143,7 @@ pub fn relateLocation(self: Self, location: gl.GLuint, attribute_type: VertexAtt
     self.vertex_array.use();
     defer self.vertex_array.disuse();
 
-    var idx = for (self.attribute_types) |t, i| {
-        if (t == null) {
-            std.debug.panic("can't find attribute {}", .{attribute_type});
-        }
-        if (attribute_type == t.?) {
-            break i;
-        }
-    } else {
-        std.debug.panic("can't find attribute {}", .{attribute_type});
-    };
-
+    var idx = self.attribute_indices[@enumToInt(attribute_type)].?;
     self.vertex_array.setAttribute(
         vbo_idx,
         location,
