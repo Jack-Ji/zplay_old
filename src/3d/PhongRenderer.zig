@@ -333,7 +333,7 @@ pub fn render(
     vertex_array.use();
     defer vertex_array.disuse();
     if (use_elements) {
-        gl.util.drawElements(primitive, offset, count, null);
+        gl.util.drawElements(primitive, offset, count, u32, null);
     } else {
         gl.util.drawBuffer(primitive, offset, count, null);
     }
@@ -348,15 +348,29 @@ pub fn renderMesh(
     projection: Mat4,
     camera: Camera,
 ) !void {
-    try self.render(
-        mesh.vertex_array,
-        true,
-        .triangles,
-        0,
-        mesh.vertex_indices.items.len,
-        model,
-        projection,
-        camera,
-        material,
-    );
+    if (mesh.vertex_indices.items.len > 0) {
+        try self.render(
+            mesh.vertex_array,
+            true,
+            .triangles,
+            0,
+            mesh.vertex_indices.items.len,
+            model,
+            projection,
+            camera,
+            material,
+        );
+    } else {
+        try self.render(
+            mesh.vertex_array,
+            false,
+            .triangles,
+            0,
+            mesh.vertex_num,
+            model,
+            projection,
+            camera,
+            material,
+        );
+    }
 }

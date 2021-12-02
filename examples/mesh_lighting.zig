@@ -14,7 +14,8 @@ const Mesh = zp.@"3d".Mesh;
 
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
-var mesh: Mesh = undefined;
+var mesh_for_simple: Mesh = undefined;
+var mesh_for_phong: Mesh = undefined;
 var material: Material = undefined;
 var camera = zp.@"3d".Camera.fromPositionAndTarget(
     Vec3.new(1, 2, 3),
@@ -67,7 +68,7 @@ const vertices = [_]f32{
     -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,  0.0, 1.0,
 };
 
-const indices = [_]u16{
+const indices = [_]u32{
     0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14,
     15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
     30, 31, 32, 33, 34, 35,
@@ -89,12 +90,32 @@ fn init(ctx: *zp.Context) anyerror!void {
         },
     }));
 
-    // create mesh
-    mesh = Mesh.init(
+    // create mesh for simple renderer
+    mesh_for_simple = Mesh.init(
         std.testing.allocator,
         &vertices,
         &indices,
+        .{ .position, .normal, .texture_coord, null },
     );
+    mesh_for_simple.relateLocation(SimpleRenderer.ATTRIB_LOCATION_POS, .position);
+    mesh_for_simple.relateLocation(SimpleRenderer.ATTRIB_LOCATION_TEX, .texture_coord);
+    simple_renderer.begin();
+    simple_renderer.program.setAttributeDefaultValue(
+        SimpleRenderer.ATTRIB_LOCATION_COLOR,
+        Vec3.new(1, 1, 0),
+    );
+    simple_renderer.end();
+
+    // create mesh for phong renderer
+    mesh_for_phong = Mesh.init(
+        std.testing.allocator,
+        &vertices,
+        &indices,
+        .{ .position, .normal, .texture_coord, null },
+    );
+    mesh_for_phong.relateLocation(PhongRenderer.ATTRIB_LOCATION_POS, .position);
+    mesh_for_phong.relateLocation(PhongRenderer.ATTRIB_LOCATION_NORMAL, .normal);
+    mesh_for_phong.relateLocation(PhongRenderer.ATTRIB_LOCATION_TEX, .texture_coord);
 
     // create material
     var diffuse_texture = try zp.texture.Texture2D.fromFilePath("assets/container2.png", null, false);
@@ -202,7 +223,7 @@ fn loop(ctx: *zp.Context) void {
         Vec3.new(S.axis.x, S.axis.y, S.axis.z),
     );
     phong_renderer.renderMesh(
-        mesh,
+        mesh_for_phong,
         material,
         model,
         projection,
@@ -211,11 +232,10 @@ fn loop(ctx: *zp.Context) void {
     phong_renderer.end();
 
     simple_renderer.begin();
-    simple_renderer.program.setAttributeDefaultValue(SimpleRenderer.ATTRIB_LOCATION_COLOR, Vec3.one());
     for (phong_renderer.point_lights.items) |light| {
         model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
         simple_renderer.renderMesh(
-            mesh,
+            mesh_for_simple,
             model,
             projection,
             camera,

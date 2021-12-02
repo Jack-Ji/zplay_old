@@ -1,3 +1,4 @@
+const std = @import("std");
 const gl = @import("gl.zig");
 
 /// check error of last opengl call
@@ -108,7 +109,12 @@ pub fn clear(
 }
 
 /// issue draw call
-pub fn drawBuffer(primitive: PrimitiveType, offset: usize, vertex_count: usize, instance_count: ?usize) void {
+pub fn drawBuffer(
+    primitive: PrimitiveType,
+    offset: usize,
+    vertex_count: usize,
+    instance_count: ?usize,
+) void {
     if (instance_count) |count| {
         gl.drawArraysInstanced(
             @enumToInt(primitive),
@@ -127,12 +133,21 @@ pub fn drawBuffer(primitive: PrimitiveType, offset: usize, vertex_count: usize, 
 }
 
 /// issue draw call (only accept unsigned-integer indices!)
-pub fn drawElements(primitive: PrimitiveType, offset: usize, element_count: usize, instance_count: ?usize) void {
+pub fn drawElements(
+    primitive: PrimitiveType,
+    offset: usize,
+    element_count: usize,
+    comptime ElementType: type,
+    instance_count: ?usize,
+) void {
+    if (ElementType != u16 and ElementType != u32) {
+        std.debug.panic("unsupported element type!", .{});
+    }
     if (instance_count) |count| {
         gl.drawElementsInstanced(
             @enumToInt(primitive),
             @intCast(gl.GLsizei, element_count),
-            dataType(u16),
+            dataType(ElementType),
             @intToPtr(*allowzero c_void, offset),
             @intCast(gl.GLsizei, count),
         );
@@ -140,7 +155,7 @@ pub fn drawElements(primitive: PrimitiveType, offset: usize, element_count: usiz
         gl.drawElements(
             @enumToInt(primitive),
             @intCast(gl.GLsizei, element_count),
-            dataType(u16),
+            dataType(ElementType),
             @intToPtr(*allowzero c_void, offset),
         );
     }

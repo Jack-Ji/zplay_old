@@ -9,9 +9,9 @@ var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: gl.VertexArray = undefined;
 
 const vertices = [_]f32{
-    -0.5, -0.5, 0.0,
-    0.5,  -0.5, 0.0,
-    0.0,  0.5,  0.0,
+    -0.5, -0.5, 0.0, 1.0, 0.0, 0.0,
+    0.5,  -0.5, 0.0, 0.0, 1.0, 0.0,
+    0.0,  0.5,  0.0, 0.0, 0.0, 1.0,
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -25,7 +25,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 3 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 6 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_COLOR, 3, f32, false, 6 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     std.log.info("game init", .{});
 }
@@ -60,14 +61,6 @@ fn loop(ctx: *zp.Context) void {
 
     // update color and draw triangle
     simple_renderer.begin();
-    simple_renderer.program.setAttributeDefaultValue(
-        SimpleRenderer.ATTRIB_LOCATION_COLOR,
-        alg.Vec3.new(
-            0.2,
-            0.3 + std.math.absFloat(std.math.sin(ctx.tick)),
-            0.3,
-        ),
-    );
     simple_renderer.render(
         vertex_array,
         false,

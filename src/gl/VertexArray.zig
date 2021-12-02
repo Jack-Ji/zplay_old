@@ -3,7 +3,7 @@ const gl = @import("gl.zig");
 const Self = @This();
 
 /// max number of vbo
-const max_vbo_num = 8;
+const MAX_VBO_NUM = 8;
 
 /// buffer data's binding target
 const BufferTarget = enum(c_uint) {
@@ -35,7 +35,7 @@ const BufferUsage = enum(c_uint) {
 id: gl.GLuint = undefined,
 
 /// buffer objects
-vbos: [max_vbo_num]gl.GLuint = undefined,
+vbos: [MAX_VBO_NUM]gl.GLuint = undefined,
 vbo_num: usize = undefined,
 
 /// init vertex array
@@ -43,7 +43,7 @@ pub fn init(vbo_num: usize) Self {
     if (vbo_num == 0) {
         std.debug.panic("invalid parameter", .{});
     }
-    if (vbo_num > max_vbo_num) {
+    if (vbo_num > MAX_VBO_NUM) {
         std.debug.panic("do you really need that many vbo?", .{});
     }
 
@@ -79,10 +79,6 @@ pub fn bufferData(
 
     if (vbo_index > self.vbo_num) {
         std.debug.panic("invalid vbo index", .{});
-    }
-
-    if (target == .element_array_buffer and T != u16) {
-        std.debug.panic("invalid index type", .{});
     }
 
     gl.bindBuffer(@enumToInt(target), self.vbos[vbo_index]);
