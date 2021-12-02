@@ -231,6 +231,7 @@ fn loop(ctx: *zp.Context) void {
         projection,
         camera,
         material_for_phong,
+        null,
     ) catch unreachable;
     renderer.end();
 
@@ -244,6 +245,7 @@ fn loop(ctx: *zp.Context) void {
             projection,
             camera,
             material_for_simple,
+            null,
         ) catch unreachable;
     }
     renderer.end();

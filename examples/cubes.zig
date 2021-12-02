@@ -170,6 +170,7 @@ fn loop(ctx: *zp.Context) void {
             projection,
             camera,
             material,
+            null,
         ) catch unreachable;
     }
     renderer.end();

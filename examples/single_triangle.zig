@@ -77,6 +77,7 @@ fn loop(ctx: *zp.Context) void {
         Mat4.identity(),
         null,
         null,
+        null,
     ) catch unreachable;
     renderer.end();
 }

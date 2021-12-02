@@ -28,6 +28,7 @@ renderFn: fn (
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
+    instance_count: ?usize,
 ) anyerror!void,
 
 pub fn begin(self: *Self) void {
@@ -49,6 +50,7 @@ pub fn render(
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
+    instance_count: ?usize,
 ) anyerror!void {
     return self.renderFn(
         self,
@@ -61,6 +63,7 @@ pub fn render(
         projection,
         camera,
         material,
+        instance_count,
     );
 }
 
@@ -72,6 +75,7 @@ pub fn renderMesh(
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
+    instance_count: ?usize,
 ) !void {
     if (mesh.vertex_indices.items.len > 0) {
         try self.render(
@@ -84,6 +88,7 @@ pub fn renderMesh(
             projection,
             camera,
             material,
+            instance_count,
         );
     } else {
         try self.render(
@@ -96,6 +101,7 @@ pub fn renderMesh(
             projection,
             camera,
             material,
+            instance_count,
         );
     }
 }

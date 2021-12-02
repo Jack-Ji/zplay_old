@@ -125,6 +125,7 @@ fn render(
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
+    instance_count: ?usize,
 ) !void {
     const self = @fieldParentPtr(Self, "renderer", ptr);
     if (!self.program.isUsing()) {
@@ -149,8 +150,8 @@ fn render(
     vertex_array.use();
     defer vertex_array.disuse();
     if (use_elements) {
-        gl.util.drawElements(primitive, offset, count, u32, null);
+        gl.util.drawElements(primitive, offset, count, u32, instance_count);
     } else {
-        gl.util.drawBuffer(primitive, offset, count, null);
+        gl.util.drawBuffer(primitive, offset, count, instance_count);
     }
 }

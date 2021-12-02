@@ -269,6 +269,7 @@ fn loop(ctx: *zp.Context) void {
             projection,
             camera,
             material_for_phong,
+            null,
         ) catch unreachable;
     }
     renderer.end();
@@ -288,6 +289,7 @@ fn loop(ctx: *zp.Context) void {
             projection,
             camera,
             material_for_simple,
+            null,
         ) catch unreachable;
     }
     for (phong_renderer.spot_lights.items) |light| {
@@ -301,6 +303,7 @@ fn loop(ctx: *zp.Context) void {
             model,
             projection,
             camera,
+            material_for_simple,
             null,
         ) catch unreachable;
     }
