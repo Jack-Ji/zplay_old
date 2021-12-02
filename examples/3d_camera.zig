@@ -2,12 +2,15 @@ const std = @import("std");
 const zp = @import("zplay");
 const gl = zp.gl;
 const alg = zp.alg;
+const Renderer = zp.@"3d".Renderer;
 const SimpleRenderer = zp.@"3d".SimpleRenderer;
+const Material = zp.@"3d".Material;
 const Texture2D = zp.texture.Texture2D;
 
+var renderer: *Renderer = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: gl.VertexArray = undefined;
-var texture: Texture2D = undefined;
+var material: Material = undefined;
 var camera = zp.@"3d".Camera.fromPositionAndTarget(
     alg.Vec3.new(0, 0, 3),
     alg.Vec3.zero(),
@@ -64,6 +67,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // simple renderer
     simple_renderer = SimpleRenderer.init();
+    renderer = &simple_renderer.renderer;
 
     // vertex array
     vertex_array = gl.VertexArray.init(5);
@@ -74,7 +78,9 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_TEX, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // load texture
-    texture = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", .texture_unit_0, false);
+    material = Material.init(.{
+        .single_texture = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", null, false),
+    });
 
     // enable depth test
     gl.util.toggleCapability(.depth_test, true);
@@ -171,8 +177,8 @@ fn loop(ctx: *zp.Context) void {
         alg.Vec3.new(S.axis.x, S.axis.y, S.axis.z),
     );
 
-    simple_renderer.begin();
-    simple_renderer.render(
+    renderer.begin();
+    renderer.render(
         vertex_array,
         false,
         .triangles,
@@ -181,9 +187,9 @@ fn loop(ctx: *zp.Context) void {
         model,
         projection,
         camera,
-        texture,
+        material,
     ) catch unreachable;
-    simple_renderer.end();
+    renderer.end();
 }
 
 fn quit(ctx: *zp.Context) void {

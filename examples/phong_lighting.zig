@@ -4,17 +4,18 @@ const gl = zp.gl;
 const alg = zp.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
-const PhongRenderer = zp.@"3d".PhongRenderer;
 const Camera = zp.@"3d".Camera;
 const Light = zp.@"3d".Light;
 const Material = zp.@"3d".Material;
 const SimpleRenderer = zp.@"3d".SimpleRenderer;
+const PhongRenderer = zp.@"3d".PhongRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
 var regular_cube_va: gl.VertexArray = undefined;
 var lighting_cube_va: gl.VertexArray = undefined;
-var material: Material = undefined;
+var material_for_simple: Material = undefined;
+var material_for_phong: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(1, 2, 3),
     Vec3.zero(),
@@ -168,11 +169,16 @@ fn init(ctx: *zp.Context) anyerror!void {
     // material init
     var diffuse_texture = try zp.texture.Texture2D.fromFilePath("assets/container2.png", null, false);
     var specular_texture = try zp.texture.Texture2D.fromFilePath("assets/container2_specular.png", .texture_unit_1, false);
-    material = Material.init(
-        diffuse_texture,
-        specular_texture,
-        32,
-    );
+    material_for_phong = Material.init(.{
+        .phong = .{
+            .diffuse_map = diffuse_texture,
+            .specular_map = specular_texture,
+            .shiness = 32,
+        },
+    });
+    material_for_simple = Material.init(.{
+        .single_color = Vec3.one(),
+    });
 
     // enable depth test
     gl.util.toggleCapability(.depth_test, true);
@@ -246,22 +252,33 @@ fn loop(ctx: *zp.Context) void {
         0.1,
         100,
     );
-    phong_renderer.begin();
+    var renderer = &phong_renderer.renderer;
+    renderer.begin();
     for (cube_positions) |pos, i| {
         const model = Mat4.fromRotation(
             20 * @intToFloat(f32, i),
             Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
-        phong_renderer.render(lighting_cube_va, false, .triangles, 0, 36, model, projection, camera, material) catch unreachable;
+        renderer.render(
+            lighting_cube_va,
+            false,
+            .triangles,
+            0,
+            36,
+            model,
+            projection,
+            camera,
+            material_for_phong,
+        ) catch unreachable;
     }
-    phong_renderer.end();
+    renderer.end();
 
     // draw lights
-    simple_renderer.begin();
-    simple_renderer.program.setAttributeDefaultValue(SimpleRenderer.ATTRIB_LOCATION_COLOR, Vec3.one());
+    renderer = &simple_renderer.renderer;
+    renderer.begin();
     for (phong_renderer.point_lights.items) |light| {
         const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        simple_renderer.render(
+        renderer.render(
             regular_cube_va,
             false,
             .triangles,
@@ -270,12 +287,12 @@ fn loop(ctx: *zp.Context) void {
             model,
             projection,
             camera,
-            null,
+            material_for_simple,
         ) catch unreachable;
     }
     for (phong_renderer.spot_lights.items) |light| {
         const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        simple_renderer.render(
+        renderer.render(
             regular_cube_va,
             false,
             .triangles,
@@ -287,7 +304,7 @@ fn loop(ctx: *zp.Context) void {
             null,
         ) catch unreachable;
     }
-    simple_renderer.end();
+    renderer.end();
 }
 
 fn quit(ctx: *zp.Context) void {

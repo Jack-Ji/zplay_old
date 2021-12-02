@@ -49,6 +49,10 @@ pub fn init(
     };
 }
 
+pub fn deinit(self: *Self) void {
+    self.tex.deinit();
+}
+
 /// create 2d texture with path to image file
 pub fn fromFilePath(
     file_path: []const u8,

@@ -3,6 +3,7 @@ const Camera = @import("Camera.zig");
 const Light = @import("Light.zig");
 const Material = @import("Material.zig");
 const Mesh = @import("Mesh.zig");
+const Renderer = @import("Renderer.zig");
 const zp = @import("../lib.zig");
 const gl = zp.gl;
 const alg = zp.alg;
@@ -199,6 +200,9 @@ const fs =
     \\}
 ;
 
+/// generic renderer
+renderer: Renderer = undefined,
+
 /// memory allocator
 allocator: *std.mem.Allocator,
 
@@ -213,6 +217,11 @@ spot_lights: std.ArrayList(Light) = undefined,
 /// create a Phong lighting renderer
 pub fn init(allocator: *std.mem.Allocator) Self {
     return .{
+        .renderer = .{
+            .beginFn = begin,
+            .endFn = end,
+            .renderFn = render,
+        },
         .allocator = allocator,
         .program = gl.ShaderProgram.init(vs, fs),
         .dir_light = Light.init(
@@ -275,7 +284,9 @@ pub fn clearSpotLights(self: *Self) void {
 }
 
 /// begin rendering
-pub fn begin(self: *Self) void {
+fn begin(ptr: *Renderer) void {
+    const self = @fieldParentPtr(Self, "renderer", ptr);
+
     // enable program
     self.program.use();
 
@@ -300,13 +311,36 @@ pub fn begin(self: *Self) void {
 }
 
 /// end rendering
-pub fn end(self: Self) void {
+fn end(ptr: *Renderer) void {
+    const self = @fieldParentPtr(Self, "renderer", ptr);
     self.program.disuse();
 }
 
+/// use material data
+fn applyMaterial(self: *Self, material: Material) void {
+    const mt = @as(Material.MaterialType, material.data);
+    if (mt != .phong) {
+        std.debug.panic("material type doesn't match renderer!", .{});
+    }
+
+    var buf: [64]u8 = undefined;
+    self.program.setUniformByName(
+        std.fmt.bufPrintZ(&buf, "u_material.diffuse", .{}) catch unreachable,
+        material.data.phong.diffuse_map.tex.getTextureUnit(),
+    );
+    self.program.setUniformByName(
+        std.fmt.bufPrintZ(&buf, "u_material.specular", .{}) catch unreachable,
+        material.data.phong.specular_map.tex.getTextureUnit(),
+    );
+    self.program.setUniformByName(
+        std.fmt.bufPrintZ(&buf, "u_material.shiness", .{}) catch unreachable,
+        material.data.phong.shiness,
+    );
+}
+
 /// render geometries
-pub fn render(
-    self: *Self,
+fn render(
+    ptr: *Renderer,
     vertex_array: gl.VertexArray,
     use_elements: bool,
     primitive: gl.util.PrimitiveType,
@@ -314,9 +348,10 @@ pub fn render(
     count: usize,
     model: Mat4,
     projection: Mat4,
-    camera: Camera,
-    material: Material,
+    camera: ?Camera,
+    material: ?Material,
 ) !void {
+    const self = @fieldParentPtr(Self, "renderer", ptr);
     if (!self.program.isUsing()) {
         return error.renderer_not_active;
     }
@@ -325,9 +360,9 @@ pub fn render(
     self.program.setUniformByName("u_model", model);
     self.program.setUniformByName("u_normal", model.inv().transpose());
     self.program.setUniformByName("u_project", projection);
-    self.program.setUniformByName("u_view", camera.getViewMatrix());
-    self.program.setUniformByName("u_view_pos", camera.position);
-    material.apply(&self.program, "u_material");
+    self.program.setUniformByName("u_view", camera.?.getViewMatrix());
+    self.program.setUniformByName("u_view_pos", camera.?.position);
+    self.applyMaterial(material.?);
 
     // issue draw call
     vertex_array.use();
@@ -336,41 +371,5 @@ pub fn render(
         gl.util.drawElements(primitive, offset, count, u32, null);
     } else {
         gl.util.drawBuffer(primitive, offset, count, null);
-    }
-}
-
-/// render a mesh 
-pub fn renderMesh(
-    self: *Self,
-    mesh: Mesh,
-    material: Material,
-    model: Mat4,
-    projection: Mat4,
-    camera: Camera,
-) !void {
-    if (mesh.vertex_indices.items.len > 0) {
-        try self.render(
-            mesh.vertex_array,
-            true,
-            .triangles,
-            0,
-            mesh.vertex_indices.items.len,
-            model,
-            projection,
-            camera,
-            material,
-        );
-    } else {
-        try self.render(
-            mesh.vertex_array,
-            false,
-            .triangles,
-            0,
-            mesh.vertex_num,
-            model,
-            projection,
-            camera,
-            material,
-        );
     }
 }

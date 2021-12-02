@@ -3,12 +3,15 @@ const zp = @import("zplay");
 const gl = zp.gl;
 const alg = zp.alg;
 const Mat4 = alg.Mat4;
+const Renderer = zp.@"3d".Renderer;
 const SimpleRenderer = zp.@"3d".SimpleRenderer;
+const Material = zp.@"3d".Material;
 const Texture2D = zp.texture.Texture2D;
 
+var renderer: *Renderer = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: gl.VertexArray = undefined;
-var texture: Texture2D = undefined;
+var material: Material = undefined;
 var wireframe_mode = false;
 
 const vertices = [_]f32{
@@ -19,7 +22,7 @@ const vertices = [_]f32{
     -0.5, 0.5, 0.0, 0.0, 1.0, // top left
 };
 
-const indices = [_]u16{
+const indices = [_]u32{
     0, 1, 3, // 1st triangle
     1, 2, 3, // 2nd triangle
 };
@@ -29,6 +32,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // simple renderer
     simple_renderer = SimpleRenderer.init();
+    renderer = &simple_renderer.renderer;
 
     // vertex array
     vertex_array = gl.VertexArray.init(5);
@@ -37,10 +41,12 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
     vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 5 * @sizeOf(f32), 0);
     vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_TEX, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
-    vertex_array.bufferData(1, u16, &indices, .element_array_buffer, .static_draw);
+    vertex_array.bufferData(1, u32, &indices, .element_array_buffer, .static_draw);
 
     // load texture
-    texture = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", null, false);
+    material = Material.init(.{
+        .single_texture = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", null, false),
+    });
 
     std.log.info("game init", .{});
 }
@@ -89,8 +95,8 @@ fn loop(ctx: *zp.Context) void {
     gl.util.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     const model = alg.Mat4.fromTranslate(alg.Vec3.new(0.5, 0.5, 0)).rotate(S.frame, alg.Vec3.forward());
-    simple_renderer.begin();
-    simple_renderer.render(
+    renderer.begin();
+    renderer.render(
         vertex_array,
         true,
         .triangles,
@@ -99,9 +105,9 @@ fn loop(ctx: *zp.Context) void {
         model,
         Mat4.identity(),
         null,
-        texture,
+        material,
     ) catch unreachable;
-    simple_renderer.end();
+    renderer.end();
 }
 
 fn quit(ctx: *zp.Context) void {

@@ -16,7 +16,8 @@ var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
 var mesh_for_simple: Mesh = undefined;
 var mesh_for_phong: Mesh = undefined;
-var material: Material = undefined;
+var material_for_simple: Material = undefined;
+var material_for_phong: Material = undefined;
 var camera = zp.@"3d".Camera.fromPositionAndTarget(
     Vec3.new(1, 2, 3),
     Vec3.zero(),
@@ -99,12 +100,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     mesh_for_simple.relateLocation(SimpleRenderer.ATTRIB_LOCATION_POS, .position);
     mesh_for_simple.relateLocation(SimpleRenderer.ATTRIB_LOCATION_TEX, .texture_coord);
-    simple_renderer.begin();
-    simple_renderer.program.setAttributeDefaultValue(
-        SimpleRenderer.ATTRIB_LOCATION_COLOR,
-        Vec3.new(1, 1, 0),
-    );
-    simple_renderer.end();
 
     // create mesh for phong renderer
     mesh_for_phong = Mesh.init(
@@ -117,14 +112,21 @@ fn init(ctx: *zp.Context) anyerror!void {
     mesh_for_phong.relateLocation(PhongRenderer.ATTRIB_LOCATION_NORMAL, .normal);
     mesh_for_phong.relateLocation(PhongRenderer.ATTRIB_LOCATION_TEX, .texture_coord);
 
-    // create material
+    // create material for simple renderer
+    material_for_simple = Material.init(.{
+        .single_color = Vec3.one(),
+    });
+
+    // create material for phong renderer
     var diffuse_texture = try zp.texture.Texture2D.fromFilePath("assets/container2.png", null, false);
     var specular_texture = try zp.texture.Texture2D.fromFilePath("assets/container2_specular.png", .texture_unit_1, false);
-    material = Material.init(
-        diffuse_texture,
-        specular_texture,
-        32,
-    );
+    material_for_phong = Material.init(.{
+        .phong = .{
+            .diffuse_map = diffuse_texture,
+            .specular_map = specular_texture,
+            .shiness = 32,
+        },
+    });
 
     // enable depth test
     gl.util.toggleCapability(.depth_test, true);
@@ -217,32 +219,34 @@ fn loop(ctx: *zp.Context) void {
     );
     S.axis = Mat4.fromRotation(1, Vec3.new(-1, 1, -1)).multByVec4(S.axis);
 
-    phong_renderer.begin();
+    var renderer = &phong_renderer.renderer;
+    renderer.begin();
     var model = Mat4.fromRotation(
         S.frame,
         Vec3.new(S.axis.x, S.axis.y, S.axis.z),
     );
-    phong_renderer.renderMesh(
+    renderer.renderMesh(
         mesh_for_phong,
-        material,
         model,
         projection,
         camera,
+        material_for_phong,
     ) catch unreachable;
-    phong_renderer.end();
+    renderer.end();
 
-    simple_renderer.begin();
+    renderer = &simple_renderer.renderer;
+    renderer.begin();
     for (phong_renderer.point_lights.items) |light| {
         model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        simple_renderer.renderMesh(
+        renderer.renderMesh(
             mesh_for_simple,
             model,
             projection,
             camera,
-            null,
+            material_for_simple,
         ) catch unreachable;
     }
-    simple_renderer.end();
+    renderer.end();
 }
 
 fn quit(ctx: *zp.Context) void {

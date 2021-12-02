@@ -10,6 +10,9 @@ pub const Material = @import("3d/Material.zig");
 /// 3d mesh
 pub const Mesh = @import("3d/Mesh.zig");
 
+/// generic renderer
+pub const Renderer = @import("3d/Renderer.zig");
+
 /// simple renderer
 pub const SimpleRenderer = @import("3d/SimpleRenderer.zig");
 

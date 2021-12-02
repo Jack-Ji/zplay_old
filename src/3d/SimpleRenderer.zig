@@ -3,6 +3,7 @@ const Camera = @import("Camera.zig");
 const Light = @import("Light.zig");
 const Material = @import("Material.zig");
 const Mesh = @import("Mesh.zig");
+const Renderer = @import("Renderer.zig");
 const zp = @import("../lib.zig");
 const gl = zp.gl;
 const alg = zp.alg;
@@ -60,12 +61,20 @@ const fs =
     \\}
 ;
 
+/// generic renderer
+renderer: Renderer = undefined,
+
 /// lighting program
 program: gl.ShaderProgram = undefined,
 
 /// create a simple renderer
 pub fn init() Self {
     return .{
+        .renderer = .{
+            .beginFn = begin,
+            .endFn = end,
+            .renderFn = render,
+        },
         .program = gl.ShaderProgram.init(vs, fs),
     };
 }
@@ -76,18 +85,37 @@ pub fn deinit(self: *Self) void {
 }
 
 /// begin rendering
-pub fn begin(self: *Self) void {
+fn begin(ptr: *Renderer) void {
+    const self = @fieldParentPtr(Self, "renderer", ptr);
     self.program.use();
 }
 
 /// end rendering
-pub fn end(self: Self) void {
+fn end(ptr: *Renderer) void {
+    const self = @fieldParentPtr(Self, "renderer", ptr);
     self.program.disuse();
 }
 
+/// use material data
+fn applyMaterial(self: *Self, material: Material) void {
+    switch (material.data) {
+        .single_texture => |t| {
+            self.program.setUniformByName("u_use_texture", true);
+            self.program.setUniformByName("u_texture", t.tex.getTextureUnit());
+        },
+        .single_color => |c| {
+            self.program.setUniformByName("u_use_texture", false);
+            self.program.setAttributeDefaultValue(ATTRIB_LOCATION_COLOR, c);
+        },
+        else => {
+            std.debug.panic("unsupported material type", .{});
+        },
+    }
+}
+
 /// render geometries
-pub fn render(
-    self: *Self,
+fn render(
+    ptr: *Renderer,
     vertex_array: gl.VertexArray,
     use_elements: bool,
     primitive: gl.util.PrimitiveType,
@@ -96,8 +124,9 @@ pub fn render(
     model: Mat4,
     projection: Mat4,
     camera: ?Camera,
-    texture: ?Texture2D,
+    material: ?Material,
 ) !void {
+    const self = @fieldParentPtr(Self, "renderer", ptr);
     if (!self.program.isUsing()) {
         return error.renderer_not_active;
     }
@@ -110,9 +139,8 @@ pub fn render(
     } else {
         self.program.setUniformByName("u_view", Mat4.identity());
     }
-    if (texture) |t| {
-        self.program.setUniformByName("u_use_texture", true);
-        self.program.setUniformByName("u_texture", t.tex.getTextureUnit());
+    if (material) |m| {
+        self.applyMaterial(m);
     } else {
         self.program.setUniformByName("u_use_texture", false);
     }
@@ -124,41 +152,5 @@ pub fn render(
         gl.util.drawElements(primitive, offset, count, u32, null);
     } else {
         gl.util.drawBuffer(primitive, offset, count, null);
-    }
-}
-
-/// render a mesh 
-pub fn renderMesh(
-    self: *Self,
-    mesh: Mesh,
-    model: Mat4,
-    projection: Mat4,
-    camera: Camera,
-    texture: ?Texture2D,
-) !void {
-    if (mesh.vertex_indices.items.len > 0) {
-        try self.render(
-            mesh.vertex_array,
-            true,
-            .triangles,
-            0,
-            mesh.vertex_indices.items.len,
-            model,
-            projection,
-            camera,
-            texture,
-        );
-    } else {
-        try self.render(
-            mesh.vertex_array,
-            false,
-            .triangles,
-            0,
-            mesh.vertex_num,
-            model,
-            projection,
-            camera,
-            texture,
-        );
     }
 }
