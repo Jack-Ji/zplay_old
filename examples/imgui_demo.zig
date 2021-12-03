@@ -63,8 +63,8 @@ fn loop(ctx: *zp.Context) void {
                 "Application average {d:.3} ms/frame ({d:.1} FPS)",
                 .{ 1000 / io.Framerate, io.Framerate },
             );
-            dig.end();
         }
+        dig.end();
 
         if (S.show_demo_window) {
             dig.showDemoWindow(&S.show_demo_window);
@@ -75,8 +75,8 @@ fn loop(ctx: *zp.Context) void {
                 dig.text("Hello from another window!");
                 if (dig.button("Close Me", .{ .x = 0, .y = 0 }))
                     S.show_another_window = false;
-                dig.end();
             }
+            dig.end();
         }
 
         if (S.show_plot_demo_window) {
@@ -90,8 +90,8 @@ fn loop(ctx: *zp.Context) void {
                 dig.dummy(.{ .x = 80, .y = 45 });
                 dig.ext.nodes.endNode();
                 dig.ext.nodes.endNodeEditor();
-                dig.end();
             }
+            dig.end();
         }
     }
 }

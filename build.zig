@@ -24,6 +24,8 @@ pub fn build(b: *std.build.Builder) void {
         "phong_lighting",
         "mesh_lighting",
         "imgui_demo",
+        "imgui_fontawesome",
+        "imgui_ttf",
         "vector_graphics",
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
