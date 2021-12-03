@@ -2019,10 +2019,37 @@ const codepoint_names = [_][:0]const u8{
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
 
-    regular_font = try dig.loadFontAwesome(16, true, true);
-    solid_font = try dig.loadFontAwesome(16, false, true);
+    regular_font = try dig.loadFontAwesome(30, true, true);
+    solid_font = try dig.loadFontAwesome(30, false, true);
 
     std.log.info("game init", .{});
+}
+
+fn printIcons(column_size: usize) void {
+    if (dig.beginTable(
+        "table",
+        @intCast(c_int, column_size),
+        dig.ImGuiTableFlags_Borders,
+        std.mem.zeroes(dig.ImVec2),
+        0,
+    )) {
+        var count: usize = 0;
+        for (codepoints) |c, i| {
+            if (dig.isCharRenderable(c)) {
+                if (count % column_size == 0) {
+                    dig.tableNextRow(0, 50);
+                }
+                _ = dig.tableNextColumn();
+                _ = dig.text(codepoint_names[i].ptr);
+                dig.newLine();
+                dig.newLine();
+                dig.sameLine(dig.getColumnWidth(dig.getColumnIndex()) - 40, 10);
+                _ = dig.text(c.ptr);
+                count += 1;
+            }
+        }
+        dig.endTable();
+    }
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -2055,54 +2082,14 @@ fn loop(ctx: *zp.Context) void {
 
         if (dig.begin("font-awesome-regular", null, 0)) {
             dig.pushFont(regular_font);
-            if (dig.beginTable(
-                "table",
-                column_size,
-                dig.ImGuiTableFlags_Borders,
-                std.mem.zeroes(dig.ImVec2),
-                0,
-            )) {
-                var count: usize = 0;
-                for (codepoints) |c, i| {
-                    if (dig.isCharRenderable(c)) {
-                        if (count % column_size == 0) {
-                            dig.tableNextRow(0, 0);
-                        }
-                        _ = dig.tableNextColumn();
-                        _ = dig.text(codepoint_names[i].ptr);
-                        _ = dig.text(c.ptr);
-                        count += 1;
-                    }
-                }
-                dig.endTable();
-            }
+            printIcons(column_size);
             dig.popFont();
         }
         dig.end();
 
         if (dig.begin("font-awesome-solid", null, 0)) {
             dig.pushFont(solid_font);
-            if (dig.beginTable(
-                "table",
-                column_size,
-                dig.ImGuiTableFlags_Borders,
-                std.mem.zeroes(dig.ImVec2),
-                0,
-            )) {
-                var count: usize = 0;
-                for (codepoints) |c, i| {
-                    if (dig.isCharRenderable(c)) {
-                        if (count % column_size == 0) {
-                            dig.tableNextRow(0, 0);
-                        }
-                        _ = dig.tableNextColumn();
-                        _ = dig.text(codepoint_names[i].ptr);
-                        _ = dig.text(c.ptr);
-                        count += 1;
-                    }
-                }
-                dig.endTable();
-            }
+            printIcons(column_size);
             dig.popFont();
         }
         dig.end();
