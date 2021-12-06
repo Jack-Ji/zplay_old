@@ -61,20 +61,12 @@ const fs =
     \\}
 ;
 
-/// generic renderer
-renderer: Renderer = undefined,
-
 /// lighting program
 program: gl.ShaderProgram = undefined,
 
 /// create a simple renderer
 pub fn init() Self {
     return .{
-        .renderer = .{
-            .beginFn = begin,
-            .endFn = end,
-            .renderFn = render,
-        },
         .program = gl.ShaderProgram.init(vs, fs),
     };
 }
@@ -84,15 +76,18 @@ pub fn deinit(self: *Self) void {
     self.program.deinit();
 }
 
+/// get renderer
+pub fn renderer(self: *Self) Renderer {
+    return Renderer.init(self, begin, end, render);
+}
+
 /// begin rendering
-fn begin(ptr: *Renderer) void {
-    const self = @fieldParentPtr(Self, "renderer", ptr);
+fn begin(self: *Self) void {
     self.program.use();
 }
 
 /// end rendering
-fn end(ptr: *Renderer) void {
-    const self = @fieldParentPtr(Self, "renderer", ptr);
+fn end(self: *Self) void {
     self.program.disuse();
 }
 
@@ -115,7 +110,7 @@ fn applyMaterial(self: *Self, material: Material) void {
 
 /// render geometries
 fn render(
-    ptr: *Renderer,
+    self: *Self,
     vertex_array: gl.VertexArray,
     use_elements: bool,
     primitive: gl.util.PrimitiveType,
@@ -127,7 +122,6 @@ fn render(
     material: ?Material,
     instance_count: ?usize,
 ) !void {
-    const self = @fieldParentPtr(Self, "renderer", ptr);
     if (!self.program.isUsing()) {
         return error.renderer_not_active;
     }

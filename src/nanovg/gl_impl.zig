@@ -153,7 +153,7 @@ const FragUniform = extern struct {
 const InternalContext = struct {
     const Self = @This();
 
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     shader: Shader,
     textures: std.ArrayList(Texture),
     view: [2]f32,
@@ -178,7 +178,7 @@ const InternalContext = struct {
 
     dummy_tex: c_int,
 
-    fn init(allocator: *std.mem.Allocator, flags: CreateFlags) *Self {
+    fn init(allocator: std.mem.Allocator, flags: CreateFlags) *Self {
         var self = allocator.create(Self) catch unreachable;
         self.allocator = allocator;
         self.shader = undefined;

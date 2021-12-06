@@ -12,9 +12,6 @@ const api = @import("api.zig");
 /// icon font: font-awesome 
 pub const fontawesome = @import("fonts/fontawesome.zig");
 
-/// export custom component
-pub const custom = @import("custom_component.zig");
-
 /// export 3rd-party extensions
 pub const ext = @import("ext/ext.zig");
 

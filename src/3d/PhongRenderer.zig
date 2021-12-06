@@ -200,12 +200,6 @@ const fs =
     \\}
 ;
 
-/// generic renderer
-renderer: Renderer = undefined,
-
-/// memory allocator
-allocator: *std.mem.Allocator,
-
 /// lighting program
 program: gl.ShaderProgram = undefined,
 
@@ -215,14 +209,8 @@ point_lights: std.ArrayList(Light) = undefined,
 spot_lights: std.ArrayList(Light) = undefined,
 
 /// create a Phong lighting renderer
-pub fn init(allocator: *std.mem.Allocator) Self {
+pub fn init(allocator: std.mem.Allocator) Self {
     return .{
-        .renderer = .{
-            .beginFn = begin,
-            .endFn = end,
-            .renderFn = render,
-        },
-        .allocator = allocator,
         .program = gl.ShaderProgram.init(vs, fs),
         .dir_light = Light.init(
             .{
@@ -244,6 +232,11 @@ pub fn deinit(self: *Self) void {
     self.program.deinit();
     self.point_lights.deinit();
     self.spot_lights.deinit();
+}
+
+/// get renderer
+pub fn renderer(self: *Self) Renderer {
+    return Renderer.init(self, begin, end, render);
 }
 
 /// set directional light
@@ -284,9 +277,7 @@ pub fn clearSpotLights(self: *Self) void {
 }
 
 /// begin rendering
-fn begin(ptr: *Renderer) void {
-    const self = @fieldParentPtr(Self, "renderer", ptr);
-
+fn begin(self: *Self) void {
     // enable program
     self.program.use();
 
@@ -294,25 +285,23 @@ fn begin(ptr: *Renderer) void {
     self.dir_light.apply(&self.program, "u_directional_light");
 
     // point lights
+    var buf = [_]u8{0} ** 64;
     self.program.setUniformByName("u_point_light_count", self.point_lights.items.len);
     for (self.point_lights.items) |*light, i| {
-        const name = std.fmt.allocPrintZ(self.allocator, "u_point_lights[{d}]", .{i}) catch unreachable;
-        defer self.allocator.free(name);
+        const name = std.fmt.bufPrintZ(&buf, "u_point_lights[{d}]", .{i}) catch unreachable;
         light.apply(&self.program, name);
     }
 
     // spot lights
     self.program.setUniformByName("u_spot_light_count", self.spot_lights.items.len);
     for (self.spot_lights.items) |*light, i| {
-        const name = std.fmt.allocPrintZ(self.allocator, "u_spot_lights[{d}]", .{i}) catch unreachable;
-        defer self.allocator.free(name);
+        const name = std.fmt.bufPrintZ(&buf, "u_spot_lights[{d}]", .{i}) catch unreachable;
         light.apply(&self.program, name);
     }
 }
 
 /// end rendering
-fn end(ptr: *Renderer) void {
-    const self = @fieldParentPtr(Self, "renderer", ptr);
+fn end(self: *Self) void {
     self.program.disuse();
 }
 
@@ -340,7 +329,7 @@ fn applyMaterial(self: *Self, material: Material) void {
 
 /// render geometries
 fn render(
-    ptr: *Renderer,
+    self: *Self,
     vertex_array: gl.VertexArray,
     use_elements: bool,
     primitive: gl.util.PrimitiveType,
@@ -352,7 +341,6 @@ fn render(
     material: ?Material,
     instance_count: ?usize,
 ) !void {
-    const self = @fieldParentPtr(Self, "renderer", ptr);
     if (!self.program.isUsing()) {
         return error.renderer_not_active;
     }

@@ -252,7 +252,7 @@ fn loop(ctx: *zp.Context) void {
         0.1,
         100,
     );
-    var renderer = &phong_renderer.renderer;
+    var renderer = phong_renderer.renderer();
     renderer.begin();
     for (cube_positions) |pos, i| {
         const model = Mat4.fromRotation(
@@ -275,7 +275,7 @@ fn loop(ctx: *zp.Context) void {
     renderer.end();
 
     // draw lights
-    renderer = &simple_renderer.renderer;
+    renderer = simple_renderer.renderer();
     renderer.begin();
     for (phong_renderer.point_lights.items) |light| {
         const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);

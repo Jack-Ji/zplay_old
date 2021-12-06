@@ -57,12 +57,6 @@ fn loop(ctx: *zp.Context) void {
                 S.counter += 1;
             dig.sameLine(0, 0);
             dig.text("count = %d", S.counter);
-
-            const io = @ptrCast(*dig.ImGuiIO, dig.getIO());
-            dig.custom.text(
-                "Application average {d:.3} ms/frame ({d:.1} FPS)",
-                .{ 1000 / io.Framerate, io.Framerate },
-            );
         }
         dig.end();
 

@@ -45,7 +45,7 @@ owns_data: bool = false,
 
 /// allocate and initialize Mesh instance
 pub fn init(
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     vertices: []const f32,
     indices: []const u32,
     types: [MAX_ATTRIB_NUM]?VertexAttribute,

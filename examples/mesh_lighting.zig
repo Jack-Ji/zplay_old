@@ -219,7 +219,7 @@ fn loop(ctx: *zp.Context) void {
     );
     S.axis = Mat4.fromRotation(1, Vec3.new(-1, 1, -1)).multByVec4(S.axis);
 
-    var renderer = &phong_renderer.renderer;
+    var renderer = phong_renderer.renderer();
     renderer.begin();
     var model = Mat4.fromRotation(
         S.frame,
@@ -235,7 +235,7 @@ fn loop(ctx: *zp.Context) void {
     ) catch unreachable;
     renderer.end();
 
-    renderer = &simple_renderer.renderer;
+    renderer = simple_renderer.renderer();
     renderer.begin();
     for (phong_renderer.point_lights.items) |light| {
         model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
