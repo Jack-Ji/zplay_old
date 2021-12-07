@@ -22,7 +22,6 @@ pub fn build(b: *std.build.Builder) void {
         "cubes",
         "3d_camera",
         "phong_lighting",
-        "mesh_lighting",
         "imgui_demo",
         "imgui_fontawesome",
         "imgui_ttf",

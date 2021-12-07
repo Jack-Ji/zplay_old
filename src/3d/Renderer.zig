@@ -21,7 +21,7 @@ pub const VTable = struct {
     /// stop using renderer
     endFn: fn (ptr: *c_void) void,
 
-    /// do rendering
+    /// generic rendering
     renderFn: fn (
         ptr: *c_void,
         vertex_array: gl.VertexArray,
@@ -29,6 +29,17 @@ pub const VTable = struct {
         primitive: gl.util.PrimitiveType,
         offset: usize,
         count: usize,
+        model: Mat4,
+        projection: Mat4,
+        camera: ?Camera,
+        material: ?Material,
+        instance_count: ?usize,
+    ) anyerror!void,
+
+    /// mesh rendering
+    renderMeshFn: fn (
+        ptr: *c_void,
+        mesh: Mesh,
         model: Mat4,
         projection: Mat4,
         camera: ?Camera,
@@ -48,6 +59,15 @@ pub fn init(
         primitive: gl.util.PrimitiveType,
         offset: usize,
         count: usize,
+        model: Mat4,
+        projection: Mat4,
+        camera: ?Camera,
+        material: ?Material,
+        instance_count: ?usize,
+    ) anyerror!void,
+    comptime renderMeshFn: fn (
+        ptr: @TypeOf(pointer),
+        mesh: Mesh,
         model: Mat4,
         projection: Mat4,
         camera: ?Camera,
@@ -101,10 +121,32 @@ pub fn init(
             });
         }
 
+        fn renderMeshImpl(
+            ptr: *c_void,
+            mesh: Mesh,
+            model: Mat4,
+            projection: Mat4,
+            camera: ?Camera,
+            material: ?Material,
+            instance_count: ?usize,
+        ) anyerror!void {
+            const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
+            return @call(.{ .modifier = .always_inline }, renderMeshFn, .{
+                self,
+                mesh,
+                model,
+                projection,
+                camera,
+                material,
+                instance_count,
+            });
+        }
+
         const vtable = VTable{
             .beginFn = beginImpl,
             .endFn = endImpl,
             .renderFn = renderImpl,
+            .renderMeshFn = renderMeshImpl,
         };
     };
 
@@ -159,32 +201,13 @@ pub fn renderMesh(
     camera: ?Camera,
     material: ?Material,
     instance_count: ?usize,
-) !void {
-    if (mesh.vertex_indices.items.len > 0) {
-        try renderer.render(
-            mesh.vertex_array,
-            true,
-            .triangles,
-            0,
-            mesh.vertex_indices.items.len,
-            model,
-            projection,
-            camera,
-            material,
-            instance_count,
-        );
-    } else {
-        try renderer.render(
-            mesh.vertex_array,
-            false,
-            .triangles,
-            0,
-            mesh.vertex_num,
-            model,
-            projection,
-            camera,
-            material,
-            instance_count,
-        );
-    }
+) anyerror!void {
+    return renderer.vtable.renderMeshFn(
+        mesh,
+        model,
+        projection,
+        camera,
+        material,
+        instance_count,
+    );
 }

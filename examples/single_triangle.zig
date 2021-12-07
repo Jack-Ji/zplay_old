@@ -9,7 +9,6 @@ const Material = zp.@"3d".Material;
 const Renderer = zp.@"3d".Renderer;
 const SimpleRenderer = zp.@"3d".SimpleRenderer;
 
-var renderer: *Renderer = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: gl.VertexArray = undefined;
 
@@ -24,7 +23,6 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // create renderer
     simple_renderer = SimpleRenderer.init();
-    renderer = &simple_renderer.renderer;
 
     // vertex array
     vertex_array = gl.VertexArray.init(5);
@@ -66,8 +64,8 @@ fn loop(ctx: *zp.Context) void {
     gl.util.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     // update color and draw triangle
-    renderer.begin();
-    renderer.render(
+    simple_renderer.renderer().begin();
+    simple_renderer.renderer().render(
         vertex_array,
         false,
         .triangles,
@@ -79,7 +77,7 @@ fn loop(ctx: *zp.Context) void {
         null,
         null,
     ) catch unreachable;
-    renderer.end();
+    simple_renderer.renderer().end();
 }
 
 fn quit(ctx: *zp.Context) void {

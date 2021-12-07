@@ -7,7 +7,6 @@ const SimpleRenderer = zp.@"3d".SimpleRenderer;
 const Material = zp.@"3d".Material;
 const Texture2D = zp.texture.Texture2D;
 
-var renderer: *Renderer = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: gl.VertexArray = undefined;
 var material: Material = undefined;
@@ -81,7 +80,6 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // simple renderer
     simple_renderer = SimpleRenderer.init();
-    renderer = &simple_renderer.renderer;
 
     // vertex array
     vertex_array = gl.VertexArray.init(5);
@@ -154,13 +152,13 @@ fn loop(ctx: *zp.Context) void {
         0.1,
         100,
     );
-    renderer.begin();
+    simple_renderer.renderer().begin();
     for (cube_positions) |pos, i| {
         const model = alg.Mat4.fromRotation(
             20 * @intToFloat(f32, i) + S.frame,
             alg.Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
-        renderer.render(
+        simple_renderer.renderer().render(
             vertex_array,
             false,
             .triangles,
@@ -173,7 +171,7 @@ fn loop(ctx: *zp.Context) void {
             null,
         ) catch unreachable;
     }
-    renderer.end();
+    simple_renderer.renderer().end();
 }
 
 fn quit(ctx: *zp.Context) void {

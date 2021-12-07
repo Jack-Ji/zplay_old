@@ -74,9 +74,6 @@ pub fn bufferData(
     target: BufferTarget,
     usage: BufferUsage,
 ) void {
-    // check if data type is valid
-    _ = gl.util.dataType(T);
-
     if (vbo_index > self.vbo_num) {
         std.debug.panic("invalid vbo index", .{});
     }

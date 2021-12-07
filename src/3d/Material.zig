@@ -5,6 +5,7 @@ const SimpleRenderer = @import("SimpleRenderer.zig");
 const zp = @import("../lib.zig");
 const alg = zp.alg;
 const Vec3 = alg.Vec3;
+const Vec4 = alg.Vec4;
 const gl = zp.gl;
 const Texture2D = zp.texture.Texture2D;
 const Self = @This();
@@ -26,7 +27,7 @@ pub const MaterialData = union(MaterialType) {
     },
     pbr: struct {},
     single_texture: Texture2D,
-    single_color: Vec3,
+    single_color: Vec4,
 };
 
 /// material properties

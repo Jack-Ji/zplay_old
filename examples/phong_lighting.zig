@@ -2,7 +2,9 @@ const std = @import("std");
 const zp = @import("zplay");
 const gl = zp.gl;
 const alg = zp.alg;
+const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
+const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const Camera = zp.@"3d".Camera;
 const Light = zp.@"3d".Light;
@@ -177,7 +179,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         },
     });
     material_for_simple = Material.init(.{
-        .single_color = Vec3.one(),
+        .single_color = Vec4.one(),
     });
 
     // enable depth test

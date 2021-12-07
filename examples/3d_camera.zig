@@ -7,7 +7,6 @@ const SimpleRenderer = zp.@"3d".SimpleRenderer;
 const Material = zp.@"3d".Material;
 const Texture2D = zp.texture.Texture2D;
 
-var renderer: *Renderer = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: gl.VertexArray = undefined;
 var material: Material = undefined;
@@ -67,7 +66,6 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // simple renderer
     simple_renderer = SimpleRenderer.init();
-    renderer = &simple_renderer.renderer;
 
     // vertex array
     vertex_array = gl.VertexArray.init(5);
@@ -177,8 +175,8 @@ fn loop(ctx: *zp.Context) void {
         alg.Vec3.new(S.axis.x, S.axis.y, S.axis.z),
     );
 
-    renderer.begin();
-    renderer.render(
+    simple_renderer.renderer().begin();
+    simple_renderer.renderer().render(
         vertex_array,
         false,
         .triangles,
@@ -190,7 +188,7 @@ fn loop(ctx: *zp.Context) void {
         material,
         null,
     ) catch unreachable;
-    renderer.end();
+    simple_renderer.renderer().end();
 }
 
 fn quit(ctx: *zp.Context) void {

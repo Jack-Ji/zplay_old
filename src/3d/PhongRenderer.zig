@@ -8,6 +8,7 @@ const zp = @import("../lib.zig");
 const gl = zp.gl;
 const alg = zp.alg;
 const Mat4 = alg.Mat4;
+const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Self = @This();
 
@@ -236,7 +237,7 @@ pub fn deinit(self: *Self) void {
 
 /// get renderer
 pub fn renderer(self: *Self) Renderer {
-    return Renderer.init(self, begin, end, render);
+    return Renderer.init(self, begin, end, render, renderMesh);
 }
 
 /// set directional light
@@ -360,5 +361,42 @@ fn render(
         gl.util.drawElements(primitive, offset, count, u32, instance_count);
     } else {
         gl.util.drawBuffer(primitive, offset, count, instance_count);
+    }
+}
+
+fn renderMesh(
+    self: *Self,
+    mesh: Mesh,
+    model: Mat4,
+    projection: Mat4,
+    camera: ?Camera,
+    material: ?Material,
+    instance_count: ?usize,
+) !void {
+    if (!self.program.isUsing()) {
+        return error.renderer_not_active;
+    }
+
+    mesh.vertex_array.use();
+    defer mesh.vertex_array.disuse();
+
+    // attribute settings
+    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_POS, @sizeOf(Vec3), f32, false, 0, 0);
+    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_NORMAL, @sizeOf(Vec2), f32, false, 0, 0);
+    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_TEX, @sizeOf(Vec2), f32, false, 0, 0);
+
+    // set uniforms
+    self.program.setUniformByName("u_model", model);
+    self.program.setUniformByName("u_normal", model.inv().transpose());
+    self.program.setUniformByName("u_project", projection);
+    self.program.setUniformByName("u_view", camera.?.getViewMatrix());
+    self.program.setUniformByName("u_view_pos", camera.?.position);
+    self.applyMaterial(material.?);
+
+    // issue draw call
+    if (mesh.indices.items.len > 0) {
+        gl.util.drawElements(.triangles, 0, mesh.indices.items.len, u32, instance_count);
+    } else {
+        gl.util.drawBuffer(.triangles, 0, mesh.positions.items.len, instance_count);
     }
 }

@@ -7,7 +7,9 @@ const Renderer = @import("Renderer.zig");
 const zp = @import("../lib.zig");
 const gl = zp.gl;
 const alg = zp.alg;
+const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
+const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const Texture2D = zp.texture.Texture2D;
 const Self = @This();
@@ -21,7 +23,7 @@ const vs =
     \\#version 330 core
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 1) in vec2 a_tex;
-    \\layout (location = 2) in vec3 a_color;
+    \\layout (location = 2) in vec4 a_color;
     \\
     \\uniform mat4 u_model;
     \\uniform mat4 u_view;
@@ -29,7 +31,7 @@ const vs =
     \\
     \\out vec3 v_pos;
     \\out vec2 v_tex;
-    \\out vec3 v_color;
+    \\out vec4 v_color;
     \\
     \\void main()
     \\{
@@ -46,7 +48,7 @@ const fs =
     \\
     \\in vec3 v_pos;
     \\in vec2 v_tex;
-    \\in vec3 v_color;
+    \\in vec4 v_color;
     \\
     \\uniform bool u_use_texture;
     \\uniform sampler2D u_texture;
@@ -56,7 +58,7 @@ const fs =
     \\    if (u_use_texture) {
     \\        frag_color = texture(u_texture, v_tex);
     \\    } else {
-    \\        frag_color = vec4(v_color, 1);
+    \\        frag_color = v_color;
     \\    }
     \\}
 ;
@@ -78,7 +80,7 @@ pub fn deinit(self: *Self) void {
 
 /// get renderer
 pub fn renderer(self: *Self) Renderer {
-    return Renderer.init(self, begin, end, render);
+    return Renderer.init(self, begin, end, render, renderMesh);
 }
 
 /// begin rendering
@@ -147,5 +149,48 @@ fn render(
         gl.util.drawElements(primitive, offset, count, u32, instance_count);
     } else {
         gl.util.drawBuffer(primitive, offset, count, instance_count);
+    }
+}
+
+fn renderMesh(
+    self: *Self,
+    mesh: Mesh,
+    model: Mat4,
+    projection: Mat4,
+    camera: ?Camera,
+    material: ?Material,
+    instance_count: ?usize,
+) !void {
+    if (!self.program.isUsing()) {
+        return error.renderer_not_active;
+    }
+
+    mesh.vertex_array.use();
+    defer mesh.vertex_array.disuse();
+
+    // attribute settings
+    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_POS, @sizeOf(Vec3), f32, false, 0, 0);
+    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_TEX, @sizeOf(Vec2), f32, false, 0, 0);
+    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_COLOR, @sizeOf(Vec4), f32, false, 0, 0);
+
+    // set uniforms
+    self.program.setUniformByName("u_model", model);
+    self.program.setUniformByName("u_project", projection);
+    if (camera) |c| {
+        self.program.setUniformByName("u_view", c.getViewMatrix());
+    } else {
+        self.program.setUniformByName("u_view", Mat4.identity());
+    }
+    if (material) |m| {
+        self.applyMaterial(m);
+    } else {
+        self.program.setUniformByName("u_use_texture", false);
+    }
+
+    // issue draw call
+    if (mesh.indices.items.len > 0) {
+        gl.util.drawElements(.triangles, 0, mesh.indices.items.len, u32, instance_count);
+    } else {
+        gl.util.drawBuffer(.triangles, 0, mesh.positions.items.len, instance_count);
     }
 }

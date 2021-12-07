@@ -18,10 +18,11 @@ transforms: std.ArrayList(Mat4) = undefined,
 /// materials
 materials: std.ArrayList(Material) = undefined,
 
-pub fn fromGLTF(allocator: std.mem.Allocator, gltf_path: [:0]const u8) !Self {
-    var data = try cgltf.loadFile(gltf_path, null);
-    defer cgltf.free(data);
-
+pub fn fromGLTF(
+    allocator: std.mem.Allocator,
+    data: *cgltf.cgltf_data,
+    scene: *cgltf.cgltf_scene,
+) !Self {
     var self = .Self{
         .models = std.ArrayList(Model).initCapacity(allocator, 1) catch unreachable,
         .transforms = std.ArrayList(Mat4).initCapacity(allocator, 1),
@@ -45,11 +46,8 @@ pub fn fromGLTF(allocator: std.mem.Allocator, gltf_path: [:0]const u8) !Self {
     }
 
     // load scene
-    if (data.scenes_count == 0) {
-        std.debug.panic("can't find scene!");
-    }
     i = 0;
-    while (i < data.scene.nodes_count) : (i += 1) {
+    while (i < scene.nodes_count) : (i += 1) {
         var node = data.scene.nodes[i];
 
         // create model
