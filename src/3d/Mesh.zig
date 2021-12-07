@@ -14,7 +14,8 @@ pub const vbo_normals = 1;
 pub const vbo_texcoords = 2;
 pub const vbo_colors = 3;
 pub const vbo_indices = 4;
-pub const vbo_num = 5;
+pub const vbo_tangents = 5;
+pub const vbo_num = 6;
 
 /// vertex array
 /// each vertex has multiple properties (see VertexAttribute)
@@ -25,6 +26,7 @@ positions: std.ArrayList(Vec3) = undefined,
 normals: std.ArrayList(Vec3) = undefined,
 texcoords: std.ArrayList(Vec2) = undefined,
 colors: std.ArrayList(Vec4) = undefined,
+tangents: std.ArrayList(Vec4) = undefined,
 indices: std.ArrayList(u32) = undefined,
 owns_data: bool = false,
 
@@ -35,6 +37,7 @@ pub fn init(
     normals: []const Vec3,
     texcoords: []const Vec2,
     colors: []const Vec4,
+    tangents: []const Vec4,
     indices: []const u32,
 ) Self {
     var self: Self = .{
@@ -43,6 +46,7 @@ pub fn init(
         .normals = std.ArrayList(Vec3).initCapacity(allocator, normals.len) catch unreachable,
         .texcoords = std.ArrayList(Vec2).initCapacity(allocator, texcoords.len) catch unreachable,
         .colors = std.ArrayList(Vec4).initCapacity(allocator, colors.len) catch unreachable,
+        .tangents = std.ArrayList(Vec4).initCapacity(allocator, tangents.len) catch unreachable,
         .indices = std.ArrayList(Vec4).initCapacity(allocator, indices.len) catch unreachable,
         .owns_data = true,
     };
@@ -50,6 +54,7 @@ pub fn init(
     self.normals.appendSlice(normals) catch unreachable;
     self.texcoords.appendSlice(texcoords) catch unreachable;
     self.colors.appendSlice(colors) catch unreachable;
+    self.tangents.appendSlice(tangents) catch unreachable;
     self.indices.appendSlice(indices) catch unreachable;
     self.setup();
     return self;
@@ -62,6 +67,7 @@ pub fn fromArrayLists(
     texcoords: std.ArrayList(Vec2),
     colors: std.ArrayList(Vec4),
     indices: std.ArrayList(u32),
+    tangents: std.ArrayList(Vec4),
     take_ownership: bool,
 ) Self {
     var mesh: Self = .{
@@ -70,6 +76,7 @@ pub fn fromArrayLists(
         .normals = normals,
         .texcoords = texcoords,
         .colors = colors,
+        .tangents = tangents,
         .indices = indices,
         .owns_data = take_ownership,
     };
@@ -82,11 +89,12 @@ fn setup(self: *Self) void {
     self.vertex_array.use();
     defer self.vertex_array.disuse();
 
-    self.vertex_array.bufferData(vbo_positions, self.positions.items, .array_buffer, .static_draw);
-    self.vertex_array.bufferData(vbo_normals, self.normals.items, .array_buffer, .static_draw);
-    self.vertex_array.bufferData(vbo_texcoords, self.texcoords.items, .array_buffer, .static_draw);
-    self.vertex_array.bufferData(vbo_colors, self.colors.items, .array_buffer, .static_draw);
-    self.vertex_array.bufferData(vbo_indices, self.indices.items, .element_array_buffer, .static_draw);
+    self.vertex_array.bufferData(vbo_positions, Vec3, self.positions.items, .array_buffer, .static_draw);
+    self.vertex_array.bufferData(vbo_normals, Vec3, self.normals.items, .array_buffer, .static_draw);
+    self.vertex_array.bufferData(vbo_texcoords, Vec2, self.texcoords.items, .array_buffer, .static_draw);
+    self.vertex_array.bufferData(vbo_colors, Vec4, self.colors.items, .array_buffer, .static_draw);
+    self.vertex_array.bufferData(vbo_colors, Vec4, self.tangents.items, .array_buffer, .static_draw);
+    self.vertex_array.bufferData(vbo_indices, u32, self.indices.items, .element_array_buffer, .static_draw);
 }
 
 /// free resources
@@ -97,6 +105,7 @@ pub fn deinit(self: *Self) void {
         self.normals.deinit();
         self.texcoords.deinit();
         self.colors.deinit();
+        self.tangents.deinit();
         self.indices.deinit();
     }
 }
