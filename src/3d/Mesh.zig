@@ -13,8 +13,8 @@ pub const vbo_positions = 0;
 pub const vbo_normals = 1;
 pub const vbo_texcoords = 2;
 pub const vbo_colors = 3;
-pub const vbo_indices = 4;
-pub const vbo_tangents = 5;
+pub const vbo_tangents = 4;
+pub const vbo_indices = 5;
 pub const vbo_num = 6;
 
 /// vertex array
@@ -93,7 +93,7 @@ fn setup(self: *Self) void {
     self.vertex_array.bufferData(vbo_normals, Vec3, self.normals.items, .array_buffer, .static_draw);
     self.vertex_array.bufferData(vbo_texcoords, Vec2, self.texcoords.items, .array_buffer, .static_draw);
     self.vertex_array.bufferData(vbo_colors, Vec4, self.colors.items, .array_buffer, .static_draw);
-    self.vertex_array.bufferData(vbo_colors, Vec4, self.tangents.items, .array_buffer, .static_draw);
+    self.vertex_array.bufferData(vbo_tangents, Vec4, self.tangents.items, .array_buffer, .static_draw);
     self.vertex_array.bufferData(vbo_indices, u32, self.indices.items, .element_array_buffer, .static_draw);
 }
 
