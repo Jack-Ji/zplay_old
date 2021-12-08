@@ -133,27 +133,22 @@ const fs =
     \\    return light_color * (spec * material_specular);
     \\}
     \\
-    \\vec3 applyDirectionalLight(DirectionalLight light)
+    \\vec3 applyDirectionalLight(DirectionalLight light, vec3 material_diffuse, vec3 material_specular, float shiness)
     \\{
     \\    vec3 light_dir = normalize(-light.direction);
     \\    vec3 view_dir = normalize(u_view_pos - v_pos);
-    \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
-    \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
-    \\
     \\    vec3 ambient_color = ambientColor(light.ambient, material_diffuse);
     \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
     \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
-    \\                                        v_normal, material_specular, u_material.shiness);
+    \\                                        v_normal, material_specular, shiness);
     \\    vec3 result = ambient_color + diffuse_color + specular_color;
     \\    return result;
     \\}
     \\
-    \\vec3 applyPointLight(PointLight light)
+    \\vec3 applyPointLight(PointLight light, vec3 material_diffuse, vec3 material_specular, float shiness)
     \\{
     \\    vec3 light_dir = normalize(light.position - v_pos);
     \\    vec3 view_dir = normalize(u_view_pos - v_pos);
-    \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
-    \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
     \\    float distance = length(light.position - v_pos);
     \\    float attenuation = 1.0 / (light.constant + light.linear * distance +
     \\              light.quadratic * distance * distance);
@@ -161,17 +156,15 @@ const fs =
     \\    vec3 ambient_color = ambientColor(light.ambient, material_diffuse);
     \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
     \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
-    \\                                        v_normal, material_specular, u_material.shiness);
+    \\                                        v_normal, material_specular, shiness);
     \\    vec3 result = (ambient_color + diffuse_color + specular_color) * attenuation;
     \\    return result;
     \\}
     \\
-    \\vec3 applySpotLight(SpotLight light)
+    \\vec3 applySpotLight(SpotLight light, vec3 material_diffuse, vec3 material_specular, float shiness)
     \\{
     \\    vec3 light_dir = normalize(light.position - v_pos);
     \\    vec3 view_dir = normalize(u_view_pos - v_pos);
-    \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
-    \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
     \\    float distance = length(light.position - v_pos);
     \\    float attenuation = 1.0 / (light.constant + light.linear * distance +
     \\              light.quadratic * distance * distance);
@@ -182,7 +175,7 @@ const fs =
     \\    vec3 ambient_color = ambientColor(light.ambient, material_diffuse);
     \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
     \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
-    \\                                        v_normal, material_specular, u_material.shiness);
+    \\                                        v_normal, material_specular, shiness);
     \\    vec3 result = ambient_color + (diffuse_color + specular_color) * intensity;
     \\
     \\    return result * attenuation;
@@ -190,12 +183,15 @@ const fs =
     \\
     \\void main()
     \\{
-    \\    vec3 result = applyDirectionalLight(u_directional_light);
+    \\    vec3 material_diffuse = vec3(texture(u_material.diffuse, v_tex));
+    \\    vec3 material_specular = vec3(texture(u_material.specular, v_tex));
+    \\    float shiness = u_material.shiness;
+    \\    vec3 result = applyDirectionalLight(u_directional_light, material_diffuse, material_specular, shiness);
     \\    for (int i = 0; i < u_point_light_count; i++) {
-    \\      result += applyPointLight(u_point_lights[i]);
+    \\      result += applyPointLight(u_point_lights[i], material_diffuse, material_specular, shiness);
     \\    }
     \\    for (int i = 0; i < u_spot_light_count; i++) {
-    \\      result += applySpotLight(u_spot_lights[i]);
+    \\      result += applySpotLight(u_spot_lights[i], material_diffuse, material_specular, shiness);
     \\    }
     \\    frag_color = vec4(result, 1.0);
     \\}
