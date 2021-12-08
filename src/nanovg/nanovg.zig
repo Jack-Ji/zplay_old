@@ -378,7 +378,9 @@ pub fn updateImageRegion(image: Image, data: []const u8, x: u32, y: u32, w: u32,
 }
 
 // Returns the dimensions of a created image.
-// void nvgImageSize(NVGcontext* ctx, int image, int* w, int* h);
+pub fn imageSize(image: Image, w: *u32, h: *u32) void {
+    return api.nvgImageSize(ctx, image.handle, @ptrCast(*c_int, w), @ptrCast(*c_int, h));
+}
 
 // Deletes created image.
 pub fn deleteImage(image: Image) void {

@@ -100,6 +100,9 @@ fn loop(ctx: *zp.Context) void {
     drawLabel("Login", x, y, 280, 20);
     y += 25;
     drawLabel("Diameter", x, y, 280, 20);
+
+    // Thumbnails box
+    drawThumbnails(365, 50, 160, 300, ctx.tick);
 }
 
 fn drawEyes(x: f32, y: f32, w: f32, h: f32, mx: f32, my: f32, t: f32) void {
@@ -519,6 +522,163 @@ fn drawLabel(text: []const u8, x: f32, y: f32, w: f32, h: f32) void {
 
     nvg.textAlign(.{ .horizontal = .left, .vertical = .middle });
     _ = nvg.text(x, y + h * 0.5, text);
+}
+
+fn drawSpinner(cx: f32, cy: f32, r: f32, t: f32) void {
+    var a0: f32 = 0.0 + t * 6;
+    var a1: f32 = math.pi + t * 6;
+    var r0: f32 = r;
+    var r1: f32 = r * 0.75;
+    var ax: f32 = undefined;
+    var ay: f32 = undefined;
+    var bx: f32 = undefined;
+    var by: f32 = undefined;
+    var paint: nvg.Paint = undefined;
+
+    nvg.save();
+
+    nvg.beginPath();
+    nvg.arc(cx, cy, r0, a0, a1, .cw);
+    nvg.arc(cx, cy, r1, a1, a0, .ccw);
+    nvg.closePath();
+    ax = cx + math.cos(a0) * (r0 + r1) * 0.5;
+    ay = cy + math.sin(a0) * (r0 + r1) * 0.5;
+    bx = cx + math.cos(a1) * (r0 + r1) * 0.5;
+    by = cy + math.sin(a1) * (r0 + r1) * 0.5;
+    paint = nvg.linearGradient(ax, ay, bx, by, nvg.rgba(0, 0, 0, 0), nvg.rgba(0, 0, 0, 128));
+    nvg.fillPaint(paint);
+    nvg.fill();
+
+    nvg.restore();
+}
+
+fn drawThumbnails(x: f32, y: f32, w: f32, h: f32, t: f32) void {
+    var cornerRadius: f32 = 3.0;
+    var shadowPaint: nvg.Paint = undefined;
+    var imgPaint: nvg.Paint = undefined;
+    var fadePaint: nvg.Paint = undefined;
+    var ix: f32 = undefined;
+    var iy: f32 = undefined;
+    var iw: f32 = undefined;
+    var ih: f32 = undefined;
+    var thumb: f32 = 60.0;
+    var arry: f32 = 30.5;
+    var imgw: u32 = undefined;
+    var imgh: u32 = undefined;
+    var stackh: f32 = @intToFloat(f32, images.len) / 2 * (thumb + 10) + 10;
+    var i: usize = undefined;
+    var u: f32 = (1 + math.cos(t * 0.5)) * 0.5;
+    var ua: f32 = (1 - math.cos(t * 0.2)) * 0.5;
+    var scrollh: f32 = undefined;
+    var dv: f32 = undefined;
+
+    nvg.save();
+
+    // Drop shadow
+    shadowPaint = nvg.boxGradient(x, y + 4, w, h, cornerRadius * 2, 20, nvg.rgba(0, 0, 0, 128), nvg.rgba(0, 0, 0, 0));
+    nvg.beginPath();
+    nvg.rect(x - 10, y - 10, w + 20, h + 30);
+    nvg.roundedRect(x, y, w, h, cornerRadius);
+    nvg.pathWinding(.cw);
+    nvg.fillPaint(shadowPaint);
+    nvg.fill();
+
+    // Window
+    nvg.beginPath();
+    nvg.roundedRect(x, y, w, h, cornerRadius);
+    nvg.moveTo(x - 10, y + arry);
+    nvg.lineTo(x + 1, y + arry - 11);
+    nvg.lineTo(x + 1, y + arry + 11);
+    nvg.fillColor(nvg.rgba(200, 200, 200, 255));
+    nvg.fill();
+
+    nvg.save();
+    nvg.scissor(x, y, w, h);
+    nvg.translate(0, -(stackh - h) * u);
+
+    dv = 1.0 / @intToFloat(f32, images.len - 1);
+
+    i = 0;
+    while (i < images.len) : (i += 1) {
+        var tx: f32 = undefined;
+        var ty: f32 = undefined;
+        var v: f32 = undefined;
+        var a: f32 = undefined;
+        tx = x + 10;
+        ty = y + 10;
+        tx += @intToFloat(f32, i % 2) * (thumb + 10);
+        ty += @intToFloat(f32, i / 2) * (thumb + 10);
+        nvg.imageSize(images[i], &imgw, &imgh);
+        if (imgw < imgh) {
+            iw = thumb;
+            ih = iw * @intToFloat(f32, imgh) / @intToFloat(f32, imgw);
+            ix = 0;
+            iy = -(ih - thumb) * 0.5;
+        } else {
+            ih = thumb;
+            iw = ih * @intToFloat(f32, imgw) / @intToFloat(f32, imgh);
+            ix = -(iw - thumb) * 0.5;
+            iy = 0;
+        }
+
+        v = @intToFloat(f32, i) * dv;
+        a = std.math.clamp((ua - v) / dv, 0, 1);
+
+        if (a < 1.0)
+            drawSpinner(tx + thumb / 2, ty + thumb / 2, thumb * 0.25, t);
+
+        imgPaint = nvg.imagePattern(tx + ix, ty + iy, iw, ih, 0.0 / 180.0 * math.pi, images[i], a);
+        nvg.beginPath();
+        nvg.roundedRect(tx, ty, thumb, thumb, 5);
+        nvg.fillPaint(imgPaint);
+        nvg.fill();
+
+        shadowPaint = nvg.boxGradient(tx - 1, ty, thumb + 2, thumb + 2, 5, 3, nvg.rgba(0, 0, 0, 128), nvg.rgba(0, 0, 0, 0));
+        nvg.beginPath();
+        nvg.rect(tx - 5, ty - 5, thumb + 10, thumb + 10);
+        nvg.roundedRect(tx, ty, thumb, thumb, 6);
+        nvg.pathWinding(.cw);
+        nvg.fillPaint(shadowPaint);
+        nvg.fill();
+
+        nvg.beginPath();
+        nvg.roundedRect(tx + 0.5, ty + 0.5, thumb - 1, thumb - 1, 4 - 0.5);
+        nvg.strokeWidth(1.0);
+        nvg.strokeColor(nvg.rgba(255, 255, 255, 192));
+        nvg.stroke();
+    }
+    nvg.restore();
+
+    // Hide fades
+    fadePaint = nvg.linearGradient(x, y, x, y + 6, nvg.rgba(200, 200, 200, 255), nvg.rgba(200, 200, 200, 0));
+    nvg.beginPath();
+    nvg.rect(x + 4, y, w - 8, 6);
+    nvg.fillPaint(fadePaint);
+    nvg.fill();
+
+    fadePaint = nvg.linearGradient(x, y + h, x, y + h - 6, nvg.rgba(200, 200, 200, 255), nvg.rgba(200, 200, 200, 0));
+    nvg.beginPath();
+    nvg.rect(x + 4, y + h - 6, w - 8, 6);
+    nvg.fillPaint(fadePaint);
+    nvg.fill();
+
+    // Scroll bar
+    shadowPaint = nvg.boxGradient(x + w - 12 + 1, y + 4 + 1, 8, h - 8, 3, 4, nvg.rgba(0, 0, 0, 32), nvg.rgba(0, 0, 0, 92));
+    nvg.beginPath();
+    nvg.roundedRect(x + w - 12, y + 4, 8, h - 8, 3);
+    nvg.fillPaint(shadowPaint);
+    //	nvg.fillColor( nvg.rgba(255,0,0,128));
+    nvg.fill();
+
+    scrollh = (h / stackh) * (h - 8);
+    shadowPaint = nvg.boxGradient(x + w - 12 - 1, y + 4 + (h - 8 - scrollh) * u - 1, 8, scrollh, 3, 4, nvg.rgba(220, 220, 220, 255), nvg.rgba(128, 128, 128, 255));
+    nvg.beginPath();
+    nvg.roundedRect(x + w - 12 + 1, y + 4 + 1 + (h - 8 - scrollh) * u, 8 - 2, scrollh - 2, 2);
+    nvg.fillPaint(shadowPaint);
+    //	nvg.fillColor( nvg.rgba(0,0,0,128));
+    nvg.fill();
+
+    nvg.restore();
 }
 
 fn quit(ctx: *zp.Context) void {
