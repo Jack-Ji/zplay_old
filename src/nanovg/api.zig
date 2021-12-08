@@ -1,17 +1,10 @@
 pub const struct_NVGcontext = opaque {};
 pub const NVGcontext = struct_NVGcontext;
-const struct_unnamed_2 = extern struct {
+pub const struct_NVGcolor = extern struct {
     r: f32,
     g: f32,
     b: f32,
     a: f32,
-};
-const union_unnamed_1 = extern union {
-    rgba: [4]f32,
-    unnamed_0: struct_unnamed_2,
-};
-pub const struct_NVGcolor = extern struct {
-    unnamed_0: union_unnamed_1,
 };
 pub const NVGcolor = struct_NVGcolor;
 pub const struct_NVGpaint = extern struct {
@@ -161,6 +154,7 @@ pub extern fn nvgCreateImage(ctx: ?*NVGcontext, filename: [*c]const u8, imageFla
 pub extern fn nvgCreateImageMem(ctx: ?*NVGcontext, imageFlags: c_int, data: [*c]u8, ndata: c_int) c_int;
 pub extern fn nvgCreateImageRGBA(ctx: ?*NVGcontext, w: c_int, h: c_int, imageFlags: c_int, data: [*c]const u8) c_int;
 pub extern fn nvgUpdateImage(ctx: ?*NVGcontext, image: c_int, data: [*c]const u8) void;
+pub extern fn nvgUpdateImageRegion(ctx: ?*NVGcontext, image: c_int, data: [*c]const u8, x: c_int, y: c_int, w: c_int, h: c_int) void;
 pub extern fn nvgImageSize(ctx: ?*NVGcontext, image: c_int, w: [*c]c_int, h: [*c]c_int) void;
 pub extern fn nvgDeleteImage(ctx: ?*NVGcontext, image: c_int) void;
 pub extern fn nvgLinearGradient(ctx: ?*NVGcontext, sx: f32, sy: f32, ex: f32, ey: f32, icol: NVGcolor, ocol: NVGcolor) NVGpaint;
@@ -212,49 +206,5 @@ pub extern fn nvgTextBreakLines(ctx: ?*NVGcontext, string: [*c]const u8, end: [*
 pub const NVG_TEXTURE_ALPHA: c_int = 1;
 pub const NVG_TEXTURE_RGBA: c_int = 2;
 pub const enum_NVGtexture = c_uint;
-pub const struct_NVGscissor = extern struct {
-    xform: [6]f32,
-    extent: [2]f32,
-};
-pub const NVGscissor = struct_NVGscissor;
-pub const struct_NVGvertex = extern struct {
-    x: f32,
-    y: f32,
-    u: f32,
-    v: f32,
-};
-pub const NVGvertex = struct_NVGvertex;
-pub const struct_NVGpath = extern struct {
-    first: c_int,
-    count: c_int,
-    closed: u8,
-    nbevel: c_int,
-    fill: [*c]NVGvertex,
-    nfill: c_int,
-    stroke: [*c]NVGvertex,
-    nstroke: c_int,
-    winding: c_int,
-    convex: c_int,
-};
-pub const NVGpath = struct_NVGpath;
-pub const struct_NVGparams = extern struct {
-    userPtr: ?*c_void,
-    edgeAntiAlias: c_int,
-    renderCreate: ?fn (?*c_void) callconv(.C) c_int,
-    renderCreateTexture: ?fn (?*c_void, c_int, c_int, c_int, c_int, [*c]const u8) callconv(.C) c_int,
-    renderDeleteTexture: ?fn (?*c_void, c_int) callconv(.C) c_int,
-    renderUpdateTexture: ?fn (?*c_void, c_int, c_int, c_int, c_int, c_int, [*c]const u8) callconv(.C) c_int,
-    renderGetTextureSize: ?fn (?*c_void, c_int, [*c]c_int, [*c]c_int) callconv(.C) c_int,
-    renderViewport: ?fn (?*c_void, f32, f32, f32) callconv(.C) void,
-    renderCancel: ?fn (?*c_void) callconv(.C) void,
-    renderFlush: ?fn (?*c_void) callconv(.C) void,
-    renderFill: ?fn (?*c_void, [*c]NVGpaint, NVGcompositeOperationState, [*c]NVGscissor, f32, [*c]const f32, [*c]const NVGpath, c_int) callconv(.C) void,
-    renderStroke: ?fn (?*c_void, [*c]NVGpaint, NVGcompositeOperationState, [*c]NVGscissor, f32, f32, [*c]const NVGpath, c_int) callconv(.C) void,
-    renderTriangles: ?fn (?*c_void, [*c]NVGpaint, NVGcompositeOperationState, [*c]NVGscissor, [*c]const NVGvertex, c_int, f32) callconv(.C) void,
-    renderDelete: ?fn (?*c_void) callconv(.C) void,
-};
-pub const NVGparams = struct_NVGparams;
-pub extern fn nvgCreateInternal(params: [*c]NVGparams) ?*NVGcontext;
-pub extern fn nvgDeleteInternal(ctx: ?*NVGcontext) void;
-pub extern fn nvgInternalParams(ctx: ?*NVGcontext) [*c]NVGparams;
-pub extern fn nvgDebugDumpPathCache(ctx: ?*NVGcontext) void;
+pub extern fn nvgCreateGL3(flags: c_int) ?*NVGcontext;
+pub extern fn nvgDeleteGL3(ctx: ?*NVGcontext) void;

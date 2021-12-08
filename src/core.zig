@@ -3,6 +3,7 @@ const sdl = @import("sdl");
 const c = sdl.c;
 const gl = @import("gl/gl.zig");
 const dig = @import("cimgui/imgui.zig");
+const nvg = @import("nanovg/nanovg.zig");
 const event = @import("event.zig");
 
 /// application context
@@ -99,13 +100,13 @@ pub const Context = struct {
     }
 
     /// get position of window
-    pub fn getPosition(self: Context, x: ?*i32, y: ?*i32) void {
-        c.SDL_GetWindowPosition(self._window.ptr, x.?, y.?);
+    pub fn getPosition(self: Context, x: *i32, y: *i32) void {
+        c.SDL_GetWindowPosition(self._window.ptr, x, y);
     }
 
     /// get size of window
-    pub fn getSize(self: Context, w: ?*i32, h: ?*i32) void {
-        c.SDL_GetWindowSize(self._window.ptr, w.?, h.?);
+    pub fn getSize(self: Context, w: *i32, h: *i32) void {
+        c.SDL_GetWindowSize(self._window.ptr, w, h);
     }
 
     /// get key status
@@ -179,6 +180,9 @@ pub const Game = struct {
 
     /// dear imgui switch
     enable_dear_imgui: bool = false,
+
+    /// nanovg switch
+    enable_nanovg: bool = false,
 };
 
 /// entrance point, never return until application is killed
@@ -247,6 +251,11 @@ pub fn run(g: Game) !void {
         try dig.init(context._window);
     }
 
+    // setup nanovg
+    if (g.enable_nanovg) {
+        nvg.init();
+    }
+
     // init before loop
     try g.initFn(&context);
     defer g.quitFn(&context);
@@ -273,5 +282,9 @@ pub fn run(g: Game) !void {
 
     if (g.enable_dear_imgui) {
         dig.deinit();
+    }
+
+    if (g.enable_nanovg) {
+        nvg.deinit();
     }
 }

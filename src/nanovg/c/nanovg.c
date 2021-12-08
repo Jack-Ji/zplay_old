@@ -23,6 +23,7 @@
 
 #include "nanovg.h"
 #define FONTSTASH_IMPLEMENTATION
+#define STBTT_STATIC
 #include "fontstash.h"
 
 #ifndef NVG_NO_STB
@@ -833,6 +834,11 @@ void nvgUpdateImage(NVGcontext* ctx, int image, const unsigned char* data)
 	int w, h;
 	ctx->params.renderGetTextureSize(ctx->params.userPtr, image, &w, &h);
 	ctx->params.renderUpdateTexture(ctx->params.userPtr, image, 0,0, w,h, data);
+}
+
+void nvgUpdateImageRegion(NVGcontext* ctx, int image, const unsigned char* data, int x, int y, int w, int h)
+{
+	ctx->params.renderUpdateTexture(ctx->params.userPtr, image, x,y, w,h, data);
 }
 
 void nvgImageSize(NVGcontext* ctx, int image, int* w, int* h)

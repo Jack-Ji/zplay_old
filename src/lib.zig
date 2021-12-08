@@ -20,8 +20,6 @@ pub const stb = @import("stb/stb.zig");
 pub const dig = @import("cimgui/imgui.zig");
 
 /// nanovg
-/// BUG: not usable because zig isn't fully compliant with C ABI yet
-/// https://github.com/ziglang/zig/issues/1481
 pub const nvg = @import("nanovg/nanovg.zig");
 
 /// cgltf

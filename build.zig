@@ -128,8 +128,10 @@ pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.zi
     // link nanovg
     var nanovg = exe.builder.addStaticLibrary("nanovg", null);
     nanovg.linkLibC();
+    nanovg.addIncludeDir(rootPath() ++ "/src/gl/c/include");
     nanovg.addIncludeDir(rootPath() ++ "/src/nanovg/c");
     nanovg.addCSourceFile(rootPath() ++ "/src/nanovg/c/nanovg.c", flags.items);
+    nanovg.addCSourceFile(rootPath() ++ "/src/nanovg/c/nanovg_gl3_impl.c", flags.items);
     exe.linkLibrary(nanovg);
 
     // use zplay
