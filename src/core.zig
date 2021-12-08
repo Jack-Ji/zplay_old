@@ -264,7 +264,12 @@ pub fn run(g: Game) !void {
 
     // setup nanovg
     if (g.enable_nanovg) {
-        nvg.init(nvg.api.NVG_ANTIALIAS | nvg.api.NVG_STENCIL_STROKES);
+        nvg.init(
+            if (g.enable_msaa)
+                nvg.api.NVG_STENCIL_STROKES
+            else
+                nvg.api.NVG_ANTIALIAS | nvg.api.NVG_STENCIL_STROKES,
+        );
     }
 
     // init before loop
