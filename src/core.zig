@@ -105,8 +105,13 @@ pub const Context = struct {
     }
 
     /// get size of window
-    pub fn getSize(self: Context, w: *i32, h: *i32) void {
+    pub fn getWindowSize(self: Context, w: *i32, h: *i32) void {
         c.SDL_GetWindowSize(self._window.ptr, w, h);
+    }
+
+    /// get size of frame buffer
+    pub fn getFramebufferSize(self: Context, w: *i32, h: *i32) void {
+        c.SDL_GL_GetDrawableSize(self._window.ptr, w, h);
     }
 
     /// get key status
@@ -178,6 +183,9 @@ pub const Game = struct {
     /// relative mouse mode switch
     enable_relative_mouse_mode: bool = false,
 
+    /// enable MSAA
+    enable_msaa: bool = false,
+
     /// dear imgui switch
     enable_dear_imgui: bool = false,
 
@@ -202,9 +210,12 @@ pub fn run(g: Game) !void {
     // decide opengl params
     _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     _ = c.SDL_GL_SetAttribute(c.SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    //_ = c.SDL_GL_SetAttribute(c.SDL_GL_DEPTH_SIZE, 24);
-    //_ = c.SDL_GL_SetAttribute(c.SDL_GL_MULTISAMPLEBUFFERS, c.SDL_TRUE);
-    //_ = c.SDL_GL_SetAttribute(c.SDL_GL_MULTISAMPLESAMPLES, 4);
+    _ = c.SDL_GL_SetAttribute(c.SDL_GL_STENCIL_SIZE, 1);
+    _ = c.SDL_GL_SetAttribute(c.SDL_GL_DEPTH_SIZE, 24);
+    if (g.enable_msaa) {
+        _ = c.SDL_GL_SetAttribute(c.SDL_GL_MULTISAMPLEBUFFERS, 1);
+        _ = c.SDL_GL_SetAttribute(c.SDL_GL_MULTISAMPLESAMPLES, 4);
+    }
 
     // create window
     var flags = sdl.WindowFlags{
@@ -253,7 +264,7 @@ pub fn run(g: Game) !void {
 
     // setup nanovg
     if (g.enable_nanovg) {
-        nvg.init();
+        nvg.init(nvg.api.NVG_ANTIALIAS | nvg.api.NVG_STENCIL_STROKES);
     }
 
     // init before loop

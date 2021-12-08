@@ -67,8 +67,8 @@ pub const ImageFlags = packed struct {
 
 var ctx: *api.NVGcontext = undefined;
 
-pub fn init() void {
-    ctx = api.nvgCreateGL3(0) orelse unreachable;
+pub fn init(flags: c_int) void {
+    ctx = api.nvgCreateGL3(flags) orelse unreachable;
 }
 
 pub fn deinit() void {
@@ -129,26 +129,29 @@ pub fn rgba(r: u8, g: u8, b: u8, a: u8) Color {
 // Returns a color value from red, green, blue and alpha values.
 pub fn rgbaf(r: f32, g: f32, b: f32, a: f32) Color {
     return api.nvgRGBAf(r, g, b, a);
-    //return .{ .unnamed_0 = .{ .rgba = [_]f32{ r, g, b, a }}, .zigpad = undefined };
-    // return .{ .r = r, .g = g, .b = b, .a = a };
 }
 
-// // Linearly interpolates from color c0 to c1, and returns resulting color value.
+// Linearly interpolates from color c0 to c1, and returns resulting color value.
 // NVGcolor nvgLerpRGBA(NVGcolor c0, NVGcolor c1, float u);
 
-// // Sets transparency of a color value.
+// Sets transparency of a color value.
 // NVGcolor nvgTransRGBA(NVGcolor c0, unsigned char a);
 
-// // Sets transparency of a color value.
+// Sets transparency of a color value.
 // NVGcolor nvgTransRGBAf(NVGcolor c0, float a);
 
-// // Returns color value specified by hue, saturation and lightness.
-// // HSL values are all in range [0..1], alpha will be set to 255.
+// Returns color value specified by hue, saturation and lightness.
+// HSL values are all in range [0..1], alpha will be set to 255.
 // NVGcolor nvgHSL(float h, float s, float l);
+pub fn hsl(h: f32, s: f32, l: f32) Color {
+    return hsla(h, s, l, 255);
+}
 
-// // Returns color value specified by hue, saturation and lightness and alpha.
-// // HSL values are all in range [0..1], alpha in range [0..255]
-// NVGcolor nvgHSLA(float h, float s, float l, unsigned char a);
+// Returns color value specified by hue, saturation and lightness and alpha.
+// HSL values are all in range [0..1], alpha in range [0..255]
+pub fn hsla(h: f32, s: f32, l: f32, a: u8) Color {
+    return api.nvgHSLA(h, s, l, a);
+}
 
 //
 // State Handling
@@ -182,10 +185,10 @@ pub fn reset() void {
 //
 // Current render style can be saved and restored using nvgSave() and nvgRestore().
 
-// // Sets whether to draw antialias for nvgStroke() and nvgFill(). It's enabled by default.
+// Sets whether to draw antialias for nvgStroke() and nvgFill(). It's enabled by default.
 // void nvgShapeAntiAlias(NVGcontext* ctx, int enabled);
 
-// // Sets current stroke style to a solid color.
+// Sets current stroke style to a solid color.
 pub fn strokeColor(color: Color) void {
     api.nvgStrokeColor(ctx, color);
 }
@@ -195,7 +198,7 @@ pub fn strokePaint(paint: Paint) void {
     api.nvgStrokePaint(ctx, paint);
 }
 
-// // Sets current fill style to a solid color.
+// Sets current fill style to a solid color.
 pub fn fillColor(color: Color) void {
     api.nvgFillColor(ctx, color);
 }
@@ -205,11 +208,11 @@ pub fn fillPaint(paint: Paint) void {
     api.nvgFillPaint(ctx, paint);
 }
 
-// // Sets the miter limit of the stroke style.
-// // Miter limit controls when a sharp corner is beveled.
+// Sets the miter limit of the stroke style.
+// Miter limit controls when a sharp corner is beveled.
 // void nvgMiterLimit(NVGcontext* ctx, float limit);
 
-// // Sets the stroke width of the stroke style.
+// Sets the stroke width of the stroke style.
 pub fn strokeWidth(size: f32) void {
     api.nvgStrokeWidth(ctx, size);
 }
@@ -277,7 +280,9 @@ pub fn translate(x: f32, y: f32) void {
 }
 
 // Rotates current coordinate system. Angle is specified in radians.
-// void nvgRotate(NVGcontext* ctx, float angle);
+pub fn rotate(angle: f32) void {
+    api.nvgRotate(ctx, angle);
+}
 
 // Skews the current coordinate system along X axis. Angle is specified in radians.
 // void nvgSkewX(NVGcontext* ctx, float angle);
@@ -332,8 +337,12 @@ pub fn scale(x: f32, y: f32) void {
 // void nvgTransformPoint(float* dstx, float* dsty, const float* xform, float srcx, float srcy);
 
 // Converts degrees to radians and vice versa.
-// float nvgDegToRad(float deg);
-// float nvgRadToDeg(float rad);
+pub fn degToRad(deg: f32) f32 {
+    return api.nvgDegToRad(deg);
+}
+pub fn radToDeg(rad: f32) f32 {
+    return api.nvgRadToDeg(rad);
+}
 
 //
 // Images
@@ -348,8 +357,8 @@ pub fn createImage(filename: [:0]const u8, flags: ImageFlags) Image {
     return Image{ .handle = api.nvgCreateImage(ctx, filename.ptr, @bitCast(u6, flags)) };
 }
 
-// // Creates image by loading it from the specified chunk of memory.
-// // Returns handle to the image.
+// Creates image by loading it from the specified chunk of memory.
+// Returns handle to the image.
 // int nvgCreateImageMem(NVGcontext* ctx, int imageFlags, unsigned char* data, int ndata);
 
 // Creates image from specified image data.
@@ -368,7 +377,7 @@ pub fn updateImageRegion(image: Image, data: []const u8, x: u32, y: u32, w: u32,
     api.nvgUpdateImageRegion(ctx, image.handle, data.ptr, @intCast(c_int, x), @intCast(c_int, y), @intCast(c_int, w), @intCast(c_int, h));
 }
 
-// // Returns the dimensions of a created image.
+// Returns the dimensions of a created image.
 // void nvgImageSize(NVGcontext* ctx, int image, int* w, int* h);
 
 // Deletes created image.
@@ -398,11 +407,12 @@ pub fn boxGradient(x: f32, y: f32, w: f32, h: f32, r: f32, f: f32, icol: Color, 
     return api.nvgBoxGradient(ctx, x, y, w, h, r, f, icol, ocol);
 }
 
-// // Creates and returns a radial gradient. Parameters (cx,cy) specify the center, inr and outr specify
-// // the inner and outer radius of the gradient, icol specifies the start color and ocol the end color.
-// // The gradient is transformed by the current transform when it is passed to nvgFillPaint() or nvgStrokePaint().
-// NVGpaint nvgRadialGradient(NVGcontext* ctx, float cx, float cy, float inr, float outr,
-// 						   NVGcolor icol, NVGcolor ocol);
+// Creates and returns a radial gradient. Parameters (cx,cy) specify the center, inr and outr specify
+// the inner and outer radius of the gradient, icol specifies the start color and ocol the end color.
+// The gradient is transformed by the current transform when it is passed to nvgFillPaint() or nvgStrokePaint().
+pub fn radialGradient(cx: f32, cy: f32, inr: f32, outr: f32, icol: Color, ocol: Color) Paint {
+    return api.nvgRadialGradient(ctx, cx, cy, inr, outr, icol, ocol);
+}
 
 // Creates and returns an image patter. Parameters (ox,oy) specify the left-top location of the image pattern,
 // (ex,ey) the size of one image, angle rotation around the top-left corner, image is handle to the image to render.
@@ -423,13 +433,15 @@ pub fn scissor(x: f32, y: f32, w: f32, h: f32) void {
     api.nvgScissor(ctx, x, y, w, h);
 }
 
-// // Intersects current scissor rectangle with the specified rectangle.
-// // The scissor rectangle is transformed by the current transform.
-// // Note: in case the rotation of previous scissor rect differs from
-// // the current one, the intersection will be done between the specified
-// // rectangle and the previous scissor rectangle transformed in the current
-// // transform space. The resulting shape is always rectangle.
-// void nvgIntersectScissor(NVGcontext* ctx, float x, float y, float w, float h);
+// Intersects current scissor rectangle with the specified rectangle.
+// The scissor rectangle is transformed by the current transform.
+// Note: in case the rotation of previous scissor rect differs from
+// the current one, the intersection will be done between the specified
+// rectangle and the previous scissor rectangle transformed in the current
+// transform space. The resulting shape is always rectangle.
+pub fn intersectScissor(x: f32, y: f32, w: f32, h: f32) void {
+    api.nvgIntersectScissor(ctx, x, y, w, h);
+}
 
 // Reset and disables scissoring.
 pub fn resetScissor() void {
@@ -510,7 +522,7 @@ pub fn roundedRect(x: f32, y: f32, w: f32, h: f32, r: f32) void {
     api.nvgRoundedRect(ctx, x, y, w, h, r);
 }
 
-// // Creates new rounded rectangle shaped sub-path with varying radii for each corner.
+// Creates new rounded rectangle shaped sub-path with varying radii for each corner.
 // void nvgRoundedRectVarying(NVGcontext* ctx, float x, float y, float w, float h, float radTopLeft, float radTopRight, float radBottomRight, float radBottomLeft);
 
 // Creates new ellipse shaped sub-path.
@@ -572,17 +584,17 @@ pub fn createFont(name: [:0]const u8, filename: [:0]const u8) i32 {
     return api.nvgCreateFont(ctx, name, filename);
 }
 
-// // fontIndex specifies which font face to load from a .ttf/.ttc file.
+// fontIndex specifies which font face to load from a .ttf/.ttc file.
 // int nvgCreateFontAtIndex(NVGcontext* ctx, const char* name, const char* filename, const int fontIndex);
 
-// // Creates font by loading it from the specified memory chunk.
-// // Returns handle to the font.
+// Creates font by loading it from the specified memory chunk.
+// Returns handle to the font.
 // int nvgCreateFontMem(NVGcontext* ctx, const char* name, unsigned char* data, int ndata, int freeData);
 
-// // fontIndex specifies which font face to load from a .ttf/.ttc file.
+// fontIndex specifies which font face to load from a .ttf/.ttc file.
 // int nvgCreateFontMemAtIndex(NVGcontext* ctx, const char* name, unsigned char* data, int ndata, int freeData, const int fontIndex);
 
-// // Finds a loaded font of specified name, and returns handle to it, or -1 if the font is not found.
+// Finds a loaded font of specified name, and returns handle to it, or -1 if the font is not found.
 // int nvgFindFont(NVGcontext* ctx, const char* name);
 
 // Adds a fallback font by handle.
@@ -590,13 +602,13 @@ pub fn addFallbackFontId(base_font: i32, fallback_font: i32) i32 {
     return api.nvgAddFallbackFontId(ctx, base_font, fallback_font);
 }
 
-// // Adds a fallback font by name.
+// Adds a fallback font by name.
 // int nvgAddFallbackFont(NVGcontext* ctx, const char* baseFont, const char* fallbackFont);
 
-// // Resets fallback fonts by handle.
+// Resets fallback fonts by handle.
 // void nvgResetFallbackFontsId(NVGcontext* ctx, int baseFont);
 
-// // Resets fallback fonts by name.
+// Resets fallback fonts by name.
 // void nvgResetFallbackFonts(NVGcontext* ctx, const char* baseFont);
 
 // Sets the font size of current text style.
@@ -609,10 +621,10 @@ pub fn fontBlur(blur: f32) void {
     api.nvgFontBlur(ctx, blur);
 }
 
-// // Sets the letter spacing of current text style.
+// Sets the letter spacing of current text style.
 // void nvgTextLetterSpacing(NVGcontext* ctx, float spacing);
 
-// // Sets the proportional line height of current text style. The line height is specified as multiple of font size.
+// Sets the proportional line height of current text style. The line height is specified as multiple of font size.
 // void nvgTextLineHeight(NVGcontext* ctx, float lineHeight);
 
 // Sets the text align of current text style, see NVGalign for options.
@@ -636,20 +648,23 @@ pub fn text(x: f32, y: f32, string: []const u8) f32 {
     return api.nvgText(ctx, x, y, std.meta.assumeSentinel(string, 0), string.ptr + string.len);
 }
 
-// // Draws multi-line text string at specified location wrapped at the specified width. If end is specified only the sub-string up to the end is drawn.
-// // White space is stripped at the beginning of the rows, the text is split at word boundaries or when new-line characters are encountered.
-// // Words longer than the max width are slit at nearest character (i.e. no hyphenation).
-// void nvgTextBox(NVGcontext* ctx, float x, float y, float breakRowWidth, const char* string, const char* end);
+// Draws multi-line text string at specified location wrapped at the specified width. If end is specified only the sub-string up to the end is drawn.
+// White space is stripped at the beginning of the rows, the text is split at word boundaries or when new-line characters are encountered.
+// Words longer than the max width are slit at nearest character (i.e. no hyphenation).
+pub fn textBox(x: f32, y: f32, row_width: f32, string: []const u8) void {
+    if (string.len == 0) return;
+    api.nvgTextBox(ctx, x, y, row_width, std.meta.assumeSentinel(string, 0), string.ptr + string.len);
+}
 
-// // Measures the specified text string. Parameter bounds should be a pointer to float[4],
-// // if the bounding box of the text should be returned. The bounds value are [xmin,ymin, xmax,ymax]
-// // Returns the horizontal advance of the measured text (i.e. where the next character should drawn).
-// // Measured values are returned in local coordinate space.
+// Measures the specified text string. Parameter bounds should be a pointer to float[4],
+// if the bounding box of the text should be returned. The bounds value are [xmin,ymin, xmax,ymax]
+// Returns the horizontal advance of the measured text (i.e. where the next character should drawn).
+// Measured values are returned in local coordinate space.
 // float nvgTextBounds(NVGcontext* ctx, float x, float y, const char* string, const char* end, float* bounds);
 
-// // Measures the specified multi-text string. Parameter bounds should be a pointer to float[4],
-// // if the bounding box of the text should be returned. The bounds value are [xmin,ymin, xmax,ymax]
-// // Measured values are returned in local coordinate space.
+// Measures the specified multi-text string. Parameter bounds should be a pointer to float[4],
+// if the bounding box of the text should be returned. The bounds value are [xmin,ymin, xmax,ymax]
+// Measured values are returned in local coordinate space.
 // void nvgTextBoxBounds(NVGcontext* ctx, float x, float y, float breakRowWidth, const char* string, const char* end, float* bounds);
 
 // Calculates the glyph x positions of the specified text. If end is specified only the sub-string will be used.
@@ -665,7 +680,13 @@ pub fn textMetrics(ascender: ?*f32, descender: ?*f32, line_height: ?*f32) void {
     api.nvgTextMetrics(ctx, ascender, descender, line_height);
 }
 
-// // Breaks the specified text into lines. If end is specified only the sub-string will be used.
-// // White space is stripped at the beginning of the rows, the text is split at word boundaries or when new-line characters are encountered.
-// // Words longer than the max width are slit at nearest character (i.e. no hyphenation).
-// int nvgTextBreakLines(NVGcontext* ctx, const char* string, const char* end, float breakRowWidth, NVGtextRow* rows, int maxRows);
+// Breaks the specified text into lines. If end is specified only the sub-string will be used.
+// White space is stripped at the beginning of the rows, the text is split at word boundaries or when new-line characters are encountered.
+// Words longer than the max width are slit at nearest character (i.e. no hyphenation).
+pub fn textBreakLines(string: []const u8, row_width: f32, rows: []api.NVGtextrow) usize {
+    if (string.len == 0) return 0;
+    return @intCast(
+        usize,
+        api.nvgTextBreakLines(ctx, std.meta.assumeSentinel(string, 0), string.ptr + string.len, row_width, rows.ptr, @intCast(c_int, rows.len)),
+    );
+}

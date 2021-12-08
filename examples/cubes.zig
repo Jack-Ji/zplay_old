@@ -142,7 +142,7 @@ fn loop(ctx: *zp.Context) void {
 
     var width: i32 = undefined;
     var height: i32 = undefined;
-    ctx.getSize(&width, &height);
+    ctx.getWindowSize(&width, &height);
 
     gl.util.clear(true, true, false, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
 
