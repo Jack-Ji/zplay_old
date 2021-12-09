@@ -2,13 +2,16 @@ const std = @import("std");
 const math = std.math;
 const zp = @import("zplay");
 const gl = zp.gl;
+const dig = zp.dig;
 const nvg = zp.nvg;
+const nsvg = zp.nsvg;
 
 var font_normal: i32 = undefined;
 var font_bold: i32 = undefined;
 var font_icons: i32 = undefined;
 var font_emoji: i32 = undefined;
 var images: [12]nvg.Image = undefined;
+var svg_data: *nsvg.SVG = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
@@ -46,6 +49,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = nvg.addFallbackFontId(font_normal, font_emoji);
     _ = nvg.addFallbackFontId(font_bold, font_emoji);
 
+    svg_data = nsvg.loadFile("assets/23.svg", null, null) orelse unreachable;
+
     std.log.info("game init", .{});
 }
 
@@ -79,6 +84,10 @@ fn loop(ctx: *zp.Context) void {
 
     gl.util.clear(true, true, true, [_]f32{ 0.3, 0.3, 0.32, 1.0 });
 
+    dig.beginFrame();
+    defer dig.endFrame();
+    dig.showMetricsWindow(null);
+
     nvg.beginFrame(
         @intToFloat(f32, width),
         @intToFloat(f32, height),
@@ -102,7 +111,14 @@ fn loop(ctx: *zp.Context) void {
     drawLabel("Diameter", x, y, 280, 20);
 
     // Thumbnails box
-    drawThumbnails(365, 50, 160, 300, ctx.tick);
+    drawThumbnails(500, 50, 160, 300, ctx.tick);
+
+    // draw svg
+    nvg.save();
+    nvg.translate(100, 100);
+    nvg.scale(0.5, 0.5);
+    nvg.svg(svg_data);
+    nvg.restore();
 }
 
 fn drawEyes(x: f32, y: f32, w: f32, h: f32, mx: f32, my: f32, t: f32) void {
@@ -692,6 +708,7 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .enable_dear_imgui = true,
         .enable_nanovg = true,
         .width = 1000,
         .height = 600,

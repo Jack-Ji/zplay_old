@@ -378,8 +378,8 @@ fn renderMesh(
 
     // attribute settings
     mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_POS, @sizeOf(Vec3), f32, false, 0, 0);
-    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_NORMAL, @sizeOf(Vec2), f32, false, 0, 0);
-    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_TEX, @sizeOf(Vec2), f32, false, 0, 0);
+    mesh.vertex_array.setAttribute(Mesh.vbo_normals, ATTRIB_LOCATION_NORMAL, @sizeOf(Vec3), f32, false, 0, 0);
+    mesh.vertex_array.setAttribute(Mesh.vbo_texcoords, ATTRIB_LOCATION_TEX, @sizeOf(Vec2), f32, false, 0, 0);
 
     // set uniforms
     self.program.setUniformByName("u_model", model);

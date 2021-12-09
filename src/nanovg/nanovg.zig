@@ -1,5 +1,11 @@
 const std = @import("std");
+const assert = std.debug.assert;
+const math = std.math;
 pub const api = @import("api.zig");
+const zp = @import("../lib.zig");
+const alg = zp.alg;
+const Vec2 = alg.Vec2;
+const nsvg = zp.nsvg;
 
 pub const Color = api.NVGcolor;
 
@@ -241,8 +247,17 @@ pub fn lineJoin(join: LineJoin) void {
 
 // Sets the transparency applied to all rendered shapes.
 // Already transparent paths will get proportionally more transparent as well.
-pub fn globalAlpha(alpha: f32) void {
-    api.nvgGlobalAlpha(ctx, alpha);
+pub fn globalAlpha(a: f32) void {
+    api.nvgGlobalAlpha(ctx, a);
+}
+pub fn alpha(a: f32) void {
+    api.nvgAlpha(ctx, a);
+}
+pub fn getGlobalTint() Color {
+    return api.nvgGetGlobalTint(ctx);
+}
+pub fn tint(color: Color) Color {
+    return api.nvgTint(ctx, color);
 }
 
 //
@@ -331,10 +346,17 @@ pub fn scale(x: f32, y: f32) void {
 
 // Sets the destination to inverse of specified transform.
 // Returns 1 if the inverse could be calculated, else 0.
-// int nvgTransformInverse(float* dst, const float* src);
+pub fn transformInverse(dst: []f32, src: []const f32) c_int {
+    assert(src.len == 6);
+    assert(dst.len == 6);
+    return api.nvgTransformInverse(dst.ptr, src.ptr);
+}
 
 // Transform a point by given transform.
-// void nvgTransformPoint(float* dstx, float* dsty, const float* xform, float srcx, float srcy);
+pub fn transformPoint(dstx: *f32, dsty: *f32, xform: []const f32, srcx: f32, srcy: f32) void {
+    assert(xform.len == 6);
+    api.nvgTransformPoint(dstx, dsty, xform.ptr, srcx, srcy);
+}
 
 // Converts degrees to radians and vice versa.
 pub fn degToRad(deg: f32) f32 {
@@ -419,8 +441,8 @@ pub fn radialGradient(cx: f32, cy: f32, inr: f32, outr: f32, icol: Color, ocol: 
 // Creates and returns an image patter. Parameters (ox,oy) specify the left-top location of the image pattern,
 // (ex,ey) the size of one image, angle rotation around the top-left corner, image is handle to the image to render.
 // The gradient is transformed by the current transform when it is passed to nvgFillPaint() or nvgStrokePaint().
-pub fn imagePattern(ox: f32, oy: f32, ex: f32, ey: f32, angle: f32, image: Image, alpha: f32) Paint {
-    return api.nvgImagePattern(ctx, ox, oy, ex, ey, angle, image.handle, alpha);
+pub fn imagePattern(ox: f32, oy: f32, ex: f32, ey: f32, angle: f32, image: Image, a: f32) Paint {
+    return api.nvgImagePattern(ctx, ox, oy, ex, ey, angle, image.handle, a);
 }
 
 //
@@ -691,4 +713,143 @@ pub fn textBreakLines(string: []const u8, row_width: f32, rows: []api.NVGtextrow
         usize,
         api.nvgTextBreakLines(ctx, std.meta.assumeSentinel(string, 0), string.ptr + string.len, row_width, rows.ptr, @intCast(c_int, rows.len)),
     );
+}
+
+/// Draw svg data, loaded via NanoSVG
+pub fn svg(data: *nsvg.api.NSVGimage) void {
+    var shape = data.shapes;
+    while (shape != null) : (shape = shape.*.next) {
+        // visibility
+        if ((shape.*.flags & nsvg.api.NSVG_FLAGS_VISIBLE) == 0) {
+            continue;
+        }
+
+        save();
+
+        if (shape.*.opacity < 1) alpha(shape.*.opacity);
+
+        // build path
+        beginPath();
+
+        // iterate paths
+        var path = shape.*.paths;
+        while (path != null) : (path = path.*.next) {
+            moveTo(path.*.pts[0], path.*.pts[1]);
+            var i: usize = 1;
+            while (i < path.*.npts) : (i += 3) {
+                var p = @ptrCast([*]f32, &path.*.pts[2 * i]);
+                bezierTo(p[0], p[1], p[2], p[3], p[4], p[5]);
+            }
+
+            // close path
+            if (path.*.closed != 0) {
+                closePath();
+            }
+
+            // Compute whether this is a hole or a solid.
+            // Assume that no paths are crossing (usually true for normal SVG graphics).
+            // Also assume that the topology is the same if we use straight lines rather than Beziers (not always the case but usually true).
+            // Using the even-odd fill rule, if we draw a line from a point on the path to a point outside the boundary (e.g. top left) and count the number of times it crosses another path, the parity of this count determines whether the path is a hole (odd) or solid (even).
+            var crossings: u32 = 0;
+            var p0 = Vec2.new(path.*.pts[0], path.*.pts[1]);
+            var p1 = Vec2.new(path.*.bounds[0] - 1.0, path.*.bounds[1] - 1.0);
+            var path2 = shape.*.paths;
+            while (path2 != null) : (path2 = path2.*.next) {
+                if (path2 == path) continue;
+                if (path2.*.npts < 4) continue;
+
+                i = 1;
+                while (i < path2.*.npts + 3) : (i += 3) {
+                    var p = @ptrCast([*c]f32, &path2.*.pts[2 * i]);
+                    var pp = p - 2;
+                    var p2 = Vec2.new(pp[0], pp[1]);
+                    var p3 = if (i < @intCast(usize, path2.*.npts))
+                        Vec2.new(p[4], p[5])
+                    else
+                        Vec2.new(path2.*.pts[0], path2.*.pts[1]);
+                    var crossing = getLineCrossing(p0, p1, p2, p3);
+                    var crossing2 = getLineCrossing(p2, p3, p0, p1);
+                    if (crossing >= 0 and crossing < 1 and crossing2 >= 0) {
+                        crossings += 1;
+                    }
+                }
+            }
+
+            if (crossings % 2 == 0) {
+                pathWinding(.ccw);
+            } else {
+                pathWinding(.cw);
+            }
+        }
+
+        // fill shape
+        if (shape.*.fill.type > 0) {
+            switch (shape.*.fill.type) {
+                nsvg.api.NSVG_PAINT_COLOR => {
+                    const color = getColor(shape.*.fill.unnamed_0.color);
+                    fillColor(color);
+                },
+                nsvg.api.NSVG_PAINT_LINEAR_GRADIENT, nsvg.api.NSVG_PAINT_RADIAL_GRADIENT => {
+                    fillPaint(getPaint(&shape.*.fill));
+                },
+                else => {},
+            }
+            fill();
+        }
+
+        // stroke shape
+        if (shape.*.stroke.type > 0) {
+            switch (shape.*.stroke.type) {
+                nsvg.api.NSVG_PAINT_COLOR => {
+                    const color = getColor(shape.*.stroke.unnamed_0.color);
+                    strokeColor(color);
+                },
+                else => {},
+            }
+            stroke();
+        }
+
+        restore();
+    }
+}
+
+fn getColor(c: c_uint) Color {
+    return rgba(
+        @intCast(u8, (c >> 0) & 0xff),
+        @intCast(u8, (c >> 8) & 0xff),
+        @intCast(u8, (c >> 16) & 0xff),
+        @intCast(u8, (c >> 24) & 0xff),
+    );
+}
+
+fn getPaint(p: *nsvg.api.NSVGpaint) Paint {
+    assert(p.type == nsvg.api.NSVG_PAINT_LINEAR_GRADIENT or p.type == nsvg.api.NSVG_PAINT_RADIAL_GRADIENT);
+    var g = p.unnamed_0.gradient;
+    assert(g.*.nstops >= 1);
+    var icol = getColor(g.*.stops[0].color);
+    var ocol = getColor(g.*.stops[@intCast(usize, g.*.nstops - 1)].color);
+
+    var inverse: [6]f32 = undefined;
+    _ = transformInverse(&inverse, &g.*.xform);
+
+    var s: Vec2 = undefined;
+    var e: Vec2 = undefined;
+    transformPoint(&s.x, &s.y, &inverse, 0, 0);
+    transformPoint(&e.x, &e.y, &inverse, 0, 1);
+
+    return if (p.type == nsvg.api.NSVG_PAINT_LINEAR_GRADIENT)
+        linearGradient(s.x, s.y, e.x, e.y, icol, ocol)
+    else
+        radialGradient(s.x, s.y, 0, 160, icol, ocol);
+}
+
+fn getLineCrossing(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2) f32 {
+    const b = p2.sub(p0);
+    const d = p1.sub(p0);
+    const e = p3.sub(p2);
+    var m = d.x * e.y - d.y * e.x;
+    return if (math.fabs(m) < 1e-6)
+        math.nan(f32)
+    else
+        -(d.x * b.y - d.y * b.x) / m;
 }

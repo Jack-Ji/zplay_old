@@ -22,6 +22,9 @@ pub const dig = @import("cimgui/imgui.zig");
 /// nanovg
 pub const nvg = @import("nanovg/nanovg.zig");
 
+/// nanosvg
+pub const nsvg = @import("nanosvg/nanosvg.zig");
+
 /// cgltf
 pub const cgltf = @import("cgltf/cgltf.zig");
 
