@@ -6,12 +6,12 @@ A simple framework intended for game/tool creation.
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
 * Support image formats: tga/png/jpeg
 * Support audio formats: mp3/ogg (TODO)
-* GlTF 2.0 file support
+* glTF 2.0 file support
 * Sprite system (TODO)
 * Collision system (TODO)
 * Particle system (TODO)
 * Dear-imgui and extensions(implot/imnodes) integration 
-* Nanovg/nanosvg integration
+* NanoVG/NanoSVG integration
 
 # INSTALL
 1. Download and install latest zig branch
