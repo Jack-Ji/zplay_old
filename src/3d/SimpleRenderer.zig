@@ -193,8 +193,8 @@ fn renderMesh(
 
     // issue draw call
     if (mesh.indices) |ids| {
-        gl.util.drawElements(.triangles, 0, ids.items.len, u32, instance_count);
+        gl.util.drawElements(mesh.primitive_type, 0, ids.items.len, u32, instance_count);
     } else {
-        gl.util.drawBuffer(.triangles, 0, mesh.positions.items.len, instance_count);
+        gl.util.drawBuffer(mesh.primitive_type, 0, mesh.positions.items.len, instance_count);
     }
 }

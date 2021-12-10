@@ -1,11 +1,19 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const zp = @import("../lib.zig");
+const gl = zp.gl;
 const alg = zp.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 pub const api = @import("api.zig");
+
+pub const Data = api.cgltf_data;
+pub const Scene = api.cgltf_scene;
+pub const Node = api.cgltf_node;
+pub const Mesh = api.cgltf_mesh;
+pub const Primitive = api.cgltf_primitive;
+pub const Material = api.cgltf_material;
 
 pub const Error = error{
     data_too_short,
@@ -22,15 +30,15 @@ pub const Error = error{
 
 fn resultToError(result: api.cgltf_result) Error {
     return switch (result) {
-        api.cgltf_result_data_too_short => .data_too_short,
-        api.cgltf_result_unknown_format => .unknown_format,
-        api.cgltf_result_invalid_json => .invalid_json,
-        api.cgltf_result_invalid_gltf => .invalid_gltf,
-        api.cgltf_result_invalid_options => .invalid_options,
-        api.cgltf_result_file_not_found => .file_not_found,
-        api.cgltf_result_io_error => .io_error,
-        api.cgltf_result_out_of_memory => .out_of_memory,
-        api.cgltf_result_legacy_gltf => .legacy_gltf,
+        api.cgltf_result_data_too_short => error.data_too_short,
+        api.cgltf_result_unknown_format => error.unknown_format,
+        api.cgltf_result_invalid_json => error.invalid_json,
+        api.cgltf_result_invalid_gltf => error.invalid_gltf,
+        api.cgltf_result_invalid_options => error.invalid_options,
+        api.cgltf_result_file_not_found => error.file_not_found,
+        api.cgltf_result_io_error => error.io_error,
+        api.cgltf_result_out_of_memory => error.out_of_memory,
+        api.cgltf_result_legacy_gltf => error.legacy_gltf,
         else => {
             std.debug.panic("unknown error!", .{});
         },
@@ -38,10 +46,15 @@ fn resultToError(result: api.cgltf_result) Error {
 }
 
 /// parse gltf from data bytes, also load buffers if gltf_path is valid
-pub fn loadBuffer(data: []const u8, gltf_path: ?[]const u8, options: ?api.cgltf_options) Error!*api.cgltf_data {
+pub fn loadBuffer(data: []const u8, gltf_path: ?[]const u8, options: ?api.cgltf_options) Error!*Data {
     const parse_option = options orelse std.mem.zeroes(api.cgltf_options);
-    const out: *api.cgltf_data = undefined;
-    const result = api.cgltf_parse(&parse_option, data.ptr, data.len, &out);
+    var out: *Data = undefined;
+    var result = api.cgltf_parse(
+        &parse_option,
+        data.ptr,
+        data.len,
+        @ptrCast([*c][*c]Data, &out),
+    );
     if (result != api.cgltf_result_success) {
         return resultToError(result);
     }
@@ -53,25 +66,27 @@ pub fn loadBuffer(data: []const u8, gltf_path: ?[]const u8, options: ?api.cgltf_
             return resultToError(result);
         }
     }
-
-    return resultToError(result);
+    return out;
 }
 
 /// parse gltf from file, and load buffers (assuming assets are in the same directory)
-pub fn loadFile(path: [:0]const u8, options: ?api.cgltf_options) Error!*api.cgltf_data {
+pub fn loadFile(filename: [:0]const u8, options: ?api.cgltf_options) Error!*Data {
     const parse_option = options orelse std.mem.zeroes(api.cgltf_options);
-    const out: *api.cgltf_data = undefined;
-    const result = api.cgltf_parse_file(&parse_option, path.ptr, &out);
+    var out: *Data = undefined;
+    var result = api.cgltf_parse_file(
+        &parse_option,
+        filename.ptr,
+        @ptrCast([*c][*c]Data, &out),
+    );
     if (result != api.cgltf_result_success) {
         return resultToError(result);
     }
     errdefer free(out);
 
-    result = api.cgltf_load_buffers(&parse_option, out, path.ptr);
+    result = api.cgltf_load_buffers(&parse_option, out, filename.ptr);
     if (result != api.cgltf_result_success) {
         return resultToError(result);
     }
-
     return out;
 }
 
@@ -100,12 +115,12 @@ pub fn readFromAccessor(accessor: *api.cgltf_accessor, index: ?usize, T: type, o
     }
 }
 
-pub fn free(data: *api.cgltf_data) void {
+pub fn free(data: *Data) void {
     api.cgltf_free(data);
 }
 
-fn appendMeshPrimitive(
-    data: *api.cgltf_data,
+pub fn appendMeshPrimitiveByIndex(
+    data: *Data,
     mesh_index: u32,
     prim_index: u32,
     indices: *std.ArrayList(u32),
@@ -116,14 +131,32 @@ fn appendMeshPrimitive(
 ) void {
     assert(mesh_index < data.meshes_count);
     assert(prim_index < data.meshes[mesh_index].primitives_count);
-    const num_vertices: u32 = @intCast(u32, data.meshes[mesh_index].primitives[prim_index].attributes[0].data.*.count);
-    const num_indices: u32 = @intCast(u32, data.meshes[mesh_index].primitives[prim_index].indices.*.count);
+    appendMeshPrimitive(
+        &data.meshes[mesh_index].primitives[prim_index],
+        indices,
+        positions,
+        normals,
+        texcoords0,
+        tangents,
+    );
+}
+
+pub fn appendMeshPrimitive(
+    primitive: *const Primitive,
+    indices: *std.ArrayList(u32),
+    positions: *std.ArrayList(Vec3),
+    normals: ?*std.ArrayList(Vec3),
+    texcoords0: ?*std.ArrayList(Vec2),
+    tangents: ?*std.ArrayList(Vec4),
+) void {
+    const num_vertices: u32 = @intCast(u32, primitive.attributes[0].data.*.count);
+    const num_indices: u32 = @intCast(u32, primitive.indices.*.count);
 
     // Indices.
     {
         indices.ensureTotalCapacity(indices.items.len + num_indices) catch unreachable;
 
-        const accessor = data.meshes[mesh_index].primitives[prim_index].indices;
+        const accessor = primitive.indices;
 
         assert(accessor.*.buffer_view != null);
         assert(accessor.*.stride == accessor.*.buffer_view.*.stride or accessor.*.buffer_view.*.stride == 0);
@@ -166,11 +199,11 @@ fn appendMeshPrimitive(
         if (texcoords0 != null) texcoords0.?.resize(texcoords0.?.items.len + num_vertices) catch unreachable;
         if (tangents != null) tangents.?.resize(tangents.?.items.len + num_vertices) catch unreachable;
 
-        const num_attribs: u32 = @intCast(u32, data.meshes[mesh_index].primitives[prim_index].attributes_count);
+        const num_attribs: u32 = @intCast(u32, primitive.attributes_count);
 
         var attrib_index: u32 = 0;
         while (attrib_index < num_attribs) : (attrib_index += 1) {
-            const attrib = &data.meshes[mesh_index].primitives[prim_index].attributes[attrib_index];
+            const attrib = &primitive.attributes[attrib_index];
             const accessor = attrib.data;
 
             assert(accessor.*.buffer_view != null);
@@ -216,4 +249,17 @@ fn appendMeshPrimitive(
             }
         }
     }
+}
+
+pub fn getPrimitiveType(primitive: *Primitive) gl.util.PrimitiveType {
+    return switch (primitive.type) {
+        api.cgltf_primitive_type_points => .points,
+        api.cgltf_primitive_type_lines => .lines,
+        api.cgltf_primitive_type_line_loop => .line_loop,
+        api.cgltf_primitive_type_line_strip => .line_strip,
+        api.cgltf_primitive_type_triangles => .triangles,
+        api.cgltf_primitive_type_triangle_strip => .triangle_strip,
+        api.cgltf_primitive_type_triangle_fan => .triangle_fan,
+        else => unreachable,
+    };
 }

@@ -22,6 +22,9 @@ pub const vbo_num = 6;
 /// each vertex has multiple properties (see VertexAttribute)
 vertex_array: gl.VertexArray = undefined,
 
+/// primitive type
+primitive_type: gl.util.PrimitiveType = undefined,
+
 /// vertex attribute
 positions: std.ArrayList(Vec3) = undefined,
 normals: ?std.ArrayList(Vec3) = null,
@@ -34,6 +37,7 @@ owns_data: bool = undefined,
 /// allocate and initialize Mesh instance
 pub fn init(
     allocator: std.mem.Allocator,
+    primitive_type: gl.util.PrimitiveType,
     positions: []const Vec3,
     indices: ?[]const u32,
     normals: ?[]const Vec3,
@@ -42,30 +46,31 @@ pub fn init(
     tangents: ?[]const Vec4,
 ) Self {
     var self: Self = .{
+        .primitive_type = primitive_type,
         .vertex_array = gl.VertexArray.init(vbo_num),
         .positions = std.ArrayList(Vec3).initCapacity(allocator, positions.len) catch unreachable,
         .owns_data = true,
     };
-    self.positions.appendSlice(positions) catch unreachable;
+    self.positions.appendSliceAssumeCapacity(positions);
     if (indices) |ids| {
         self.indices = std.ArrayList(u32).initCapacity(allocator, ids.len) catch unreachable;
-        self.indices.?.appendSlice(ids) catch unreachable;
+        self.indices.?.appendSliceAssumeCapacity(ids);
     }
     if (normals) |ns| {
         self.normals = std.ArrayList(Vec3).initCapacity(allocator, ns.len) catch unreachable;
-        self.normals.?.appendSlice(ns) catch unreachable;
+        self.normals.?.appendSliceAssumeCapacity(ns);
     }
     if (texcoords) |ts| {
         self.texcoords = std.ArrayList(Vec2).initCapacity(allocator, ts.len) catch unreachable;
-        self.texcoords.?.appendSlice(ts) catch unreachable;
+        self.texcoords.?.appendSliceAssumeCapacity(ts);
     }
     if (colors) |cs| {
         self.colors = std.ArrayList(Vec4).initCapacity(allocator, cs.len) catch unreachable;
-        self.colors.?.appendSlice(cs) catch unreachable;
+        self.colors.?.appendSliceAssumeCapacity(cs);
     }
     if (tangents) |ts| {
         self.tangents = std.ArrayList(Vec4).initCapacity(allocator, ts.len) catch unreachable;
-        self.tangents.?.appendSlice(ts) catch unreachable;
+        self.tangents.?.appendSliceAssumeCapacity(ts);
     }
     self.setup();
     return self;
@@ -73,6 +78,7 @@ pub fn init(
 
 /// create Mesh, maybe taking ownership of given arrays
 pub fn fromArrayLists(
+    primitive_type: gl.util.PrimitiveType,
     positions: std.ArrayList(Vec3),
     indices: ?std.ArrayList(u32),
     normals: ?std.ArrayList(Vec3),
@@ -82,6 +88,7 @@ pub fn fromArrayLists(
     take_ownership: bool,
 ) Self {
     var mesh: Self = .{
+        .primitive_type = primitive_type,
         .vertex_array = gl.VertexArray.init(vbo_num),
         .positions = positions,
         .normals = normals,
@@ -178,6 +185,7 @@ pub fn genCube(
 
     return init(
         allocator,
+        .triangles,
         &positions,
         null,
         &normals,
