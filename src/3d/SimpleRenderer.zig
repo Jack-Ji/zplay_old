@@ -116,13 +116,13 @@ fn render(
     vertex_array: gl.VertexArray,
     use_elements: bool,
     primitive: gl.util.PrimitiveType,
-    offset: usize,
-    count: usize,
+    offset: u32,
+    count: u32,
     model: Mat4,
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
-    instance_count: ?usize,
+    instance_count: ?u32,
 ) !void {
     if (!self.program.isUsing()) {
         return error.renderer_not_active;
@@ -159,7 +159,7 @@ fn renderMesh(
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
-    instance_count: ?usize,
+    instance_count: ?u32,
 ) !void {
     if (!self.program.isUsing()) {
         return error.renderer_not_active;
@@ -193,8 +193,8 @@ fn renderMesh(
 
     // issue draw call
     if (mesh.indices) |ids| {
-        gl.util.drawElements(mesh.primitive_type, 0, ids.items.len, u32, instance_count);
+        gl.util.drawElements(mesh.primitive_type, 0, @intCast(u32, ids.items.len), u32, instance_count);
     } else {
-        gl.util.drawBuffer(mesh.primitive_type, 0, mesh.positions.items.len, instance_count);
+        gl.util.drawBuffer(mesh.primitive_type, 0, @intCast(u32, mesh.positions.items.len), instance_count);
     }
 }

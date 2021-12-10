@@ -162,7 +162,7 @@ pub fn processEvent(e: event.Event) bool {
         .keyboard_event => |ee| {
             const key = ee.scan_code;
             const mod_state = c.SDL_GetModState();
-            io.KeysDown[@intCast(usize, @enumToInt(key))] = (ee.trigger_type == .down);
+            io.KeysDown[@intCast(u32, @enumToInt(key))] = (ee.trigger_type == .down);
             io.KeyShift = ((mod_state & c.KMOD_SHIFT) != 0);
             io.KeyCtrl = ((mod_state & c.KMOD_CTRL) != 0);
             io.KeyAlt = ((mod_state & c.KMOD_ALT) != 0);
@@ -335,7 +335,7 @@ fn updateMouseCursor() void {
         _ = c.SDL_ShowCursor(c.SDL_FALSE);
     } else {
         // show OS mouse cursor
-        if (bd.mouse_cursors[@intCast(usize, cursor)]) |cs| {
+        if (bd.mouse_cursors[@intCast(u32, cursor)]) |cs| {
             c.SDL_SetCursor(cs);
         } else {
             c.SDL_SetCursor(bd.mouse_cursors[api.ImGuiMouseCursor_Arrow]);
@@ -387,9 +387,9 @@ inline fn mapButton(
     button: c_int,
 ) void {
     if (c.SDL_GameControllerGetButton(controller, button) != 0) {
-        io.NavInputs[@intCast(usize, input)] = 1.0;
+        io.NavInputs[@intCast(u32, input)] = 1.0;
     } else {
-        io.NavInputs[@intCast(usize, input)] = 0.0;
+        io.NavInputs[@intCast(u32, input)] = 0.0;
     }
 }
 
@@ -404,8 +404,8 @@ inline fn mapAnalog(
     var vn = @intToFloat(f32, c.SDL_GameControllerGetAxis(controller, axis) - v0) / @intToFloat(f32, v1 - v0);
     if (vn > 1.0)
         vn = 1.0;
-    if (vn > 0 and vn > io.NavInputs[@intCast(usize, input)])
-        io.NavInputs[@intCast(usize, input)] = vn;
+    if (vn > 0 and vn > io.NavInputs[@intCast(u32, input)])
+        io.NavInputs[@intCast(u32, input)] = vn;
 }
 
 // TODO: use sdl binding if possible, have to get my own because of compile issue

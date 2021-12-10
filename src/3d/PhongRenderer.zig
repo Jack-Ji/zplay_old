@@ -244,19 +244,19 @@ pub fn setDirLight(self: *Self, light: Light) void {
 }
 
 /// add point/spot light
-pub fn addLight(self: *Self, light: Light) !usize {
+pub fn addLight(self: *Self, light: Light) !u32 {
     switch (light.getType()) {
         .point => {
             if (self.point_lights.items.len == max_point_light_num)
                 return error.too_many_point_lights;
             try self.point_lights.append(light);
-            return self.point_lights.items.len - 1;
+            return @intCast(u32, self.point_lights.items.len - 1);
         },
         .spot => {
             if (self.spot_lights.items.len == max_spot_light_num)
                 return error.too_many_spot_lights;
             try self.spot_lights.append(light);
-            return self.spot_lights.items.len - 1;
+            return @intCast(u32, self.spot_lights.items.len - 1);
         },
         else => {
             std.debug.panic("invalid light type!", .{});
@@ -331,13 +331,13 @@ fn render(
     vertex_array: gl.VertexArray,
     use_elements: bool,
     primitive: gl.util.PrimitiveType,
-    offset: usize,
-    count: usize,
+    offset: u32,
+    count: u32,
     model: Mat4,
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
-    instance_count: ?usize,
+    instance_count: ?u32,
 ) !void {
     if (!self.program.isUsing()) {
         return error.renderer_not_active;
@@ -368,7 +368,7 @@ fn renderMesh(
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
-    instance_count: ?usize,
+    instance_count: ?u32,
 ) !void {
     if (!self.program.isUsing()) {
         return error.renderer_not_active;
@@ -394,8 +394,8 @@ fn renderMesh(
 
     // issue draw call
     if (mesh.indices) |ids| {
-        gl.util.drawElements(mesh.primitive_type, 0, ids.items.len, u32, instance_count);
+        gl.util.drawElements(mesh.primitive_type, 0, @intCast(u32, ids.items.len), u32, instance_count);
     } else {
-        gl.util.drawBuffer(mesh.primitive_type, 0, mesh.positions.items.len, instance_count);
+        gl.util.drawBuffer(mesh.primitive_type, 0, @intCast(u32, mesh.positions.items.len), instance_count);
     }
 }

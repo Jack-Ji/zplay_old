@@ -111,9 +111,9 @@ pub fn clear(
 /// issue draw call
 pub fn drawBuffer(
     primitive: PrimitiveType,
-    offset: usize,
-    vertex_count: usize,
-    instance_count: ?usize,
+    offset: u32,
+    vertex_count: u32,
+    instance_count: ?u32,
 ) void {
     if (instance_count) |count| {
         gl.drawArraysInstanced(
@@ -135,10 +135,10 @@ pub fn drawBuffer(
 /// issue draw call (only accept unsigned-integer indices!)
 pub fn drawElements(
     primitive: PrimitiveType,
-    offset: usize,
-    element_count: usize,
+    offset: u32,
+    element_count: u32,
     comptime ElementType: type,
-    instance_count: ?usize,
+    instance_count: ?u32,
 ) void {
     if (ElementType != u16 and ElementType != u32) {
         std.debug.panic("unsupported element type!", .{});

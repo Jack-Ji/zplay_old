@@ -36,7 +36,7 @@ pub fn init(
         std.debug.panic(
             "compile vertex shader failed, error log:\n{s}" ++
                 "\n\n>>>>> full shader source <<<<<\n{s}\n",
-            .{ shader_log[0..@intCast(usize, log_size)], prettifySource(vs_source) },
+            .{ shader_log[0..@intCast(u32, log_size)], prettifySource(vs_source) },
         );
     }
     gl.util.checkError();
@@ -52,7 +52,7 @@ pub fn init(
         std.debug.panic(
             "compile fragment shader failed, error log:\n{s}" ++
                 "\n\n>>>>> full shader source <<<<<\n{s}\n",
-            .{ shader_log[0..@intCast(usize, log_size)], prettifySource(fs_source) },
+            .{ shader_log[0..@intCast(u32, log_size)], prettifySource(fs_source) },
         );
     }
     gl.util.checkError();
@@ -69,7 +69,7 @@ pub fn init(
             "link shader program failed, error log:\n{s}" ++
                 "\n\n>>>>> vertex shader source <<<<<\n{s}" ++
                 "\n\n>>>>> fragment shader source <<<<<\n{s}\n",
-            .{ shader_log[0..@intCast(usize, log_size)], prettifySource(vs_source), prettifySource(fs_source) },
+            .{ shader_log[0..@intCast(u32, log_size)], prettifySource(vs_source), prettifySource(fs_source) },
         );
     }
     gl.util.checkError();
@@ -237,12 +237,12 @@ pub fn setAttributeDefaultValue(self: Self, _loc: gl.GLint, v: anytype) void {
 /// caller is responsible for freeing the returned buffer
 fn prettifySource(source: [:0]const u8) []u8 {
     const buf = allocator.alloc(u8, 16 * 1024) catch unreachable;
-    var line_num: usize = 1;
+    var line_num: u32 = 1;
     var it = std.mem.split(u8, source, "\n");
-    var off: usize = 0;
+    var off: u32 = 0;
     while (it.next()) |s| : (line_num += 1) {
         const ws = std.fmt.bufPrint(buf[off..], "{d:0>4}| {s}\n", .{ line_num, s }) catch unreachable;
-        off += ws.len;
+        off += @intCast(u32, ws.len);
     }
     std.debug.print("line_num is {d} {d}\n", .{ line_num, off });
     return buf[0..off];

@@ -12,8 +12,8 @@ pub const Error = error{
 tex: gl.Texture = undefined,
 
 /// size of texture
-width: usize = undefined,
-height: usize = undefined,
+width: u32 = undefined,
+height: u32 = undefined,
 
 /// format of texture
 format: gl.Texture.ImageFormat = undefined,
@@ -22,8 +22,8 @@ format: gl.Texture.ImageFormat = undefined,
 pub fn init(
     pixel_data: []const u8,
     format: gl.Texture.ImageFormat,
-    width: usize,
-    height: usize,
+    width: u32,
+    height: u32,
     texture_unit: ?gl.Texture.TextureUnit,
 ) Self {
     var tex = gl.Texture.init(.texture_2d);
@@ -43,8 +43,8 @@ pub fn init(
 
     return Self{
         .tex = tex,
-        .width = @intCast(usize, width),
-        .height = @intCast(usize, height),
+        .width = @intCast(u32, width),
+        .height = @intCast(u32, height),
         .format = format,
     };
 }
@@ -77,7 +77,7 @@ pub fn fromFilePath(
     defer stb_image.stbi_image_free(image_data);
 
     return Self.init(
-        image_data[0..@intCast(usize, width * height * channels)],
+        image_data[0..@intCast(u32, width * height * channels)],
         switch (channels) {
             3 => .rgb,
             4 => .rgba,
@@ -86,8 +86,8 @@ pub fn fromFilePath(
                 .{ file_path, width, height, channels },
             ),
         },
-        @intCast(usize, width),
-        @intCast(usize, height),
+        @intCast(u32, width),
+        @intCast(u32, height),
         texture_unit,
     );
 }
@@ -117,7 +117,7 @@ pub fn fromFileData(
     defer stb_image.stbi_image_free(image_data);
 
     return Self.init(
-        image_data[0..@intCast(usize, width * height * channels)],
+        image_data[0..@intCast(u32, width * height * channels)],
         switch (channels) {
             3 => .rgb,
             4 => .rgba,
@@ -126,8 +126,8 @@ pub fn fromFileData(
                 .{ width, height, channels },
             ),
         },
-        @intCast(usize, width),
-        @intCast(usize, height),
+        @intCast(u32, width),
+        @intCast(u32, height),
         texture_unit,
     );
 }

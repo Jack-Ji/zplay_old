@@ -707,10 +707,10 @@ pub fn textMetrics(ascender: ?*f32, descender: ?*f32, line_height: ?*f32) void {
 // Breaks the specified text into lines. If end is specified only the sub-string will be used.
 // White space is stripped at the beginning of the rows, the text is split at word boundaries or when new-line characters are encountered.
 // Words longer than the max width are slit at nearest character (i.e. no hyphenation).
-pub fn textBreakLines(string: []const u8, row_width: f32, rows: []api.NVGtextrow) usize {
+pub fn textBreakLines(string: []const u8, row_width: f32, rows: []api.NVGtextrow) u32 {
     if (string.len == 0) return 0;
     return @intCast(
-        usize,
+        u32,
         api.nvgTextBreakLines(ctx, std.meta.assumeSentinel(string, 0), string.ptr + string.len, row_width, rows.ptr, @intCast(c_int, rows.len)),
     );
 }
@@ -735,7 +735,7 @@ pub fn svg(data: *nsvg.api.NSVGimage) void {
         var path = shape.*.paths;
         while (path != null) : (path = path.*.next) {
             moveTo(path.*.pts[0], path.*.pts[1]);
-            var i: usize = 1;
+            var i: u32 = 1;
             while (i < path.*.npts) : (i += 3) {
                 var p = @ptrCast([*]f32, &path.*.pts[2 * i]);
                 bezierTo(p[0], p[1], p[2], p[3], p[4], p[5]);
@@ -763,7 +763,7 @@ pub fn svg(data: *nsvg.api.NSVGimage) void {
                     var p = @ptrCast([*c]f32, &path2.*.pts[2 * i]);
                     var pp = p - 2;
                     var p2 = Vec2.new(pp[0], pp[1]);
-                    var p3 = if (i < @intCast(usize, path2.*.npts))
+                    var p3 = if (i < @intCast(u32, path2.*.npts))
                         Vec2.new(p[4], p[5])
                     else
                         Vec2.new(path2.*.pts[0], path2.*.pts[1]);
@@ -827,7 +827,7 @@ fn getPaint(p: *nsvg.api.NSVGpaint) Paint {
     var g = p.unnamed_0.gradient;
     assert(g.*.nstops >= 1);
     var icol = getColor(g.*.stops[0].color);
-    var ocol = getColor(g.*.stops[@intCast(usize, g.*.nstops - 1)].color);
+    var ocol = getColor(g.*.stops[@intCast(u32, g.*.nstops - 1)].color);
 
     var inverse: [6]f32 = undefined;
     _ = transformInverse(&inverse, &g.*.xform);

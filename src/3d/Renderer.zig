@@ -27,13 +27,13 @@ pub const VTable = struct {
         vertex_array: gl.VertexArray,
         use_elements: bool,
         primitive: gl.util.PrimitiveType,
-        offset: usize,
-        count: usize,
+        offset: u32,
+        count: u32,
         model: Mat4,
         projection: Mat4,
         camera: ?Camera,
         material: ?Material,
-        instance_count: ?usize,
+        instance_count: ?u32,
     ) anyerror!void,
 
     /// mesh rendering
@@ -44,7 +44,7 @@ pub const VTable = struct {
         projection: Mat4,
         camera: ?Camera,
         material: ?Material,
-        instance_count: ?usize,
+        instance_count: ?u32,
     ) anyerror!void,
 };
 
@@ -57,13 +57,13 @@ pub fn init(
         vertex_array: gl.VertexArray,
         use_elements: bool,
         primitive: gl.util.PrimitiveType,
-        offset: usize,
-        count: usize,
+        offset: u32,
+        count: u32,
         model: Mat4,
         projection: Mat4,
         camera: ?Camera,
         material: ?Material,
-        instance_count: ?usize,
+        instance_count: ?u32,
     ) anyerror!void,
     comptime renderMeshFn: fn (
         ptr: @TypeOf(pointer),
@@ -72,7 +72,7 @@ pub fn init(
         projection: Mat4,
         camera: ?Camera,
         material: ?Material,
-        instance_count: ?usize,
+        instance_count: ?u32,
     ) anyerror!void,
 ) Renderer {
     const Ptr = @TypeOf(pointer);
@@ -97,13 +97,13 @@ pub fn init(
             vertex_array: gl.VertexArray,
             use_elements: bool,
             primitive: gl.util.PrimitiveType,
-            offset: usize,
-            count: usize,
+            offset: u32,
+            count: u32,
             model: Mat4,
             projection: Mat4,
             camera: ?Camera,
             material: ?Material,
-            instance_count: ?usize,
+            instance_count: ?u32,
         ) anyerror!void {
             const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
             return @call(.{ .modifier = .always_inline }, renderFn, .{
@@ -128,7 +128,7 @@ pub fn init(
             projection: Mat4,
             camera: ?Camera,
             material: ?Material,
-            instance_count: ?usize,
+            instance_count: ?u32,
         ) anyerror!void {
             const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
             return @call(.{ .modifier = .always_inline }, renderMeshFn, .{
@@ -169,13 +169,13 @@ pub fn render(
     vertex_array: gl.VertexArray,
     use_elements: bool,
     primitive: gl.util.PrimitiveType,
-    offset: usize,
-    count: usize,
+    offset: u32,
+    count: u32,
     model: Mat4,
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
-    instance_count: ?usize,
+    instance_count: ?u32,
 ) anyerror!void {
     return renderer.vtable.renderFn(
         renderer.ptr,
@@ -200,7 +200,7 @@ pub fn renderMesh(
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
-    instance_count: ?usize,
+    instance_count: ?u32,
 ) anyerror!void {
     return renderer.vtable.renderMeshFn(
         renderer.ptr,

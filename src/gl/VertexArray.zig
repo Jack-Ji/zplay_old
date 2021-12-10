@@ -36,10 +36,10 @@ id: gl.GLuint = undefined,
 
 /// buffer objects
 vbos: [MAX_VBO_NUM]gl.GLuint = undefined,
-vbo_num: usize = undefined,
+vbo_num: u32 = undefined,
 
 /// init vertex array
-pub fn init(vbo_num: usize) Self {
+pub fn init(vbo_num: u32) Self {
     if (vbo_num == 0) {
         std.debug.panic("invalid parameter", .{});
     }
@@ -68,7 +68,7 @@ pub fn deinit(self: *Self) void {
 /// update buffer data
 pub fn bufferData(
     self: Self,
-    vbo_index: usize,
+    vbo_index: u32,
     comptime T: type,
     data: []const T,
     target: BufferTarget,
@@ -91,12 +91,12 @@ pub fn bufferData(
 // set vertex attribute (will enable attribute afterwards)
 pub fn setAttribute(
     self: Self,
-    vbo_index: usize,
+    vbo_index: u32,
     loc: gl.GLuint,
     size: u32,
     comptime T: type,
     normalized: bool,
-    stride: usize,
+    stride: u32,
     offset: u32,
 ) void {
     gl.bindBuffer(

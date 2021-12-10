@@ -77,7 +77,7 @@ pub const ImageFormat = enum(c_uint) {
     depth_component = gl.GL_DEPTH_COMPONENT,
     depth_stencil = gl.GL_DEPTH_STENCIL,
 
-    pub fn getChannels(self: @This()) usize {
+    pub fn getChannels(self: @This()) u32 {
         return switch (self) {
             .red => 1,
             .rg => 2,
@@ -227,9 +227,9 @@ pub fn updateImageData(
     target: UpdateTarget,
     mipmap_level: i32,
     texture_format: TextureFormat,
-    width: usize,
-    height: ?usize,
-    depth: ?usize,
+    width: u32,
+    height: ?u32,
+    depth: ?u32,
     image_format: ImageFormat,
     comptime T: type,
     data: []const T,
@@ -357,11 +357,11 @@ pub fn updateImageData(
 pub fn updateMultisampleData(
     self: Self,
     target: UpdateTarget,
-    samples: usize,
+    samples: u32,
     texture_format: TextureFormat,
-    width: usize,
-    height: usize,
-    depth: ?usize,
+    width: u32,
+    height: u32,
+    depth: ?u32,
     fixed_sample_location: bool,
 ) void {
     switch (self.tt) {

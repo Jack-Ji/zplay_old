@@ -22,7 +22,7 @@ materials: std.ArrayList(Material) = undefined,
 /// meshes
 meshes: std.ArrayList(Mesh) = undefined,
 transforms: std.ArrayList(Mat4) = undefined,
-material_indices: std.ArrayList(usize) = undefined,
+material_indices: std.ArrayList(u32) = undefined,
 
 /// load gltf model file
 pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8) Self {
@@ -33,7 +33,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8) Self {
         .materials = std.ArrayList(Material).initCapacity(allocator, 1) catch unreachable,
         .meshes = std.ArrayList(Mesh).initCapacity(allocator, 1) catch unreachable,
         .transforms = std.ArrayList(Mat4).initCapacity(allocator, 1) catch unreachable,
-        .material_indices = std.ArrayList(usize).initCapacity(allocator, 1) catch unreachable,
+        .material_indices = std.ArrayList(u32).initCapacity(allocator, 1) catch unreachable,
     };
 
     // load vertex attributes
@@ -165,7 +165,7 @@ pub fn render(
     model: Mat4,
     projection: Mat4,
     camera: ?Camera,
-    instance_count: ?usize,
+    instance_count: ?u32,
 ) !void {
     for (self.meshes.items) |m, i| {
         try renderer.renderMesh(

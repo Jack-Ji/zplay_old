@@ -91,7 +91,7 @@ pub fn loadFile(filename: [:0]const u8, options: ?api.cgltf_options) Error!*Data
 }
 
 /// read data from accessor
-pub fn readFromAccessor(accessor: *api.cgltf_accessor, index: ?usize, T: type, out: []T) Error!void {
+pub fn readFromAccessor(accessor: *api.cgltf_accessor, index: ?u32, T: type, out: []T) Error!void {
     const success = switch (T) {
         f32 => api.cgltf_accessor_read_float(
             accessor,

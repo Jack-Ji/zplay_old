@@ -159,8 +159,8 @@ pub const Game = struct {
     pos_y: sdl.WindowPosition = .default,
 
     /// width/height of window
-    width: usize = 800,
-    height: usize = 600,
+    width: u32 = 800,
+    height: u32 = 600,
 
     // resizable switch
     enable_resizable: bool = false,
