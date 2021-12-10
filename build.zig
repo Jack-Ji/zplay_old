@@ -26,6 +26,7 @@ pub fn build(b: *std.build.Builder) void {
         "imgui_fontawesome",
         "imgui_ttf",
         "vector_graphics",
+        "meshes",
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |name| {

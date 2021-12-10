@@ -203,6 +203,7 @@ pub fn renderMesh(
     instance_count: ?usize,
 ) anyerror!void {
     return renderer.vtable.renderMeshFn(
+        renderer.ptr,
         mesh,
         model,
         projection,

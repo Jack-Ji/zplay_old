@@ -1,4 +1,5 @@
 const std = @import("std");
+const math = std.math;
 const sdl = @import("sdl");
 const zp = @import("../lib.zig");
 const gl = zp.gl;
@@ -23,39 +24,49 @@ vertex_array: gl.VertexArray = undefined,
 
 /// vertex attribute
 positions: std.ArrayList(Vec3) = undefined,
-normals: std.ArrayList(Vec3) = undefined,
-texcoords: std.ArrayList(Vec2) = undefined,
-colors: std.ArrayList(Vec4) = undefined,
-tangents: std.ArrayList(Vec4) = undefined,
-indices: std.ArrayList(u32) = undefined,
-owns_data: bool = false,
+normals: ?std.ArrayList(Vec3) = null,
+texcoords: ?std.ArrayList(Vec2) = null,
+colors: ?std.ArrayList(Vec4) = null,
+tangents: ?std.ArrayList(Vec4) = null,
+indices: ?std.ArrayList(u32) = null,
+owns_data: bool = undefined,
 
 /// allocate and initialize Mesh instance
 pub fn init(
     allocator: std.mem.Allocator,
     positions: []const Vec3,
-    normals: []const Vec3,
-    texcoords: []const Vec2,
-    colors: []const Vec4,
-    tangents: []const Vec4,
-    indices: []const u32,
+    indices: ?[]const u32,
+    normals: ?[]const Vec3,
+    texcoords: ?[]const Vec2,
+    colors: ?[]const Vec4,
+    tangents: ?[]const Vec4,
 ) Self {
     var self: Self = .{
         .vertex_array = gl.VertexArray.init(vbo_num),
         .positions = std.ArrayList(Vec3).initCapacity(allocator, positions.len) catch unreachable,
-        .normals = std.ArrayList(Vec3).initCapacity(allocator, normals.len) catch unreachable,
-        .texcoords = std.ArrayList(Vec2).initCapacity(allocator, texcoords.len) catch unreachable,
-        .colors = std.ArrayList(Vec4).initCapacity(allocator, colors.len) catch unreachable,
-        .tangents = std.ArrayList(Vec4).initCapacity(allocator, tangents.len) catch unreachable,
-        .indices = std.ArrayList(Vec4).initCapacity(allocator, indices.len) catch unreachable,
         .owns_data = true,
     };
     self.positions.appendSlice(positions) catch unreachable;
-    self.normals.appendSlice(normals) catch unreachable;
-    self.texcoords.appendSlice(texcoords) catch unreachable;
-    self.colors.appendSlice(colors) catch unreachable;
-    self.tangents.appendSlice(tangents) catch unreachable;
-    self.indices.appendSlice(indices) catch unreachable;
+    if (indices) |ids| {
+        self.indices = std.ArrayList(u32).initCapacity(allocator, ids.len) catch unreachable;
+        self.indices.?.appendSlice(ids) catch unreachable;
+    }
+    if (normals) |ns| {
+        self.normals = std.ArrayList(Vec3).initCapacity(allocator, ns.len) catch unreachable;
+        self.normals.?.appendSlice(ns) catch unreachable;
+    }
+    if (texcoords) |ts| {
+        self.texcoords = std.ArrayList(Vec2).initCapacity(allocator, ts.len) catch unreachable;
+        self.texcoords.?.appendSlice(ts) catch unreachable;
+    }
+    if (colors) |cs| {
+        self.colors = std.ArrayList(Vec4).initCapacity(allocator, cs.len) catch unreachable;
+        self.colors.?.appendSlice(cs) catch unreachable;
+    }
+    if (tangents) |ts| {
+        self.tangents = std.ArrayList(Vec4).initCapacity(allocator, ts.len) catch unreachable;
+        self.tangents.?.appendSlice(ts) catch unreachable;
+    }
     self.setup();
     return self;
 }
@@ -63,11 +74,11 @@ pub fn init(
 /// create Mesh, maybe taking ownership of given arrays
 pub fn fromArrayLists(
     positions: std.ArrayList(Vec3),
-    normals: std.ArrayList(Vec3),
-    texcoords: std.ArrayList(Vec2),
-    colors: std.ArrayList(Vec4),
-    indices: std.ArrayList(u32),
-    tangents: std.ArrayList(Vec4),
+    indices: ?std.ArrayList(u32),
+    normals: ?std.ArrayList(Vec3),
+    texcoords: ?std.ArrayList(Vec2),
+    colors: ?std.ArrayList(Vec4),
+    tangents: ?std.ArrayList(Vec4),
     take_ownership: bool,
 ) Self {
     var mesh: Self = .{
@@ -90,11 +101,21 @@ fn setup(self: *Self) void {
     defer self.vertex_array.disuse();
 
     self.vertex_array.bufferData(vbo_positions, Vec3, self.positions.items, .array_buffer, .static_draw);
-    self.vertex_array.bufferData(vbo_normals, Vec3, self.normals.items, .array_buffer, .static_draw);
-    self.vertex_array.bufferData(vbo_texcoords, Vec2, self.texcoords.items, .array_buffer, .static_draw);
-    self.vertex_array.bufferData(vbo_colors, Vec4, self.colors.items, .array_buffer, .static_draw);
-    self.vertex_array.bufferData(vbo_tangents, Vec4, self.tangents.items, .array_buffer, .static_draw);
-    self.vertex_array.bufferData(vbo_indices, u32, self.indices.items, .element_array_buffer, .static_draw);
+    if (self.indices) |ids| {
+        self.vertex_array.bufferData(vbo_indices, u32, ids.items, .element_array_buffer, .static_draw);
+    }
+    if (self.normals) |ns| {
+        self.vertex_array.bufferData(vbo_normals, Vec3, ns.items, .array_buffer, .static_draw);
+    }
+    if (self.texcoords) |ts| {
+        self.vertex_array.bufferData(vbo_texcoords, Vec2, ts.items, .array_buffer, .static_draw);
+    }
+    if (self.colors) |cs| {
+        self.vertex_array.bufferData(vbo_colors, Vec4, cs.items, .array_buffer, .static_draw);
+    }
+    if (self.tangents) |ts| {
+        self.vertex_array.bufferData(vbo_tangents, Vec4, ts.items, .array_buffer, .static_draw);
+    }
 }
 
 /// free resources
@@ -102,10 +123,73 @@ pub fn deinit(self: *Self) void {
     self.vertex_array.deinit();
     if (self.owns_data) {
         self.positions.deinit();
-        self.normals.deinit();
-        self.texcoords.deinit();
-        self.colors.deinit();
-        self.tangents.deinit();
-        self.indices.deinit();
+        if (self.indices) |ids| ids.deinit();
+        if (self.normals) |ns| ns.deinit();
+        if (self.texcoords) |ts| ts.deinit();
+        if (self.colors) |cs| cs.deinit();
+        if (self.tangents) |ts| ts.deinit();
     }
+}
+
+// generate a cube
+pub fn genCube(
+    allocator: std.mem.Allocator,
+    w: f32,
+    d: f32,
+    h: f32,
+    color: ?Vec4,
+) Self {
+    const w2 = w / 2;
+    const d2 = d / 2;
+    const h2 = h / 2;
+    const vs: [8]Vec3 = .{
+        Vec3.new(w2, h2, d2),
+        Vec3.new(w2, h2, -d2),
+        Vec3.new(-w2, h2, -d2),
+        Vec3.new(-w2, h2, d2),
+        Vec3.new(w2, -h2, d2),
+        Vec3.new(w2, -h2, -d2),
+        Vec3.new(-w2, -h2, -d2),
+        Vec3.new(-w2, -h2, d2),
+    };
+    const positions: [36]Vec3 = .{
+        vs[0], vs[1], vs[2], vs[0], vs[2], vs[3], // top
+        vs[4], vs[6], vs[5], vs[4], vs[7], vs[6], // bottom
+        vs[3], vs[6], vs[7], vs[3], vs[2], vs[6], // left
+        vs[0], vs[5], vs[1], vs[0], vs[4], vs[5], // right
+        vs[0], vs[3], vs[7], vs[0], vs[7], vs[4], // front
+        vs[1], vs[6], vs[2], vs[1], vs[5], vs[6], // back
+    };
+
+    const up = Vec3.up();
+    const down = Vec3.down();
+    const left = Vec3.left();
+    const right = Vec3.right();
+    const forward = Vec3.forward();
+    const back = Vec3.back();
+    const normals: [36]Vec3 = .{
+        up, up, up, up, up, up, // top
+        down, down, down, down, down, down, // bottom
+        left, left, left, left, left, left, // left
+        right, right, right, right, right, right, // right
+        forward, forward, forward, forward, forward, forward, // front
+        back, back, back, back, back, back, // back
+    };
+
+    return init(
+        allocator,
+        &positions,
+        null,
+        &normals,
+        null,
+        if (color) |c|
+            &[36]Vec4{
+                c, c, c, c, c, c, c, c, c, c, c, c,
+                c, c, c, c, c, c, c, c, c, c, c, c,
+                c, c, c, c, c, c, c, c, c, c, c, c,
+            }
+        else
+            null,
+        null,
+    );
 }

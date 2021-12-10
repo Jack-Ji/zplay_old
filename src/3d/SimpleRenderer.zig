@@ -169,9 +169,13 @@ fn renderMesh(
     defer mesh.vertex_array.disuse();
 
     // attribute settings
-    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_POS, @sizeOf(Vec3), f32, false, 0, 0);
-    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_TEX, @sizeOf(Vec2), f32, false, 0, 0);
-    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_COLOR, @sizeOf(Vec4), f32, false, 0, 0);
+    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_POS, 3, f32, false, 0, 0);
+    if (mesh.texcoords != null) {
+        mesh.vertex_array.setAttribute(Mesh.vbo_texcoords, ATTRIB_LOCATION_TEX, 2, f32, false, 0, 0);
+    }
+    if (mesh.colors != null) {
+        mesh.vertex_array.setAttribute(Mesh.vbo_colors, ATTRIB_LOCATION_COLOR, 4, f32, false, 0, 0);
+    }
 
     // set uniforms
     self.program.setUniformByName("u_model", model);
@@ -188,8 +192,8 @@ fn renderMesh(
     }
 
     // issue draw call
-    if (mesh.indices.items.len > 0) {
-        gl.util.drawElements(.triangles, 0, mesh.indices.items.len, u32, instance_count);
+    if (mesh.indices) |ids| {
+        gl.util.drawElements(.triangles, 0, ids.items.len, u32, instance_count);
     } else {
         gl.util.drawBuffer(.triangles, 0, mesh.positions.items.len, instance_count);
     }
