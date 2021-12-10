@@ -1,6 +1,6 @@
 const std = @import("std");
 const gl = @import("gl.zig");
-const alg = @import("../lib.zig").alg;
+const alg = @import("../zplay.zig").alg;
 const Self = @This();
 const allocator = std.heap.raw_c_allocator;
 

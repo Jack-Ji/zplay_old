@@ -1,6 +1,6 @@
 const std = @import("std");
 const endian = @import("builtin").target.cpu.arch.endian();
-const zp = @import("../lib.zig");
+const zp = @import("../zplay.zig");
 const event = zp.event;
 const sdl = @import("sdl");
 const sdl_impl = @import("sdl_impl.zig");

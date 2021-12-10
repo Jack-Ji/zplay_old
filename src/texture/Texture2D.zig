@@ -1,5 +1,5 @@
 const std = @import("std");
-const zp = @import("../lib.zig");
+const zp = @import("../zplay.zig");
 const gl = zp.gl;
 const stb_image = zp.stb.image;
 const Self = @This();

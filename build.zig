@@ -148,7 +148,7 @@ pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.zi
     // use zplay
     exe.addPackage(.{
         .name = "zplay",
-        .path = .{ .path = rootPath() ++ "/src/lib.zig" },
+        .path = .{ .path = rootPath() ++ "/src/zplay.zig" },
         .dependencies = &[_]std.build.Pkg{
             sdl.getWrapperPackage("sdl"),
         },

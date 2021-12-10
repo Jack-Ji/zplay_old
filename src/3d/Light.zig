@@ -1,6 +1,6 @@
 const std = @import("std");
 const sdl = @import("sdl");
-const zp = @import("../lib.zig");
+const zp = @import("../zplay.zig");
 const gl = zp.gl;
 const alg = zp.alg;
 const Vec3 = alg.Vec3;

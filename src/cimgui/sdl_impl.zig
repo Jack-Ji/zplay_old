@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const zp = @import("../lib.zig");
+const zp = @import("../zplay.zig");
 const event = zp.event;
 const sdl = @import("sdl");
 const c = sdl.c;

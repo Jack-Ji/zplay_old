@@ -1,6 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const zp = @import("../lib.zig");
+const zp = @import("../zplay.zig");
 const gl = zp.gl;
 const alg = zp.alg;
 const Vec2 = alg.Vec2;
