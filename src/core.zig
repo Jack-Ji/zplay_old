@@ -11,11 +11,11 @@ pub const Context = struct {
     /// internal window
     window: sdl.Window,
 
-    /// quit switch
-    quit: bool,
-
     /// graphics context
     graphics: GraphicsContext = undefined,
+
+    /// quit switch
+    quit: bool = false,
 
     /// resizable mode
     resizable: bool = undefined,
@@ -68,7 +68,7 @@ pub const Context = struct {
         }
         _ = sdl.c.SDL_SetWindowFullscreen(
             self.window.ptr,
-            if (self.fullscreen) sdl.c.SDL_WINDOW_FULLSCREEN else 0,
+            if (self.fullscreen) sdl.c.SDL_WINDOW_FULLSCREEN_DESKTOP else 0,
         );
     }
 
@@ -219,9 +219,6 @@ pub fn run(g: Game) !void {
             g.height,
             flags,
         ),
-        .quit = false,
-        .fullscreen = g.enable_fullscreen,
-        .relative_mouse = g.enable_relative_mouse_mode,
     };
     defer context.window.destroy();
 
@@ -233,10 +230,10 @@ pub fn run(g: Game) !void {
     defer context.graphics.deinit();
     context.graphics.setVsyncMode(g.enable_vsync);
 
-    // apply custom options, still changable through Context's methods
+    // apply window options, still changable through Context's methods
     context.toggleResizable(g.enable_resizable);
-    context.toggleRelativeMouseMode(g.enable_relative_mouse_mode);
     context.toggleFullscreeen(g.enable_fullscreen);
+    context.toggleRelativeMouseMode(g.enable_relative_mouse_mode);
 
     // setup imgui
     if (g.enable_dear_imgui) {

@@ -81,6 +81,7 @@ pub fn swap(self: Self, window: sdl.Window) void {
     _ = self;
     sdl.gl.swapWindow(window);
 }
+
 /// get size of drawable place
 pub fn getDrawableSize(self: Self, window: sdl.Window, w: *u32, h: *u32) void {
     _ = self;

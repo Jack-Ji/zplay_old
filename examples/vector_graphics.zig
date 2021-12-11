@@ -81,6 +81,7 @@ fn loop(ctx: *zp.Context) void {
     var xpos = @intToFloat(f32, mouse_state.x);
     var ypos = @intToFloat(f32, mouse_state.y);
 
+    ctx.graphics.setViewport(0, 0, fwidth, fheight);
     ctx.graphics.clear(true, true, true, [_]f32{ 0.3, 0.3, 0.32, 1.0 });
 
     dig.beginFrame();
