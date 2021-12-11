@@ -71,12 +71,12 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    var width: i32 = undefined;
-    var height: i32 = undefined;
-    var fwidth: i32 = undefined;
-    var fheight: i32 = undefined;
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    var fwidth: u32 = undefined;
+    var fheight: u32 = undefined;
     ctx.getWindowSize(&width, &height);
-    ctx.getFramebufferSize(&fwidth, &fheight);
+    ctx.graphics.getDrawableSize(ctx.window, &fwidth, &fheight);
     var mouse_state = ctx.getMouseState();
     var xpos = @intToFloat(f32, mouse_state.x);
     var ypos = @intToFloat(f32, mouse_state.y);
@@ -707,9 +707,9 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
-        .enable_dear_imgui = true,
-        .enable_nanovg = true,
         .width = 1000,
         .height = 600,
+        .enable_dear_imgui = true,
+        .enable_nanovg = true,
     });
 }

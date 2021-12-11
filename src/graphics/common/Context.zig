@@ -1,8 +1,15 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const sdl = zp.deps.sdl;
 const gl = zp.deps.gl;
 const Self = @This();
+
+pub const Api = enum {
+    opengl,
+    vulkan,
+    metal,
+};
 
 pub const Capability = enum(c_uint) {
     blend = gl.GL_BLEND,
@@ -36,23 +43,65 @@ pub const PolygonMode = enum(c_uint) {
 };
 
 /// opengl context
-ctx: sdl.gl.Context,
+gl_ctx: sdl.gl.Context,
 
-/// init graphics context
-pub fn init(window: sdl.Window) !Self {
+/// prepare graphics api
+pub fn prepare(api: Api, enable_msaa: bool) void {
+    assert(api == .opengl); // only opengl for now
+    _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_STENCIL_SIZE, 1);
+    _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_DEPTH_SIZE, 24);
+    if (enable_msaa) {
+        _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_MULTISAMPLEBUFFERS, 1);
+        _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_MULTISAMPLESAMPLES, 4);
+    }
+}
+
+/// allocate graphics context
+pub fn init(window: sdl.Window, api: Api) !Self {
+    assert(api == .opengl); // only opengl for now
     const gl_ctx = try sdl.gl.createContext(window);
     try sdl.gl.makeCurrent(gl_ctx, window);
     if (gl.gladLoadGL() == 0) {
         @panic("load opengl functions failed!");
     }
     return Self{
-        .ctx = gl_ctx,
+        .gl_ctx = gl_ctx,
     };
 }
 
 /// delete graphics context
 pub fn deinit(self: Self) void {
-    sdl.gl.deleteContext(self.ctx);
+    sdl.gl.deleteContext(self.gl_ctx);
+}
+
+/// swap buffer, rendering take effect here 
+pub fn swap(self: Self, window: sdl.Window) void {
+    _ = self;
+    sdl.gl.swapWindow(window);
+}
+/// get size of drawable place
+pub fn getDrawableSize(self: Self, window: sdl.Window, w: *u32, h: *u32) void {
+    _ = self;
+    sdl.c.SDL_GL_GetDrawableSize(
+        window.ptr,
+        @ptrCast(*c_int, w),
+        @ptrCast(*c_int, h),
+    );
+}
+
+///  set vsync mode 
+pub fn setVsyncMode(self: Self, on_off: bool) void {
+    _ = self;
+    sdl.gl.setSwapInterval(
+        if (on_off) .vsync else .immediate,
+    ) catch |e| {
+        std.debug.print("toggle vsync failed, {}", .{e});
+        std.debug.print("using mode: {s}", .{
+            if (sdl.c.SDL_GL_GetSwapInterval() == 1) "immediate" else "vsync    ",
+        });
+    };
 }
 
 /// clear buffers

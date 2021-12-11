@@ -124,7 +124,6 @@ fn loop(ctx: *zp.Context) void {
                         .escape => ctx.kill(),
                         .f1 => ctx.toggleFullscreeen(null),
                         .m => ctx.toggleRelativeMouseMode(null),
-                        .v => ctx.toggleVsyncMode(null),
                         else => {},
                     }
                 }
@@ -155,8 +154,8 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    var width: i32 = undefined;
-    var height: i32 = undefined;
+    var width: u32 = undefined;
+    var height: u32 = undefined;
     ctx.getWindowSize(&width, &height);
 
     // start drawing

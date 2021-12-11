@@ -241,8 +241,8 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    var width: i32 = undefined;
-    var height: i32 = undefined;
+    var width: u32 = undefined;
+    var height: u32 = undefined;
     ctx.getWindowSize(&width, &height);
 
     // clear frame

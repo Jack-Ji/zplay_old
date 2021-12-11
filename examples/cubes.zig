@@ -138,8 +138,8 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    var width: i32 = undefined;
-    var height: i32 = undefined;
+    var width: u32 = undefined;
+    var height: u32 = undefined;
     ctx.getWindowSize(&width, &height);
 
     ctx.graphics.clear(true, true, false, [4]f32{ 0.2, 0.3, 0.3, 1.0 });

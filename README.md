@@ -31,5 +31,5 @@ A simple framework intended for game/tool creation.
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/phong_lighting.png)
 
 # FYI
-I'm still learning, which means codebase will probably change drastically overtime. If you want a stable
+I'm still learning, which means codebase will probably change drastically over time. If you want a stable
 framework, please consider using more mature frameworks like MonoGame/LibGDX, or fork the repo if you want!
