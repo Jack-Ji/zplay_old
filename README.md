@@ -13,6 +13,23 @@ A simple framework intended for game/tool creation.
 * Dear-imgui and extensions(implot/imnodes) integration 
 * NanoVG/NanoSVG integration
 
-# INSTALL
+# Install
 1. Download and install latest zig 0.9.* main branch
 2. Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
+
+# Examples
+* glTF 2.0 model
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/gltf_demo.png)
+
+* imgui demo
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/imgui_demo.png)
+
+* vector graphics
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/vector_graphics.png)
+
+* phong lighting
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/phong_lighting.png)
+
+# FYI
+I'm still learning, which means codebase will probably change drastically overtime. If you want a stable
+framework, please consider using more mature frameworks like MonoGame/LibGDX, or fork the repo if you want!
