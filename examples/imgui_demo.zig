@@ -1,7 +1,6 @@
 const std = @import("std");
 const zp = @import("zplay");
-const dig = zp.dig;
-const gl = zp.gl;
+const dig = zp.deps.dig;
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
@@ -15,13 +14,12 @@ fn loop(ctx: *zp.Context) void {
 
         switch (e) {
             .keyboard_event => |key| {
-                if (key.trigger_type == .down) {
-                    return;
-                }
-                switch (key.scan_code) {
-                    .escape => ctx.kill(),
-                    .f1 => ctx.toggleFullscreeen(null),
-                    else => {},
+                if (key.trigger_type == .up) {
+                    switch (key.scan_code) {
+                        .escape => ctx.kill(),
+                        .f1 => ctx.toggleFullscreeen(null),
+                        else => {},
+                    }
                 }
             },
             .quit_event => ctx.kill(),
@@ -39,7 +37,7 @@ fn loop(ctx: *zp.Context) void {
         var clear_color = [4]f32{ 0.45, 0.55, 0.6, 1.0 };
     };
 
-    gl.util.clear(true, false, false, S.clear_color);
+    ctx.graphics.clear(true, false, false, S.clear_color);
 
     {
         dig.beginFrame();

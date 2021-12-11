@@ -52,109 +52,40 @@ pub fn build(b: *std.build.Builder) void {
     }
 }
 
-pub fn link(b: *std.build.Builder, exe: *std.build.LibExeObjStep, target: std.zig.CrossTarget) void {
-    var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
-    if (b.is_release) flags.append("-Os") catch unreachable;
-    flags.append("-Wno-return-type-c-linkage") catch unreachable;
+/// link zplay framework to executable 
+pub fn link(
+    b: *std.build.Builder,
+    exe: *std.build.LibExeObjStep,
+    target: std.zig.CrossTarget,
+) void {
+    const root_path = comptime rootPath();
 
-    // link sdl
-    const sdl = @import("src/sdl/Sdk.zig").init(b);
-    sdl.link(exe, .dynamic);
-
-    // link opengl
-    var gl = b.addStaticLibrary("gl", null);
-    gl.linkLibC();
-    if (target.isWindows()) {
-        gl.linkSystemLibrary("opengl32");
-    } else if (target.isDarwin()) {
-        gl.linkFramework("OpenGL");
-    } else if (target.isLinux()) {
-        gl.linkSystemLibrary("GL");
+    // link dependencies
+    const deps = .{
+        @import("build/sdl.zig"),
+        @import("build/opengl.zig"),
+        @import("build/stb.zig"),
+        @import("build/imgui.zig"),
+        @import("build/gltf.zig"),
+        @import("build/nanovg.zig"),
+        @import("build/nanosvg.zig"),
+    };
+    inline for (deps) |d| {
+        d.link(b, exe, target, root_path);
     }
-    gl.addIncludeDir(rootPath() ++ "/src/gl/c/include");
-    gl.addCSourceFile(
-        rootPath() ++ "/src/gl/c/src/glad.c",
-        flags.items,
-    );
-    exe.linkLibrary(gl);
-
-    // link stb
-    var stb = b.addStaticLibrary("stb", null);
-    stb.linkLibC();
-    stb.addCSourceFile(
-        rootPath() ++ "/src/stb/c/stb_image_wrapper.c",
-        flags.items,
-    );
-    exe.linkLibrary(stb);
-
-    // link cimgui
-    var cimgui = exe.builder.addStaticLibrary("cimgui", null);
-    cimgui.linkLibC();
-    cimgui.linkLibCpp();
-    if (exe.target.isWindows()) {
-        cimgui.linkSystemLibrary("winmm");
-        cimgui.linkSystemLibrary("user32");
-        cimgui.linkSystemLibrary("imm32");
-        cimgui.linkSystemLibrary("gdi32");
-    }
-    cimgui.addIncludeDir("src/cimgui/c");
-    cimgui.addCSourceFiles(&.{
-        rootPath() ++ "/src/cimgui/c/imgui.cpp",
-        rootPath() ++ "/src/cimgui/c/imgui_demo.cpp",
-        rootPath() ++ "/src/cimgui/c/imgui_draw.cpp",
-        rootPath() ++ "/src/cimgui/c/imgui_tables.cpp",
-        rootPath() ++ "/src/cimgui/c/imgui_widgets.cpp",
-        rootPath() ++ "/src/cimgui/c/cimgui.cpp",
-        rootPath() ++ "/src/cimgui/c/imgui_impl_opengl3.cpp",
-        rootPath() ++ "/src/cimgui/c/imgui_impl_opengl3_wrapper.cpp",
-    }, flags.items);
-    cimgui.addCSourceFiles(&.{
-        rootPath() ++ "/src/cimgui/ext/cimplot/c/implot.cpp",
-        rootPath() ++ "/src/cimgui/ext/cimplot/c/implot_items.cpp",
-        rootPath() ++ "/src/cimgui/ext/cimplot/c/implot_demo.cpp",
-        rootPath() ++ "/src/cimgui/ext/cimplot/c/cimplot.cpp",
-    }, flags.items);
-    cimgui.addCSourceFiles(&.{
-        rootPath() ++ "/src/cimgui/ext/cimnodes/c/imnodes.cpp",
-        rootPath() ++ "/src/cimgui/ext/cimnodes/c/cimnodes.cpp",
-    }, flags.items);
-    exe.linkLibrary(cimgui);
-
-    // link cgltf
-    var cgltf = exe.builder.addStaticLibrary("cgltf", null);
-    cgltf.linkLibC();
-    cgltf.addIncludeDir(rootPath() ++ "/src/cgltf/c");
-    cgltf.addCSourceFile(rootPath() ++ "/src/cgltf/c/cgltf_wrapper.c", flags.items);
-    exe.linkLibrary(cgltf);
-
-    // link nanovg
-    var nanovg = exe.builder.addStaticLibrary("nanovg", null);
-    nanovg.linkLibC();
-    nanovg.addIncludeDir(rootPath() ++ "/src/gl/c/include");
-    nanovg.addIncludeDir(rootPath() ++ "/src/nanovg/c");
-    nanovg.addCSourceFiles(&.{
-        rootPath() ++ "/src/nanovg/c/nanovg.c",
-        rootPath() ++ "/src/nanovg/c/nanovg_gl3_impl.c",
-    }, flags.items);
-    exe.linkLibrary(nanovg);
-
-    // link nanosvg
-    var nanosvg = exe.builder.addStaticLibrary("nanosvg", null);
-    nanosvg.linkLibC();
-    nanosvg.addIncludeDir(rootPath() ++ "/src/nanosvg/c");
-    nanosvg.addCSourceFile(rootPath() ++ "/src/nanosvg/c/nanosvg_wrapper.c", flags.items);
-    exe.linkLibrary(nanosvg);
 
     // use zplay
+    const sdl = @import("./src/deps/sdl/Sdk.zig").init(b);
     exe.addPackage(.{
         .name = "zplay",
-        .path = .{ .path = rootPath() ++ "/src/zplay.zig" },
+        .path = .{ .path = root_path ++ "/src/zplay.zig" },
         .dependencies = &[_]std.build.Pkg{
             sdl.getWrapperPackage("sdl"),
         },
     });
 }
 
+/// root path
 fn rootPath() []const u8 {
     return std.fs.path.dirname(@src().file) orelse ".";
 }

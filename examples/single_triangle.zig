@@ -1,16 +1,16 @@
 const std = @import("std");
 const zp = @import("zplay");
-const gl = zp.gl;
-const alg = zp.alg;
+const VertexArray = zp.graphics.common.VertexArray;
+const Camera = zp.graphics.@"3d".Camera;
+const Material = zp.graphics.@"3d".Material;
+const Renderer = zp.graphics.@"3d".Renderer;
+const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
+const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
-const Camera = zp.@"3d".Camera;
-const Material = zp.@"3d".Material;
-const Renderer = zp.@"3d".Renderer;
-const SimpleRenderer = zp.@"3d".SimpleRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
-var vertex_array: gl.VertexArray = undefined;
+var vertex_array: VertexArray = undefined;
 
 const vertices = [_]f32{
     -0.5, -0.5, 0.0, 1.0, 0.0, 0.0,
@@ -25,7 +25,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     simple_renderer = SimpleRenderer.init();
 
     // vertex array
-    vertex_array = gl.VertexArray.init(5);
+    vertex_array = VertexArray.init(5);
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
@@ -41,19 +41,18 @@ fn loop(ctx: *zp.Context) void {
             .window_event => |we| {
                 switch (we.data) {
                     .resized => |size| {
-                        gl.viewport(0, 0, size.width, size.height);
+                        ctx.graphics.setViewport(0, 0, size.width, size.height);
                     },
                     else => {},
                 }
             },
             .keyboard_event => |key| {
-                if (key.trigger_type == .down) {
-                    return;
-                }
-                switch (key.scan_code) {
-                    .escape => ctx.kill(),
-                    .f1 => ctx.toggleFullscreeen(null),
-                    else => {},
+                if (key.trigger_type == .up) {
+                    switch (key.scan_code) {
+                        .escape => ctx.kill(),
+                        .f1 => ctx.toggleFullscreeen(null),
+                        else => {},
+                    }
                 }
             },
             .quit_event => ctx.kill(),
@@ -61,7 +60,7 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    gl.util.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    ctx.graphics.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     // update color and draw triangle
     simple_renderer.renderer().begin();

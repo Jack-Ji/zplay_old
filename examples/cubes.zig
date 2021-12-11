@@ -1,17 +1,18 @@
 const std = @import("std");
 const zp = @import("zplay");
-const gl = zp.gl;
-const alg = zp.alg;
-const Renderer = zp.@"3d".Renderer;
-const SimpleRenderer = zp.@"3d".SimpleRenderer;
-const Material = zp.@"3d".Material;
-const Texture2D = zp.texture.Texture2D;
+const alg = zp.deps.alg;
+const VertexArray = zp.graphics.common.VertexArray;
+const Texture2D = zp.graphics.texture.Texture2D;
+const Renderer = zp.graphics.@"3d".Renderer;
+const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
+const Material = zp.graphics.@"3d".Material;
+const Camera = zp.graphics.@"3d".Camera;
 
 var simple_renderer: SimpleRenderer = undefined;
-var vertex_array: gl.VertexArray = undefined;
+var vertex_array: VertexArray = undefined;
 var material: Material = undefined;
 var wireframe_mode = false;
-var camera = zp.@"3d".Camera.fromPositionAndTarget(
+var camera = Camera.fromPositionAndTarget(
     alg.Vec3.new(0, 0, 3),
     alg.Vec3.zero(),
     null,
@@ -76,13 +77,11 @@ const cube_positions = [_]alg.Vec3{
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
-    _ = ctx;
-
     // simple renderer
     simple_renderer = SimpleRenderer.init();
 
     // vertex array
-    vertex_array = gl.VertexArray.init(5);
+    vertex_array = VertexArray.init(5);
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
@@ -91,11 +90,11 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // load texture
     material = Material.init(.{
-        .single_texture = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", null, false),
+        .single_texture = try Texture2D.fromFilePath("assets/wall.jpg", null, false),
     });
 
     // enable depth test
-    gl.util.toggleCapability(.depth_test, true);
+    ctx.graphics.toggleCapability(.depth_test, true);
 
     std.log.info("game init", .{});
 }
@@ -111,28 +110,27 @@ fn loop(ctx: *zp.Context) void {
             .window_event => |we| {
                 switch (we.data) {
                     .resized => |size| {
-                        gl.viewport(0, 0, size.width, size.height);
+                        ctx.graphics.setViewport(0, 0, size.width, size.height);
                     },
                     else => {},
                 }
             },
             .keyboard_event => |key| {
-                if (key.trigger_type == .down) {
-                    return;
-                }
-                switch (key.scan_code) {
-                    .escape => ctx.kill(),
-                    .f1 => ctx.toggleFullscreeen(null),
-                    .w => {
-                        if (wireframe_mode) {
-                            wireframe_mode = false;
-                            gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
-                        } else {
-                            wireframe_mode = true;
-                            gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
-                        }
-                    },
-                    else => {},
+                if (key.trigger_type == .up) {
+                    switch (key.scan_code) {
+                        .escape => ctx.kill(),
+                        .f1 => ctx.toggleFullscreeen(null),
+                        .w => {
+                            if (wireframe_mode) {
+                                wireframe_mode = false;
+                                ctx.graphics.setPolygonMode(.fill);
+                            } else {
+                                wireframe_mode = true;
+                                ctx.graphics.setPolygonMode(.line);
+                            }
+                        },
+                        else => {},
+                    }
                 }
             },
             .quit_event => ctx.kill(),
@@ -144,7 +142,7 @@ fn loop(ctx: *zp.Context) void {
     var height: i32 = undefined;
     ctx.getWindowSize(&width, &height);
 
-    gl.util.clear(true, true, false, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
+    ctx.graphics.clear(true, true, false, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     const projection = alg.Mat4.perspective(
         45,

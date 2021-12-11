@@ -11,13 +11,12 @@ fn loop(ctx: *zp.Context) void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
             .keyboard_event => |key| {
-                if (key.trigger_type == .down) {
-                    return;
-                }
-                switch (key.scan_code) {
-                    .escape => ctx.kill(),
-                    .f1 => ctx.toggleFullscreeen(null),
-                    else => {},
+                if (key.trigger_type == .up) {
+                    switch (key.scan_code) {
+                        .escape => ctx.kill(),
+                        .f1 => ctx.toggleFullscreeen(null),
+                        else => {},
+                    }
                 }
             },
             .quit_event => ctx.kill(),

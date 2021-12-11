@@ -1,21 +1,22 @@
 const std = @import("std");
 const zp = @import("zplay");
-const gl = zp.gl;
-const alg = zp.alg;
+const VertexArray = zp.graphics.common.VertexArray;
+const Camera = zp.graphics.@"3d".Camera;
+const Light = zp.graphics.@"3d".Light;
+const Material = zp.graphics.@"3d".Material;
+const Texture2D = zp.graphics.texture.Texture2D;
+const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
+const PhongRenderer = zp.graphics.@"3d".PhongRenderer;
+const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
-const Camera = zp.@"3d".Camera;
-const Light = zp.@"3d".Light;
-const Material = zp.@"3d".Material;
-const SimpleRenderer = zp.@"3d".SimpleRenderer;
-const PhongRenderer = zp.@"3d".PhongRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
-var regular_cube_va: gl.VertexArray = undefined;
-var lighting_cube_va: gl.VertexArray = undefined;
+var regular_cube_va: VertexArray = undefined;
+var lighting_cube_va: VertexArray = undefined;
 var material_for_simple: Material = undefined;
 var material_for_phong: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
@@ -121,7 +122,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     }));
 
     // vertex array for regular scene
-    regular_cube_va = gl.VertexArray.init(5);
+    regular_cube_va = VertexArray.init(5);
     regular_cube_va.use();
     regular_cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
     regular_cube_va.setAttribute(
@@ -136,7 +137,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     regular_cube_va.disuse();
 
     // vertex array for lighting scene
-    lighting_cube_va = gl.VertexArray.init(5);
+    lighting_cube_va = VertexArray.init(5);
     lighting_cube_va.use();
     lighting_cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
     lighting_cube_va.setAttribute(
@@ -169,8 +170,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     lighting_cube_va.disuse();
 
     // material init
-    var diffuse_texture = try zp.texture.Texture2D.fromFilePath("assets/container2.png", null, false);
-    var specular_texture = try zp.texture.Texture2D.fromFilePath("assets/container2_specular.png", .texture_unit_1, false);
+    var diffuse_texture = try Texture2D.fromFilePath("assets/container2.png", null, false);
+    var specular_texture = try Texture2D.fromFilePath("assets/container2_specular.png", .texture_unit_1, false);
     material_for_phong = Material.init(.{
         .phong = .{
             .diffuse_map = diffuse_texture,
@@ -183,7 +184,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     });
 
     // enable depth test
-    gl.util.toggleCapability(.depth_test, true);
+    ctx.graphics.toggleCapability(.depth_test, true);
 
     std.log.info("game init", .{});
 }
@@ -209,7 +210,7 @@ fn loop(ctx: *zp.Context) void {
             .window_event => |we| {
                 switch (we.data) {
                     .resized => |size| {
-                        gl.viewport(0, 0, size.width, size.height);
+                        ctx.graphics.setViewport(0, 0, size.width, size.height);
                     },
                     else => {},
                 }
@@ -245,7 +246,7 @@ fn loop(ctx: *zp.Context) void {
     ctx.getWindowSize(&width, &height);
 
     // clear frame
-    gl.util.clear(true, true, false, [_]f32{ 0.2, 0.2, 0.2, 1.0 });
+    ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.2, 0.2, 1.0 });
 
     // lighting scene
     const projection = Mat4.perspective(

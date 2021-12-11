@@ -1,17 +1,18 @@
-const sdl = @import("sdl");
+const zp = @import("../zplay.zig");
+const sdl = zp.deps.sdl;
 const c = sdl.c;
 const Self = @This();
 
 /// window position
 const Point = extern struct {
-    x: c_int,
-    y: c_int,
+    x: u32,
+    y: u32,
 };
 
 /// window size
 const Size = extern struct {
-    width: c_int,
-    height: c_int,
+    width: u32,
+    height: u32,
 };
 
 /// event type

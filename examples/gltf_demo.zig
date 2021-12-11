@@ -1,26 +1,29 @@
 const std = @import("std");
 const zp = @import("zplay");
-const dig = zp.dig;
-const gl = zp.gl;
-const alg = zp.alg;
+const VertexArray = zp.graphics.common.VertexArray;
+const Texture2D = zp.graphics.texture.Texture2D;
+const Renderer = zp.graphics.@"3d".Renderer;
+const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
+const Material = zp.graphics.@"3d".Material;
+const Camera = zp.graphics.@"3d".Camera;
+const Model = zp.graphics.@"3d".Model;
+const dig = zp.deps.dig;
+const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
-const SimpleRenderer = zp.@"3d".SimpleRenderer;
-const Model = zp.@"3d".Model;
 
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = false;
 var dog: Model = undefined;
 var girl: Model = undefined;
-var camera = zp.@"3d".Camera.fromPositionAndTarget(
+var camera = Camera.fromPositionAndTarget(
     alg.Vec3.new(0, 0, 3),
     alg.Vec3.zero(),
     null,
 );
 
 fn init(ctx: *zp.Context) anyerror!void {
-    _ = ctx;
     std.log.info("game init", .{});
 
     // create renderer
@@ -31,7 +34,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     girl = Model.fromGLTF(std.testing.allocator, "assets/girl.glb");
 
     // enable depth test
-    gl.util.toggleCapability(.depth_test, true);
+    ctx.graphics.toggleCapability(.depth_test, true);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -45,7 +48,7 @@ fn loop(ctx: *zp.Context) void {
             .window_event => |we| {
                 switch (we.data) {
                     .resized => |size| {
-                        gl.viewport(0, 0, size.width, size.height);
+                        ctx.graphics.setViewport(0, 0, size.width, size.height);
                     },
                     else => {},
                 }
@@ -62,7 +65,7 @@ fn loop(ctx: *zp.Context) void {
                             } else {
                                 wireframe_mode = true;
                             }
-                            toggleWireframeMode(wireframe_mode);
+                            ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
                         },
                         else => {},
                     }
@@ -92,7 +95,7 @@ fn loop(ctx: *zp.Context) void {
     ctx.getWindowSize(&width, &height);
 
     // start drawing
-    gl.util.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     const projection = alg.Mat4.perspective(
         camera.zoom,
@@ -150,20 +153,12 @@ fn loop(ctx: *zp.Context) void {
             );
             dig.separator();
             if (dig.checkbox("wireframe", &wireframe_mode)) {
-                toggleWireframeMode(wireframe_mode);
+                ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
             }
         }
         dig.end();
     }
     dig.endFrame();
-}
-
-fn toggleWireframeMode(status: bool) void {
-    if (status) {
-        gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
-    } else {
-        gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
-    }
 }
 
 fn quit(ctx: *zp.Context) void {

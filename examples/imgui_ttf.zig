@@ -1,8 +1,7 @@
 const std = @import("std");
 const zp = @import("zplay");
-const dig = zp.dig;
+const dig = zp.deps.dig;
 const fontawesome = dig.fontawesome;
-const gl = zp.gl;
 
 var big_font: *dig.ImFont = undefined;
 var small_font: *dig.ImFont = undefined;
@@ -40,13 +39,12 @@ fn loop(ctx: *zp.Context) void {
 
         switch (e) {
             .keyboard_event => |key| {
-                if (key.trigger_type == .down) {
-                    return;
-                }
-                switch (key.scan_code) {
-                    .escape => ctx.kill(),
-                    .f1 => ctx.toggleFullscreeen(null),
-                    else => {},
+                if (key.trigger_type == .up) {
+                    switch (key.scan_code) {
+                        .escape => ctx.kill(),
+                        .f1 => ctx.toggleFullscreeen(null),
+                        else => {},
+                    }
                 }
             },
             .quit_event => ctx.kill(),
@@ -54,7 +52,7 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    gl.util.clear(true, false, false, [4]f32{ 0.45, 0.55, 0.6, 1.0 });
+    ctx.graphics.clear(true, false, false, [4]f32{ 0.45, 0.55, 0.6, 1.0 });
 
     {
         dig.beginFrame();

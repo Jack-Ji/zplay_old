@@ -1,10 +1,9 @@
 const std = @import("std");
 const math = std.math;
 const zp = @import("zplay");
-const gl = zp.gl;
-const dig = zp.dig;
-const nvg = zp.nvg;
-const nsvg = zp.nsvg;
+const dig = zp.deps.dig;
+const nvg = zp.deps.nvg;
+const nsvg = zp.deps.nsvg;
 
 var font_normal: i32 = undefined;
 var font_bold: i32 = undefined;
@@ -59,13 +58,12 @@ fn loop(ctx: *zp.Context) void {
         _ = dig.processEvent(e);
         switch (e) {
             .keyboard_event => |key| {
-                if (key.trigger_type == .down) {
-                    return;
-                }
-                switch (key.scan_code) {
-                    .escape => ctx.kill(),
-                    .f1 => ctx.toggleFullscreeen(null),
-                    else => {},
+                if (key.trigger_type == .up) {
+                    switch (key.scan_code) {
+                        .escape => ctx.kill(),
+                        .f1 => ctx.toggleFullscreeen(null),
+                        else => {},
+                    }
                 }
             },
             .quit_event => ctx.kill(),
@@ -83,7 +81,7 @@ fn loop(ctx: *zp.Context) void {
     var xpos = @intToFloat(f32, mouse_state.x);
     var ypos = @intToFloat(f32, mouse_state.y);
 
-    gl.util.clear(true, true, true, [_]f32{ 0.3, 0.3, 0.32, 1.0 });
+    ctx.graphics.clear(true, true, true, [_]f32{ 0.3, 0.3, 0.32, 1.0 });
 
     dig.beginFrame();
     defer dig.endFrame();

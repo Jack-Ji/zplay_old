@@ -1,15 +1,15 @@
 const std = @import("std");
 const zp = @import("zplay");
-const gl = zp.gl;
-const alg = zp.alg;
+const alg = zp.deps.alg;
 const Mat4 = alg.Mat4;
-const Renderer = zp.@"3d".Renderer;
-const SimpleRenderer = zp.@"3d".SimpleRenderer;
-const Material = zp.@"3d".Material;
-const Texture2D = zp.texture.Texture2D;
+const VertexArray = zp.graphics.common.VertexArray;
+const Renderer = zp.graphics.@"3d".Renderer;
+const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
+const Material = zp.graphics.@"3d".Material;
+const Texture2D = zp.graphics.texture.Texture2D;
 
 var simple_renderer: SimpleRenderer = undefined;
-var vertex_array: gl.VertexArray = undefined;
+var vertex_array: VertexArray = undefined;
 var material: Material = undefined;
 var wireframe_mode = false;
 
@@ -33,7 +33,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     simple_renderer = SimpleRenderer.init();
 
     // vertex array
-    vertex_array = gl.VertexArray.init(5);
+    vertex_array = VertexArray.init(5);
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
@@ -43,7 +43,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // load texture
     material = Material.init(.{
-        .single_texture = try zp.texture.Texture2D.fromFilePath("assets/wall.jpg", null, false),
+        .single_texture = try Texture2D.fromFilePath("assets/wall.jpg", null, false),
     });
 
     std.log.info("game init", .{});
@@ -60,28 +60,27 @@ fn loop(ctx: *zp.Context) void {
             .window_event => |we| {
                 switch (we.data) {
                     .resized => |size| {
-                        gl.viewport(0, 0, size.width, size.height);
+                        ctx.graphics.setViewport(0, 0, size.width, size.height);
                     },
                     else => {},
                 }
             },
             .keyboard_event => |key| {
-                if (key.trigger_type == .down) {
-                    return;
-                }
-                switch (key.scan_code) {
-                    .escape => ctx.kill(),
-                    .f1 => ctx.toggleFullscreeen(null),
-                    .w => {
-                        if (wireframe_mode) {
-                            wireframe_mode = false;
-                            gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL);
-                        } else {
-                            wireframe_mode = true;
-                            gl.polygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE);
-                        }
-                    },
-                    else => {},
+                if (key.trigger_type == .up) {
+                    switch (key.scan_code) {
+                        .escape => ctx.kill(),
+                        .f1 => ctx.toggleFullscreeen(null),
+                        .w => {
+                            if (wireframe_mode) {
+                                wireframe_mode = false;
+                                ctx.graphics.setPolygonMode(.fill);
+                            } else {
+                                wireframe_mode = true;
+                                ctx.graphics.setPolygonMode(.line);
+                            }
+                        },
+                        else => {},
+                    }
                 }
             },
             .quit_event => ctx.kill(),
@@ -90,7 +89,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     // start drawing
-    gl.util.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    ctx.graphics.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     const model = alg.Mat4.fromTranslate(alg.Vec3.new(0.5, 0.5, 0)).rotate(S.frame, alg.Vec3.forward());
     simple_renderer.renderer().begin();
