@@ -14,31 +14,32 @@ pub const Node = c.cgltf_node;
 pub const Mesh = c.cgltf_mesh;
 pub const Primitive = c.cgltf_primitive;
 pub const Material = c.cgltf_material;
+pub const Image = c.cgltf_image;
 
 pub const Error = error{
-    data_too_short,
-    unknown_format,
-    invalid_json,
-    invalid_gltf,
-    invalid_options,
-    file_not_found,
-    io_error,
-    out_of_memory,
-    legacy_gltf,
-    invalid_params,
+    DataTooShort,
+    UnknownFormat,
+    InvalidJson,
+    InvalidGLTF,
+    InvalidOptions,
+    FileNotFound,
+    IoError,
+    OutOfMemory,
+    LegacyGLTF,
+    InvalidParams,
 };
 
 fn resultToError(result: c.cgltf_result) Error {
     return switch (result) {
-        c.cgltf_result_data_too_short => error.data_too_short,
-        c.cgltf_result_unknown_format => error.unknown_format,
-        c.cgltf_result_invalid_json => error.invalid_json,
-        c.cgltf_result_invalid_gltf => error.invalid_gltf,
-        c.cgltf_result_invalid_options => error.invalid_options,
-        c.cgltf_result_file_not_found => error.file_not_found,
-        c.cgltf_result_io_error => error.io_error,
-        c.cgltf_result_out_of_memory => error.out_of_memory,
-        c.cgltf_result_legacy_gltf => error.legacy_gltf,
+        c.cgltf_result_data_too_short => error.DataTooShort,
+        c.cgltf_result_unknown_format => error.UnknownFormat,
+        c.cgltf_result_invalid_json => error.InvalidJson,
+        c.cgltf_result_invalid_gltf => error.InvalidGLTF,
+        c.cgltf_result_invalid_options => error.InvalidOptions,
+        c.cgltf_result_file_not_found => error.FileNotFound,
+        c.cgltf_result_io_error => error.IoError,
+        c.cgltf_result_out_of_memory => error.OutOfMemory,
+        c.cgltf_result_legacy_gltf => error.LegacyGLTF,
         else => {
             std.debug.panic("unknown error!", .{});
         },
@@ -111,7 +112,7 @@ pub fn readFromAccessor(accessor: *c.cgltf_accessor, index: ?u32, T: type, out: 
     };
 
     if (!success) {
-        return error.invalid_params;
+        return error.InvalidParams;
     }
 }
 
@@ -169,23 +170,26 @@ pub fn appendMeshPrimitive(
         if (accessor.*.stride == 1) {
             assert(accessor.*.component_type == c.cgltf_component_type_r_8u);
             const src = @ptrCast([*]const u8, data_addr);
+            const offset = @intCast(u8, positions.items.len);
             var i: u32 = 0;
             while (i < num_indices) : (i += 1) {
-                indices.appendAssumeCapacity(src[i]);
+                indices.appendAssumeCapacity(src[i] + offset);
             }
         } else if (accessor.*.stride == 2) {
             assert(accessor.*.component_type == c.cgltf_component_type_r_16u);
             const src = @ptrCast([*]const u16, data_addr);
+            const offset = @intCast(u16, positions.items.len);
             var i: u32 = 0;
             while (i < num_indices) : (i += 1) {
-                indices.appendAssumeCapacity(src[i]);
+                indices.appendAssumeCapacity(src[i] + offset);
             }
         } else if (accessor.*.stride == 4) {
             assert(accessor.*.component_type == c.cgltf_component_type_r_32u);
             const src = @ptrCast([*]const u32, data_addr);
+            const offset = @intCast(u32, positions.items.len);
             var i: u32 = 0;
             while (i < num_indices) : (i += 1) {
-                indices.appendAssumeCapacity(src[i]);
+                indices.appendAssumeCapacity(src[i] + offset);
             }
         } else {
             unreachable;

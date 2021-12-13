@@ -26,11 +26,11 @@ primitive_type: drawcall.PrimitiveType = undefined,
 
 /// vertex attribute
 positions: std.ArrayList(Vec3) = undefined,
+indices: ?std.ArrayList(u32) = null,
 normals: ?std.ArrayList(Vec3) = null,
 texcoords: ?std.ArrayList(Vec2) = null,
 colors: ?std.ArrayList(Vec4) = null,
 tangents: ?std.ArrayList(Vec4) = null,
-indices: ?std.ArrayList(u32) = null,
 owns_data: bool = undefined,
 
 /// allocate and initialize Mesh instance
@@ -71,7 +71,6 @@ pub fn init(
         self.tangents = std.ArrayList(Vec4).initCapacity(allocator, ts.len) catch unreachable;
         self.tangents.?.appendSliceAssumeCapacity(ts);
     }
-    self.setup();
     return self;
 }
 
@@ -97,12 +96,11 @@ pub fn fromArrayLists(
         .indices = indices,
         .owns_data = take_ownership,
     };
-    mesh.setup();
     return mesh;
 }
 
-/// initialize vertex array's data
-fn setup(self: *Self) void {
+/// setup vertex array's data
+pub fn setup(self: Self) void {
     self.vertex_array.use();
     defer self.vertex_array.disuse();
 
@@ -182,7 +180,7 @@ pub fn genCube(
         back, back, back, back, back, back, // back
     };
 
-    return init(
+    const mesh = init(
         allocator,
         .triangles,
         &positions,
@@ -199,4 +197,6 @@ pub fn genCube(
             null,
         null,
     );
+    mesh.setup();
+    return mesh;
 }

@@ -37,20 +37,3 @@ pub fn init(data: MaterialData) Self {
         .data = data,
     };
 }
-
-/// deallocate resources
-pub fn deinit(self: *Self) void {
-    switch (self.data) {
-        .phong => |*m| {
-            m.diffuse_map.deinit();
-            m.specular_map.deinit();
-        },
-        .pbr => {
-            // TODO delete pbr textures
-        },
-        .single_texture => |*t| {
-            t.deinit();
-        },
-        .single_color => {},
-    }
-}

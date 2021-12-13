@@ -5,6 +5,7 @@ const Renderer = @import("Renderer.zig");
 const Mesh = @import("Mesh.zig");
 const Material = @import("Material.zig");
 const zp = @import("../../zplay.zig");
+const Texture = zp.graphics.common.Texture;
 const Texture2D = zp.graphics.texture.Texture2D;
 const gltf = zp.deps.gltf;
 const alg = zp.deps.alg;
@@ -15,6 +16,10 @@ const Mat4 = alg.Mat4;
 const Quat = alg.Quat;
 const Self = @This();
 
+pub const Error = error{
+    NoRootNode,
+};
+
 /// materials
 materials: std.ArrayList(Material) = undefined,
 
@@ -23,9 +28,12 @@ meshes: std.ArrayList(Mesh) = undefined,
 transforms: std.ArrayList(Mat4) = undefined,
 material_indices: std.ArrayList(u32) = undefined,
 
-/// load gltf model file
-pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8) Self {
-    var data: *gltf.Data = gltf.loadFile(filename, null) catch unreachable;
+/// textures
+textures: std.ArrayList(Texture2D) = undefined,
+
+/// load gltf model file 
+pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_meshes: bool) !Self {
+    var data: *gltf.Data = try gltf.loadFile(filename, null);
     defer gltf.free(data);
 
     var self = Self{
@@ -33,40 +41,106 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8) Self {
         .meshes = std.ArrayList(Mesh).initCapacity(allocator, 1) catch unreachable,
         .transforms = std.ArrayList(Mat4).initCapacity(allocator, 1) catch unreachable,
         .material_indices = std.ArrayList(u32).initCapacity(allocator, 1) catch unreachable,
+        .textures = std.ArrayList(Texture2D).initCapacity(allocator, 1) catch unreachable,
     };
 
     // load vertex attributes
     assert(data.scenes_count > 0);
     assert(data.scene.*.nodes_count > 0);
-    var root_node = @ptrCast(*gltf.Node, data.scene.*.nodes[0]);
-    self.parseNode(allocator, data, root_node, Mat4.identity());
+    var root_node: ?*gltf.Node = blk: {
+        var i: u32 = 0;
+        while (i < data.scene.*.nodes_count) : (i += 1) {
+            const node = @ptrCast(*gltf.Node, data.scene.*.nodes[i]);
+            if (node.mesh != null) {
+                break :blk node;
+            }
+        }
 
-    // determine material idx
+        // return first node by default
+        break :blk @ptrCast(*gltf.Node, data.scene.*.nodes[0]);
+    };
+    if (root_node == null) {
+        return error.NoRootNode;
+    }
+    self.parseNode(
+        allocator,
+        data,
+        root_node.?,
+        Mat4.identity(),
+        merge_meshes,
+    );
+
+    // load images
+    // TODO: Texture Unit allocation problem
     var i: u32 = 0;
-    while (i < data.materials_count) : (i += 1) {
-        var material = &data.materials[i];
-        if (material.has_pbr_metallic_roughness > 0) {
-            // TODO PBR materials
-            const base_color = material.pbr_metallic_roughness.base_color_factor;
-            self.materials.append(Material.init(.{
-                .single_color = Vec4.fromSlice(&base_color),
-            })) catch unreachable;
+    while (i < data.images_count) : (i += 1) {
+        var image = @ptrCast(*gltf.Image, &data.images[i]);
+        var unit = Texture.TextureUnit.fromInt(@intCast(u32, self.textures.items.len));
+        if (image.buffer_view != null) {
+            var buffer_data = @ptrCast([*]const u8, image.buffer_view.*.buffer.*.data.?);
+            var image_data = buffer_data + image.buffer_view.*.offset;
+            self.textures.append(try Texture2D.fromFileData(
+                image_data[0..image.buffer_view.*.size],
+                unit,
+                false,
+            )) catch unreachable;
         } else {
-            // use green color by default
-            self.materials.append(Material.init(.{
-                .single_color = Vec4.new(0, 1, 0, 1),
-            })) catch unreachable;
+            var buf: [64]u8 = undefined;
+            const dirname = std.fs.path.dirname(filename);
+            const image_path = std.fmt.bufPrintZ(
+                &buf,
+                "{s}{s}{s}",
+                .{ dirname, std.fs.path.sep_str, image.uri },
+            ) catch unreachable;
+            self.textures.append(try Texture2D.fromFilePath(
+                image_path,
+                unit,
+                false,
+            )) catch unreachable;
         }
     }
 
+    // load materials
+    i = 0;
+    MATERIAL_LOOP: while (i < data.materials_count) : (i += 1) {
+        var material = &data.materials[i];
+        assert(material.has_pbr_metallic_roughness > 0);
+
+        // TODO PBR materials
+        const pbrm = material.pbr_metallic_roughness;
+        const base_color_texture = pbrm.base_color_texture;
+
+        var image_idx: u32 = 0;
+        while (image_idx < data.images_count) : (image_idx += 1) {
+            const image = &data.images[image_idx];
+            if (base_color_texture.texture != null and
+                base_color_texture.texture.*.image.*.uri == image.uri)
+            {
+                self.materials.append(Material.init(.{
+                    .single_texture = self.textures.items[image_idx],
+                })) catch unreachable;
+                continue :MATERIAL_LOOP;
+            }
+        }
+
+        const base_color = pbrm.base_color_factor;
+        self.materials.append(Material.init(.{
+            .single_color = Vec4.fromSlice(&base_color),
+        })) catch unreachable;
+    }
+
+    // TODO load skins
+    // TODO load animations
+
+    // setup meshes' vertex buffer
+    for (self.meshes.items) |m| {
+        m.setup();
+    }
     return self;
 }
 
 /// deallocate resources
 pub fn deinit(self: *Self) void {
-    for (self.materials) |*m| {
-        m.deinit();
-    }
     self.materials.deinit();
     for (self.meshes.items) |*m| {
         m.deinit();
@@ -74,6 +148,10 @@ pub fn deinit(self: *Self) void {
     self.meshes.deinit();
     self.transforms.deinit();
     self.material_indices.deinit();
+    for (self.textures.items) |*t| {
+        t.deinit();
+    }
+    self.textures.deinit();
 }
 
 fn parseNode(
@@ -82,6 +160,7 @@ fn parseNode(
     data: *gltf.Data,
     node: *gltf.Node,
     parent_transform: Mat4,
+    merge_meshes: bool,
 ) void {
     // load transform matrix
     var transform = Mat4.identity();
@@ -92,7 +171,12 @@ fn parseNode(
             transform = Mat4.fromScale(Vec3.fromSlice(&node.scale)).mult(transform);
         }
         if (node.has_rotation > 0) {
-            var quat = Quat.new(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+            var quat = Quat.new(
+                node.rotation[3],
+                node.rotation[0],
+                node.rotation[1],
+                node.rotation[2],
+            );
             transform = quat.toMat4().mult(transform);
         }
         if (node.has_translation > 0) {
@@ -106,42 +190,74 @@ fn parseNode(
         var i: u32 = 0;
         while (i < node.mesh.*.primitives_count) : (i += 1) {
             const primitive = @ptrCast(*gltf.Primitive, &node.mesh.*.primitives[i]);
-            var positions = std.ArrayList(Vec3).init(allocator);
-            var indices = std.ArrayList(u32).init(allocator);
-            var normals = std.ArrayList(Vec3).init(allocator);
-            var texcoords = std.ArrayList(Vec2).init(allocator);
-            gltf.appendMeshPrimitive(
-                primitive,
-                &indices,
-                &positions,
-                &normals,
-                &texcoords,
-                null,
-            );
-            self.meshes.append(Mesh.fromArrayLists(
-                gltf.getPrimitiveType(primitive),
-                positions,
-                indices,
-                normals,
-                texcoords,
-                null,
-                null,
-                true,
-            )) catch unreachable;
+            const primtype = gltf.getPrimitiveType(primitive);
 
-            // add transform matrix
-            self.transforms.append(transform) catch unreachable;
-
-            // add material index
-            i = 0;
-            self.material_indices.append(
-                while (i < data.materials_count) : (i += 1) {
-                    const material = @ptrCast([*c]gltf.Material, &data.materials[i]);
+            // get material index
+            const material_index = blk: {
+                var index: u32 = 0;
+                while (index < data.materials_count) : (index += 1) {
+                    const material = @ptrCast([*c]gltf.Material, &data.materials[index]);
                     if (material == primitive.material) {
-                        break i;
+                        break :blk index;
                     }
-                } else 0,
-            ) catch unreachable;
+                }
+                break :blk 0;
+            };
+
+            var mergable_mesh: ?*Mesh = null;
+            if (merge_meshes) {
+                // TODO: there maybe more conditions
+                // find mergable mesh, following conditions must be met:
+                // 1. same primitive type
+                // 2. same transform matrix
+                // 3. same material
+                mergable_mesh = for (self.meshes.items) |*m, idx| {
+                    if (m.primitive_type == primtype and
+                        self.transforms.items[idx].eql(transform) and
+                        self.material_indices.items[idx] == material_index)
+                    {
+                        break m;
+                    }
+                } else null;
+            }
+
+            if (mergable_mesh) |m| {
+                // merge into existing mesh
+                gltf.appendMeshPrimitive(
+                    primitive,
+                    &m.indices.?,
+                    &m.positions,
+                    &m.normals.?,
+                    &m.texcoords.?,
+                    null,
+                );
+            } else {
+                // allocate new mesh
+                var positions = std.ArrayList(Vec3).init(allocator);
+                var indices = std.ArrayList(u32).init(allocator);
+                var normals = std.ArrayList(Vec3).init(allocator);
+                var texcoords = std.ArrayList(Vec2).init(allocator);
+                gltf.appendMeshPrimitive(
+                    primitive,
+                    &indices,
+                    &positions,
+                    &normals,
+                    &texcoords,
+                    null,
+                );
+                self.meshes.append(Mesh.fromArrayLists(
+                    primtype,
+                    positions,
+                    indices,
+                    normals,
+                    texcoords,
+                    null,
+                    null,
+                    true,
+                )) catch unreachable;
+                self.transforms.append(transform) catch unreachable;
+                self.material_indices.append(material_index) catch unreachable;
+            }
         }
     }
 
@@ -153,6 +269,7 @@ fn parseNode(
             data,
             @ptrCast(*gltf.Node, node.children[i]),
             transform,
+            merge_meshes,
         );
     }
 }

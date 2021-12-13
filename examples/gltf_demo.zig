@@ -9,17 +9,22 @@ const Camera = zp.graphics.@"3d".Camera;
 const Model = zp.graphics.@"3d".Model;
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
+const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = false;
+var merge_meshes = true;
+var vsync_mode = false;
 var dog: Model = undefined;
 var girl: Model = undefined;
+var helmet: Model = undefined;
+var total_vertices: u32 = undefined;
 var camera = Camera.fromPositionAndTarget(
-    alg.Vec3.new(0, 0, 3),
-    alg.Vec3.zero(),
+    Vec3.new(0, 0, 3),
+    Vec3.zero(),
     null,
 );
 
@@ -32,21 +37,19 @@ fn init(ctx: *zp.Context) anyerror!void {
     // create renderer
     simple_renderer = SimpleRenderer.init();
 
-    // load model
-    dog = Model.fromGLTF(std.testing.allocator, "assets/dog.gltf");
-    girl = Model.fromGLTF(std.testing.allocator, "assets/girl.glb");
+    // load models
+    loadModels();
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
 }
 
 fn loop(ctx: *zp.Context) void {
-    const S = struct {
-        var frame: f32 = 0;
-    };
-    S.frame += 1;
-
     while (ctx.pollEvent()) |e| {
+        if (e == .mouse_event and dig.getIO().*.WantCaptureMouse) {
+            _ = dig.processEvent(e);
+            continue;
+        }
         switch (e) {
             .window_event => |we| {
                 switch (we.data) {
@@ -100,7 +103,7 @@ fn loop(ctx: *zp.Context) void {
     // start drawing
     ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
-    const projection = alg.Mat4.perspective(
+    const projection = Mat4.perspective(
         camera.zoom,
         @intToFloat(f32, width) / @intToFloat(f32, height),
         0.1,
@@ -111,18 +114,27 @@ fn loop(ctx: *zp.Context) void {
     renderer.begin();
     dog.render(
         renderer,
-        Mat4.fromTranslate(Vec3.new(-1.0, -0.7, 0))
+        Mat4.fromTranslate(Vec3.new(-2.0, -0.7, 0))
             .scale(Vec3.set(0.7))
-            .mult(Mat4.fromRotation(S.frame, Vec3.up())),
+            .mult(Mat4.fromRotation(ctx.tick * 50, Vec3.up())),
         projection,
         camera,
         null,
     ) catch unreachable;
     girl.render(
         renderer,
-        Mat4.fromTranslate(Vec3.new(1.0, -1.2, 0))
+        Mat4.fromTranslate(Vec3.new(2.0, -1.2, 0))
             .scale(Vec3.set(0.7))
-            .mult(Mat4.fromRotation(S.frame, Vec3.up())),
+            .mult(Mat4.fromRotation(ctx.tick * 100, Vec3.up())),
+        projection,
+        camera,
+        null,
+    ) catch unreachable;
+    helmet.render(
+        renderer,
+        Mat4.fromTranslate(Vec3.new(0.0, 0, 0))
+            .scale(Vec3.set(0.7))
+            .mult(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
         projection,
         camera,
         null,
@@ -140,28 +152,89 @@ fn loop(ctx: *zp.Context) void {
         if (dig.begin(
             "control",
             null,
-            dig.ImGuiWindowFlags_NoMove | dig.ImGuiWindowFlags_NoResize | dig.ImGuiWindowFlags_AlwaysAutoResize,
+            dig.ImGuiWindowFlags_NoMove |
+                dig.ImGuiWindowFlags_NoResize |
+                dig.ImGuiWindowFlags_AlwaysAutoResize,
         )) {
             var buf: [32]u8 = undefined;
             dig.text(std.fmt.bufPrintZ(&buf, "FPS: {d:.2}", .{dig.getIO().*.Framerate}) catch unreachable);
-            dig.text(
-                "Total Vertices: %d",
-                blk: {
-                    var num: u32 = 0;
-                    for (dog.meshes.items) |m| {
-                        num += @intCast(u32, m.positions.items.len);
-                    }
-                    break :blk num;
-                },
-            );
+            dig.text(std.fmt.bufPrintZ(&buf, "ms/frame: {d:.2}", .{ctx.delta_tick * 1000}) catch unreachable);
+            dig.text("Total Vertices: %d", total_vertices);
             dig.separator();
             if (dig.checkbox("wireframe", &wireframe_mode)) {
                 ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
+            }
+            if (dig.checkbox("vsync", &vsync_mode)) {
+                ctx.graphics.setVsyncMode(vsync_mode);
+            }
+            if (dig.checkbox("merge meshes", &merge_meshes)) {
+                dog.deinit();
+                girl.deinit();
+                helmet.deinit();
+                loadModels();
+            }
+        }
+        dig.end();
+
+        const S = struct {
+            const MAX_SIZE = 200000;
+            var data = std.ArrayList(Vec2).init(std.testing.allocator);
+            var offset: u32 = 0;
+            var history: f32 = 10;
+        };
+        if (S.data.items.len < S.MAX_SIZE) {
+            S.data.append(Vec2.new(ctx.tick, ctx.delta_tick)) catch unreachable;
+        } else {
+            S.data.items[S.offset] = Vec2.new(ctx.tick, ctx.delta_tick);
+            S.offset = (S.offset + 1) % S.MAX_SIZE;
+        }
+        const plot = dig.ext.plot;
+        if (dig.begin("monitor", null, 0)) {
+            _ = dig.sliderFloat("History", &S.history, 1, 30, "%.1f s", 0);
+            plot.setNextPlotLimitsX(ctx.tick - S.history, ctx.tick, dig.ImGuiCond_Always);
+            plot.setNextPlotLimitsY(0, 0.02, dig.ImGuiCond_Once, plot.ImPlotYAxis_1);
+            if (plot.beginPlot(
+                "milliseconds per frame",
+                null,
+                null,
+                .{ .x = -1, .y = 200 },
+                0,
+                plot.ImPlotAxisFlags_NoTickLabels,
+                plot.ImPlotAxisFlags_NoTickLabels,
+                plot.ImPlotAxisFlags_NoGridLines,
+                plot.ImPlotAxisFlags_NoGridLines,
+                null,
+                null,
+            )) {
+                plot.plotLine_FloatPtrFloatPtr(
+                    "line",
+                    &S.data.items[0].x,
+                    &S.data.items[0].y,
+                    @intCast(c_int, S.data.items.len),
+                    @intCast(c_int, S.offset),
+                    @intCast(c_int, @sizeOf(Vec2)),
+                );
+                plot.endPlot();
             }
         }
         dig.end();
     }
     dig.endFrame();
+}
+
+fn loadModels() void {
+    dog = Model.fromGLTF(std.testing.allocator, "assets/dog.gltf", merge_meshes) catch unreachable;
+    girl = Model.fromGLTF(std.testing.allocator, "assets/girl.glb", merge_meshes) catch unreachable;
+    helmet = Model.fromGLTF(std.testing.allocator, "assets/SciFiHelmet/SciFiHelmet.gltf", merge_meshes) catch unreachable;
+    for (dog.meshes.items) |m| {
+        total_vertices += @intCast(u32, m.positions.items.len);
+    }
+    for (girl.meshes.items) |m| {
+        total_vertices += @intCast(u32, m.positions.items.len);
+    }
+    for (helmet.meshes.items) |m| {
+        total_vertices += @intCast(u32, m.positions.items.len);
+    }
 }
 
 fn quit(ctx: *zp.Context) void {
@@ -174,5 +247,7 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .enable_maximized = true,
+        .enable_vsync = false,
     });
 }

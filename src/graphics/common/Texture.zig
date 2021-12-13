@@ -126,6 +126,10 @@ pub const TextureUnit = enum(c_uint) {
     texture_unit_29 = gl.GL_TEXTURE29,
     texture_unit_30 = gl.GL_TEXTURE30,
     texture_unit_31 = gl.GL_TEXTURE31,
+
+    pub fn fromInt(int: u32) @This() {
+        return @intToEnum(@This(), @intCast(c_int, int) + gl.GL_TEXTURE0);
+    }
 };
 
 pub const WrappingCoord = enum(c_uint) {

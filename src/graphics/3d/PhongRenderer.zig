@@ -19,9 +19,9 @@ const max_point_light_num = 16;
 const max_spot_light_num = 16;
 
 pub const Error = error{
-    too_many_point_lights,
-    too_many_spot_lights,
-    renderer_not_active,
+    TooManyPointLights,
+    TooManySpotLights,
+    RendererNotActive,
 };
 
 /// vertex attribute locations
@@ -250,13 +250,13 @@ pub fn addLight(self: *Self, light: Light) !u32 {
     switch (light.getType()) {
         .point => {
             if (self.point_lights.items.len == max_point_light_num)
-                return error.too_many_point_lights;
+                return error.TooManyPointLights;
             try self.point_lights.append(light);
             return @intCast(u32, self.point_lights.items.len - 1);
         },
         .spot => {
             if (self.spot_lights.items.len == max_spot_light_num)
-                return error.too_many_spot_lights;
+                return error.TooManySpotLights;
             try self.spot_lights.append(light);
             return @intCast(u32, self.spot_lights.items.len - 1);
         },
@@ -342,7 +342,7 @@ fn render(
     instance_count: ?u32,
 ) !void {
     if (!self.program.isUsing()) {
-        return error.renderer_not_active;
+        return error.RendererNotActive;
     }
 
     // set uniforms

@@ -11,7 +11,7 @@ pub const Color = c.NVGcolor;
 pub const Paint = c.NVGpaint;
 
 pub const Error = error{
-    init_context_failed,
+    InitContextFailed,
 };
 
 pub const Winding = enum(u2) {
@@ -79,7 +79,7 @@ var ctx: ?*c.NVGcontext = undefined;
 pub fn init(flags: c_int) !void {
     ctx = c.nvgCreateGL3(flags);
     if (ctx == null) {
-        return error.init_context_failed;
+        return error.InitContextFailed;
     }
 }
 
