@@ -11,6 +11,7 @@ pub fn link(
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
 
     var gl = b.addStaticLibrary("gl", null);
+    gl.setTarget(target);
     gl.linkLibC();
     if (target.isWindows()) {
         gl.linkSystemLibrary("opengl32");
