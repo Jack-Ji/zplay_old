@@ -1,6 +1,7 @@
 const std = @import("std");
 const zp = @import("zplay");
 const alg = zp.deps.alg;
+const dig = zp.deps.dig;
 const VertexArray = zp.graphics.common.VertexArray;
 const Texture2D = zp.graphics.texture.Texture2D;
 const Renderer = zp.graphics.@"3d".Renderer;
@@ -10,8 +11,10 @@ const Camera = zp.graphics.@"3d".Camera;
 
 var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: VertexArray = undefined;
-var material: Material = undefined;
+var texture_material: Material = undefined;
+var color_material: Material = undefined;
 var wireframe_mode = false;
+var outlined = false;
 var camera = Camera.fromPositionAndTarget(
     alg.Vec3.new(0, 0, 3),
     alg.Vec3.zero(),
@@ -79,6 +82,9 @@ const cube_positions = [_]alg.Vec3{
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 
+    // init imgui
+    try dig.init(ctx.window);
+
     // simple renderer
     simple_renderer = SimpleRenderer.init();
 
@@ -91,8 +97,11 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_TEX, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // load texture
-    material = Material.init(.{
+    texture_material = Material.init(.{
         .single_texture = try Texture2D.fromFilePath("assets/wall.jpg", null, false),
+    });
+    color_material = Material.init(.{
+        .single_color = alg.Vec4.new(0, 1, 0, 1),
     });
 
     // enable depth test
@@ -106,6 +115,7 @@ fn loop(ctx: *zp.Context) void {
     S.frame += 1;
 
     while (ctx.pollEvent()) |e| {
+        _ = dig.processEvent(e);
         switch (e) {
             .window_event => |we| {
                 switch (we.data) {
@@ -120,15 +130,6 @@ fn loop(ctx: *zp.Context) void {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
                         .f1 => ctx.toggleFullscreeen(null),
-                        .w => {
-                            if (wireframe_mode) {
-                                wireframe_mode = false;
-                                ctx.graphics.setPolygonMode(.fill);
-                            } else {
-                                wireframe_mode = true;
-                                ctx.graphics.setPolygonMode(.line);
-                            }
-                        },
                         else => {},
                     }
                 }
@@ -142,7 +143,7 @@ fn loop(ctx: *zp.Context) void {
     var height: u32 = undefined;
     ctx.getWindowSize(&width, &height);
 
-    ctx.graphics.clear(true, true, false, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
+    ctx.graphics.clear(true, true, true, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     const projection = alg.Mat4.perspective(
         45,
@@ -150,10 +151,47 @@ fn loop(ctx: *zp.Context) void {
         0.1,
         100,
     );
+    render_boxes(ctx, projection, S.frame);
+
+    // settings
+    dig.beginFrame();
+    {
+        dig.setNextWindowPos(
+            .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
+            dig.ImGuiCond_Always,
+            .{ .x = 1, .y = 0 },
+        );
+        if (dig.begin(
+            "settings",
+            null,
+            dig.ImGuiWindowFlags_NoMove |
+                dig.ImGuiWindowFlags_NoResize |
+                dig.ImGuiWindowFlags_AlwaysAutoResize,
+        )) {
+            if (dig.checkbox("wireframe", &wireframe_mode)) {
+                ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
+            }
+            if (dig.checkbox("outlined", &outlined)) {
+                ctx.graphics.toggleCapability(.stencil_test, outlined);
+            }
+        }
+        dig.end();
+    }
+    dig.endFrame();
+}
+
+fn render_boxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
     simple_renderer.renderer().begin();
+    defer simple_renderer.renderer().end();
+
+    // update stencil buffers
+    if (outlined) {
+        ctx.graphics.setStencilTestFunc(.always, 1, 0xff);
+        ctx.graphics.setStencilUpdateMode(.keep, .keep, .replace);
+    }
     for (cube_positions) |pos, i| {
-        const model = alg.Mat4.fromRotation(
-            20 * @intToFloat(f32, i) + S.frame,
+        var model = alg.Mat4.fromRotation(
+            20 * @intToFloat(f32, i) + frame,
             alg.Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
         simple_renderer.renderer().render(
@@ -165,11 +203,34 @@ fn loop(ctx: *zp.Context) void {
             model,
             projection,
             camera,
-            material,
+            texture_material,
             null,
         ) catch unreachable;
     }
-    simple_renderer.renderer().end();
+
+    // outline cubes
+    // draw scaled up cubes, using single color
+    if (outlined) {
+        ctx.graphics.setStencilTestFunc(.not_equal, 1, 0xff);
+        for (cube_positions) |pos, i| {
+            var model = alg.Mat4.fromRotation(
+                20 * @intToFloat(f32, i) + frame,
+                alg.Vec3.new(1, 0.3, 0.5),
+            ).translate(pos);
+            simple_renderer.renderer().render(
+                vertex_array,
+                false,
+                .triangles,
+                0,
+                36,
+                model.mult(alg.Mat4.fromScale(alg.Vec3.set(1.01))),
+                projection,
+                camera,
+                color_material,
+                null,
+            ) catch unreachable;
+        }
+    }
 }
 
 fn quit(ctx: *zp.Context) void {

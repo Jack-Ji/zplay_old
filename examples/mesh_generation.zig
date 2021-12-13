@@ -45,6 +45,7 @@ fn loop(ctx: *zp.Context) void {
     S.frame += 1;
 
     while (ctx.pollEvent()) |e| {
+        _ = dig.processEvent(e);
         switch (e) {
             .window_event => |we| {
                 switch (we.data) {
@@ -59,15 +60,6 @@ fn loop(ctx: *zp.Context) void {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
                         .f1 => ctx.toggleFullscreeen(null),
-                        .m => ctx.toggleRelativeMouseMode(null),
-                        .f => {
-                            if (wireframe_mode) {
-                                wireframe_mode = false;
-                            } else {
-                                wireframe_mode = true;
-                            }
-                            ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
-                        },
                         else => {},
                     }
                 }

@@ -42,15 +42,26 @@ pub const PolygonMode = enum(c_uint) {
     line = gl.GL_LINE,
 };
 
-pub const DepthFunc = enum(c_uint) {
+pub const TestFunc = enum(c_uint) {
     never = gl.GL_NEVER,
     less = gl.GL_LESS,
-    equal = gl.GL_EQUAL,
     less_or_equal = gl.GL_LEQUAL,
     greater = gl.GL_GREATER,
-    not_equal = gl.GL_NOTEQUAL,
     greater_or_equal = gl.GL_GEQUAL,
+    equal = gl.GL_EQUAL,
+    not_equal = gl.GL_NOTEQUAL,
     always = gl.GL_ALWAYS,
+};
+
+pub const StencilOp = enum(c_uint) {
+    keep = gl.GL_KEEP, // The currently stored stencil value is kept.
+    zero = gl.GL_ZERO, // The stencil value is set to 0.
+    replace = gl.GL_REPLACE, // The stencil value is replaced with the reference value set with glStencilFunc.
+    incr = gl.GL_INCR, // The stencil value is increased by 1 if it is lower than the maximum value.
+    incr_wrap = gl.GL_INCR_WRAP, // Same as GL_INCR, but wraps it back to 0 as soon as the maximum value is exceeded.
+    decr = gl.GL_DECR, // The stencil value is decreased by 1 if it is higher than the minimum value.
+    decr_wrap = gl.GL_DECR_WRAP, // Same as GL_DECR, but wraps it to the maximum value if it ends up lower than 0.
+    invert = gl.GL_INVERT, // Bitwise inverts the current stencil buffer value.
 };
 
 /// opengl context
@@ -190,10 +201,10 @@ pub fn setPolygonMode(self: Self, mode: PolygonMode) void {
     gl.util.checkError();
 }
 
-/// set depth test function
-pub fn setDepthFunc(self: Self, mode: DepthFunc) void {
+/// set depth test function, which determines whether fragment is accepted
+pub fn setDepthTestFunc(self: Self, func: TestFunc) void {
     _ = self;
-    gl.depthFunc(@enumToInt(mode));
+    gl.depthFunc(@enumToInt(func));
     gl.util.checkError();
 }
 
@@ -201,5 +212,37 @@ pub fn setDepthFunc(self: Self, mode: DepthFunc) void {
 pub fn setDepthUpdateMode(self: Self, on_off: bool) void {
     _ = self;
     gl.depthMask(gl.util.boolType(on_off));
+    gl.util.checkError();
+}
+
+/// set stencil mask
+/// mask: bitmask that is ANDed with the stencil value about to be written to the buffer.
+pub fn setStencilMask(self: Self, mask: u8) void {
+    _ = self;
+    gl.stencilMask(@intCast(gl.GLuint, mask));
+    gl.util.checkError();
+}
+
+/// set stencil test params, which determines whether fragment is accepted.
+/// func: stencil test function that determines whether a fragment passes or is discarded.
+/// ref: the reference value for the stencil test. The stencil buffer's content is compared to this value.
+/// mask: ANDed with both the reference value and the stored stencil value before the test compares them.
+pub fn setStencilTestFunc(self: Self, func: TestFunc, ref: u8, mask: ?u8) void {
+    _ = self;
+    gl.stencilFunc(
+        @enumToInt(func),
+        @intCast(gl.GLint, ref),
+        @intCast(gl.GLuint, mask orelse 0xff),
+    );
+    gl.util.checkError();
+}
+
+/// set stencil update mode
+/// sfail: action to take if the stencil test fails.
+/// dpfail: action to take if the stencil test passes, but the depth test fails.
+/// dppass: action to take if both the stencil and the depth test pass.
+pub fn setStencilUpdateMode(self: Self, sfail: StencilOp, dpfail: StencilOp, dppass: StencilOp) void {
+    _ = self;
+    gl.stencilOp(@enumToInt(sfail), @enumToInt(dpfail), @enumToInt(dppass));
     gl.util.checkError();
 }
