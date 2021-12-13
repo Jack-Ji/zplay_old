@@ -3,8 +3,6 @@ const zp = @import("zplay.zig");
 const GraphicsContext = zp.graphics.common.Context;
 const event = zp.event;
 const sdl = zp.deps.sdl;
-const dig = zp.deps.dig;
-const nvg = zp.deps.nvg;
 
 /// application context
 pub const Context = struct {
@@ -176,12 +174,6 @@ pub const Game = struct {
 
     /// enable MSAA
     enable_msaa: bool = false,
-
-    /// dear imgui switch
-    enable_dear_imgui: bool = false,
-
-    /// nanovg switch
-    enable_nanovg: bool = false,
 };
 
 /// entrance point, never return until application is killed
@@ -235,21 +227,6 @@ pub fn run(g: Game) !void {
     context.toggleFullscreeen(g.enable_fullscreen);
     context.toggleRelativeMouseMode(g.enable_relative_mouse_mode);
 
-    // setup imgui
-    if (g.enable_dear_imgui) {
-        try dig.init(context.window);
-    }
-
-    // setup nanovg
-    if (g.enable_nanovg) {
-        nvg.init(
-            if (g.enable_msaa)
-                nvg.c.NVG_STENCIL_STROKES
-            else
-                nvg.c.NVG_ANTIALIAS | nvg.c.NVG_STENCIL_STROKES,
-        );
-    }
-
     // init before loop
     try g.initFn(&context);
     defer g.quitFn(&context);
@@ -272,13 +249,5 @@ pub fn run(g: Game) !void {
 
         // swap buffers
         context.graphics.swap(context.window);
-    }
-
-    if (g.enable_dear_imgui) {
-        dig.deinit();
-    }
-
-    if (g.enable_nanovg) {
-        nvg.deinit();
     }
 }

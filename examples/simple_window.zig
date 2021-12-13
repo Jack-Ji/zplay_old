@@ -3,7 +3,6 @@ const zp = @import("zplay");
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
-
     std.log.info("game init", .{});
 }
 
@@ -27,7 +26,6 @@ fn loop(ctx: *zp.Context) void {
 
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
-
     std.log.info("game quit", .{});
 }
 

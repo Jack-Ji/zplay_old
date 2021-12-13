@@ -10,7 +10,7 @@ A simple framework intended for game/tool creation.
 * Sprite system (TODO)
 * Collision system (TODO)
 * Particle system (TODO)
-* Dear-imgui and extensions(implot/imnodes) integration 
+* dear-imgui and extensions(implot/imnodes) integration 
 * NanoVG/NanoSVG integration
 
 # Install

@@ -20,6 +20,7 @@ const vertices = [_]f32{
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
+    std.log.info("game init", .{});
 
     // create renderer
     simple_renderer = SimpleRenderer.init();
@@ -31,8 +32,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
     vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 6 * @sizeOf(f32), 0);
     vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_COLOR, 3, f32, false, 6 * @sizeOf(f32), 3 * @sizeOf(f32));
-
-    std.log.info("game init", .{});
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -81,7 +80,6 @@ fn loop(ctx: *zp.Context) void {
 
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
-
     std.log.info("game quit", .{});
 }
 

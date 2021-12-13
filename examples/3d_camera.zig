@@ -63,6 +63,8 @@ const vertices = [_]f32{
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
+    std.log.info("game init", .{});
+
     // simple renderer
     simple_renderer = SimpleRenderer.init();
 
@@ -81,8 +83,6 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
-
-    std.log.info("game init", .{});
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -191,7 +191,6 @@ fn loop(ctx: *zp.Context) void {
 
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
-
     std.log.info("game quit", .{});
 }
 

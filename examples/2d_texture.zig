@@ -28,6 +28,7 @@ const indices = [_]u32{
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
+    std.log.info("game init", .{});
 
     // simple renderer
     simple_renderer = SimpleRenderer.init();
@@ -45,8 +46,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     material = Material.init(.{
         .single_texture = try Texture2D.fromFilePath("assets/wall.jpg", null, false),
     });
-
-    std.log.info("game init", .{});
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -110,7 +109,6 @@ fn loop(ctx: *zp.Context) void {
 
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
-
     std.log.info("game quit", .{});
 }
 

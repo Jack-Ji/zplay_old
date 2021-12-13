@@ -2016,12 +2016,13 @@ const codepoint_names = [_][:0]const u8{
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
-    _ = ctx;
+    std.log.info("game init", .{});
+
+    // init imgui
+    try dig.init(ctx.window);
 
     regular_font = try dig.loadFontAwesome(30, true, true);
     solid_font = try dig.loadFontAwesome(30, false, true);
-
-    std.log.info("game init", .{});
 }
 
 fn printIcons(column_size: usize) void {
@@ -2098,7 +2099,6 @@ fn loop(ctx: *zp.Context) void {
 
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
-
     std.log.info("game quit", .{});
 }
 
@@ -2109,6 +2109,5 @@ pub fn main() anyerror!void {
         .quitFn = quit,
         .enable_resizable = true,
         .enable_maximized = true,
-        .enable_dear_imgui = true,
     });
 }

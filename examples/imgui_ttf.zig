@@ -7,7 +7,10 @@ var big_font: *dig.ImFont = undefined;
 var small_font: *dig.ImFont = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
-    _ = ctx;
+    std.log.info("game init", .{});
+
+    // init imgui
+    try dig.init(ctx.window);
 
     big_font = try dig.loadTTF(
         "assets/msyh.ttf",
@@ -19,8 +22,6 @@ fn init(ctx: *zp.Context) anyerror!void {
         22,
         dig.ImFontAtlas_GetGlyphRangesChineseFull(dig.getIO().*.Fonts),
     );
-
-    std.log.info("game init", .{});
 }
 
 fn printSection(title: [:0]const u8, text: [:0]const u8) void {
@@ -296,7 +297,6 @@ fn loop(ctx: *zp.Context) void {
 
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
-
     std.log.info("game quit", .{});
 }
 
@@ -307,6 +307,5 @@ pub fn main() anyerror!void {
         .quitFn = quit,
         .enable_resizable = true,
         .enable_maximized = true,
-        .enable_dear_imgui = true,
     });
 }

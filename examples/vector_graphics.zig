@@ -13,10 +13,16 @@ var images: [12]nvg.Image = undefined;
 var svg_data: *nsvg.SVG = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
-    _ = ctx;
+    std.log.info("game init", .{});
+
+    // init imgui
+    try dig.init(ctx.window);
+
+    // init nanovg context
+    try nvg.init(nvg.c.NVG_ANTIALIAS | nvg.c.NVG_STENCIL_STROKES);
 
     var i: usize = 0;
-    var buf: [128]u8 = undefined;
+    var buf: [64]u8 = undefined;
     while (i < 12) : (i += 1) {
         var path = try std.fmt.bufPrintZ(&buf, "assets/images/image{d}.jpg", .{i + 1});
         images[i] = nvg.createImage(path, .{});
@@ -49,8 +55,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = nvg.addFallbackFontId(font_bold, font_emoji);
 
     svg_data = nsvg.loadFile("assets/23.svg", null, null) orelse unreachable;
-
-    std.log.info("game init", .{});
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -710,7 +714,5 @@ pub fn main() anyerror!void {
         .quitFn = quit,
         .width = 1000,
         .height = 600,
-        .enable_dear_imgui = true,
-        .enable_nanovg = true,
     });
 }

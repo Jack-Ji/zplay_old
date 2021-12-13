@@ -3,9 +3,10 @@ const zp = @import("zplay");
 const dig = zp.deps.dig;
 
 fn init(ctx: *zp.Context) anyerror!void {
-    _ = ctx;
-
     std.log.info("game init", .{});
+
+    // init imgui
+    try dig.init(ctx.window);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -90,7 +91,6 @@ fn loop(ctx: *zp.Context) void {
 
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
-
     std.log.info("game quit", .{});
 }
 
@@ -101,6 +101,5 @@ pub fn main() anyerror!void {
         .quitFn = quit,
         .enable_resizable = true,
         .enable_maximized = true,
-        .enable_dear_imgui = true,
     });
 }

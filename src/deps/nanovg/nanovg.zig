@@ -10,6 +10,10 @@ pub const c = @import("c.zig");
 pub const Color = c.NVGcolor;
 pub const Paint = c.NVGpaint;
 
+pub const Error = error{
+    init_context_failed,
+};
+
 pub const Winding = enum(u2) {
     ccw = 1, // Winding for solid shapes
     cw = 2, // Winding for holes
@@ -70,10 +74,13 @@ pub const ImageFlags = packed struct {
     nearest: bool = false, // Image interpolation is Nearest instead Linear
 };
 
-var ctx: *c.NVGcontext = undefined;
+var ctx: ?*c.NVGcontext = undefined;
 
-pub fn init(flags: c_int) void {
-    ctx = c.nvgCreateGL3(flags) orelse unreachable;
+pub fn init(flags: c_int) !void {
+    ctx = c.nvgCreateGL3(flags);
+    if (ctx == null) {
+        return error.init_context_failed;
+    }
 }
 
 pub fn deinit() void {
