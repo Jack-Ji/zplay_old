@@ -696,6 +696,9 @@ static const float TICK_FILL_X = 0.8f;
 static const float TICK_FILL_Y = 1.0f;
 
 void AddTicksDefault(const ImPlotRange& range, float pix, ImPlotOrientation orn, ImPlotTickCollection& ticks, const char* fmt) {
+    if (range.Size() < 1e-6)
+        return;
+
     const int idx0          = ticks.Size;
     const int nMinor        = 10;
     const int nMajor        = ImMax(2, (int)IM_ROUND(pix / (orn == ImPlotOrientation_Horizontal ? 400.0f : 300.0f)));
