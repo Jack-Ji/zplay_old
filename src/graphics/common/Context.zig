@@ -42,19 +42,48 @@ pub const PolygonMode = enum(c_uint) {
     line = gl.GL_LINE,
 };
 
+pub const DepthFunc = enum(c_uint) {
+    never = gl.GL_NEVER,
+    less = gl.GL_LESS,
+    equal = gl.GL_EQUAL,
+    less_or_equal = gl.GL_LEQUAL,
+    greater = gl.GL_GREATER,
+    not_equal = gl.GL_NOTEQUAL,
+    greater_or_equal = gl.GL_GEQUAL,
+    always = gl.GL_ALWAYS,
+};
+
 /// opengl context
 gl_ctx: sdl.gl.Context,
 
 /// prepare graphics api
-pub fn prepare(api: Api, enable_msaa: bool) void {
-    assert(api == .opengl); // only opengl for now
-    _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_STENCIL_SIZE, 1);
-    _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_DEPTH_SIZE, 24);
-    if (enable_msaa) {
-        _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_MULTISAMPLEBUFFERS, 1);
-        _ = sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_MULTISAMPLESAMPLES, 4);
+pub fn prepare(g: zp.Game) !void {
+    assert(g.graphics_api == .opengl); // only opengl for now
+    if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0) {
+        return sdl.makeError();
+    }
+    if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_MINOR_VERSION, 3) != 0) {
+        return sdl.makeError();
+    }
+    if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_STENCIL_SIZE, 1) != 0) {
+        return sdl.makeError();
+    }
+    if (g.enable_msaa) {
+        if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_MULTISAMPLEBUFFERS, 1) != 0) {
+            return sdl.makeError();
+        }
+        if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_MULTISAMPLESAMPLES, 4) != 0) {
+            return sdl.makeError();
+        }
+    }
+    if (g.enable_highres_depth) {
+        if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_DEPTH_SIZE, 32) != 0) {
+            return sdl.makeError();
+        }
+    } else {
+        if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_DEPTH_SIZE, 24) != 0) {
+            return sdl.makeError();
+        }
     }
 }
 
@@ -158,5 +187,19 @@ pub fn toggleCapability(self: Self, cap: Capability, on_off: bool) void {
 pub fn setPolygonMode(self: Self, mode: PolygonMode) void {
     _ = self;
     gl.polygonMode(gl.GL_FRONT_AND_BACK, @enumToInt(mode));
+    gl.util.checkError();
+}
+
+/// set depth test function
+pub fn setDepthFunc(self: Self, mode: DepthFunc) void {
+    _ = self;
+    gl.depthFunc(@enumToInt(mode));
+    gl.util.checkError();
+}
+
+/// set depth update mode, false means depth buffer won't be updated during rendering
+pub fn setDepthUpdateMode(self: Self, on_off: bool) void {
+    _ = self;
+    gl.depthMask(gl.util.boolType(on_off));
     gl.util.checkError();
 }

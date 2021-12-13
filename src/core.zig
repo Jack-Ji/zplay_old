@@ -174,6 +174,9 @@ pub const Game = struct {
 
     /// enable MSAA
     enable_msaa: bool = false,
+
+    /// enable high resolution depth buffer
+    enable_highres_depth: bool = false,
 };
 
 /// entrance point, never return until application is killed
@@ -182,7 +185,7 @@ pub fn run(g: Game) !void {
     defer sdl.quit();
 
     // prepare graphics params
-    GraphicsContext.prepare(g.graphics_api, g.enable_msaa);
+    try GraphicsContext.prepare(g);
 
     // create window
     var flags = sdl.WindowFlags{

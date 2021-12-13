@@ -10,6 +10,7 @@ const Vec4 = alg.Vec4;
 
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = false;
+var perspective_mode = true;
 var cube1: Mesh = undefined;
 var cube2: Mesh = undefined;
 var camera = Camera.fromPositionAndTarget(
@@ -29,7 +30,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // generate meshes
     cube1 = Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5, Vec4.new(0, 1, 0, 1));
-    cube2 = Mesh.genCube(std.testing.allocator, 0.5, 0.7, 1, Vec4.new(0, 1, 0, 1));
+    cube2 = Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2, Vec4.new(0, 1, 0, 1));
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -83,12 +84,24 @@ fn loop(ctx: *zp.Context) void {
     // start drawing
     ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
-    const projection = alg.Mat4.perspective(
-        camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
-    );
+    var projection: alg.Mat4 = undefined;
+    if (perspective_mode) {
+        projection = alg.Mat4.perspective(
+            camera.zoom,
+            @intToFloat(f32, width) / @intToFloat(f32, height),
+            0.1,
+            100,
+        );
+    } else {
+        projection = alg.Mat4.orthographic(
+            -3,
+            3,
+            -3,
+            3,
+            0,
+            100,
+        );
+    }
     S.axis = alg.Mat4.fromRotation(1, alg.Vec3.new(-1, 1, -1)).multByVec4(S.axis);
     const model = alg.Mat4.fromRotation(
         S.frame,
@@ -129,11 +142,14 @@ fn loop(ctx: *zp.Context) void {
         if (dig.begin(
             "settings",
             null,
-            dig.ImGuiWindowFlags_NoMove | dig.ImGuiWindowFlags_NoResize,
+            dig.ImGuiWindowFlags_NoMove |
+                dig.ImGuiWindowFlags_NoResize |
+                dig.ImGuiWindowFlags_AlwaysAutoResize,
         )) {
             if (dig.checkbox("wireframe", &wireframe_mode)) {
                 ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
             }
+            _ = dig.checkbox("perspective", &perspective_mode);
         }
         dig.end();
     }
@@ -150,5 +166,6 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .enable_highres_depth = false,
     });
 }
