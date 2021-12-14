@@ -57,12 +57,9 @@ pub fn init(vbo_num: u32) Self {
 }
 
 /// deinitialize vertex array
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: Self) void {
     gl.deleteVertexArrays(1, &self.id);
     gl.deleteBuffers(@intCast(c_int, self.vbo_num), &self.vbos);
-    self.id = undefined;
-    self.vbos = undefined;
-    self.vbo_num = undefined;
     gl.util.checkError();
 }
 

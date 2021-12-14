@@ -44,7 +44,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // load texture
     material = Material.init(.{
-        .single_texture = try Texture2D.fromFilePath("assets/wall.jpg", false),
+        .single_texture = try Texture2D.fromFilePath(std.testing.allocator, "assets/wall.jpg", false),
     });
     _ = material.allocTextureUnit(3);
 }
@@ -110,6 +110,7 @@ fn loop(ctx: *zp.Context) void {
 
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
+
     std.log.info("game quit", .{});
 }
 

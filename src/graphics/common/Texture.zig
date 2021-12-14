@@ -131,24 +131,27 @@ pub const TextureUnit = enum(c_uint) {
     texture_unit_30 = gl.GL_TEXTURE30,
     texture_unit_31 = gl.GL_TEXTURE31,
 
-    pub fn fromInt(int: i32) @This() {
-        return @intToEnum(@This(), int + gl.GL_TEXTURE0);
+    const Unit = @This();
+
+    pub fn fromInt(int: i32) Unit {
+        return @intToEnum(Unit, int + gl.GL_TEXTURE0);
     }
 
-    pub fn toInt(self: @This()) i32 {
+    pub fn toInt(self: Unit) i32 {
         return @intCast(i32, @enumToInt(self) - gl.GL_TEXTURE0);
     }
 
     // mark where texture unit is allocated to
-    var alloc_map = std.EnumArray(@This(), ?*Self).initFill(null);
-    fn allocUnit(unit: @This(), tex: *Self) void {
+    var alloc_map = std.EnumArray(Unit, ?*Self).initFill(null);
+    fn alloc(unit: Unit, tex: *Self) void {
         if (alloc_map.get(unit)) |t| {
             if (tex == t) return;
             t.tu = null; // detach unit from old texture
         }
+        tex.tu = unit;
         alloc_map.set(unit, tex);
     }
-    fn freeUnit(unit: @This()) void {
+    fn free(unit: Unit) void {
         if (alloc_map.get(unit)) |t| {
             t.tu = null; // detach unit from old texture
             alloc_map.set(unit, null);
@@ -183,27 +186,29 @@ pub const FilteringMode = enum(c_int) {
     linear_mipmap_linear = gl.GL_LINEAR_MIPMAP_LINEAR,
 };
 
+/// allocator
+allocator: std.mem.Allocator,
+
 /// texture id
 id: gl.GLuint = undefined,
 
 /// texture type
-tt: TextureType = undefined,
+tt: TextureType,
 
 /// texture unit
-tu: ?TextureUnit = undefined,
+tu: ?TextureUnit = null,
 
-pub fn init(tt: TextureType) Self {
-    var texture: Self = .{
-        .tt = tt,
-    };
-    gl.genTextures(1, &texture.id);
+pub fn init(allocator: std.mem.Allocator, tt: TextureType) !*Self {
+    const self = try allocator.create(Self);
+    self.tt = tt;
+    gl.genTextures(1, &self.id);
     gl.util.checkError();
-    return texture;
+    return self;
 }
 
-pub fn deinit(self: Self) void {
+pub fn deinit(self: *Self) void {
     if (self.tu) |u| {
-        TextureUnit.freeUnit(u);
+        TextureUnit.free(u);
     }
     gl.deleteTextures(1, &self.id);
     gl.util.checkError();
@@ -214,8 +219,7 @@ pub fn deinit(self: Self) void {
 /// by other textures, we just blindly bind them everytime. 
 /// Maybe we need to look out for performance issue.
 pub fn bindToTextureUnit(self: *Self, unit: TextureUnit) void {
-    self.tu = unit;
-    TextureUnit.allocUnit(unit, self);
+    TextureUnit.alloc(unit, self);
     gl.activeTexture(@enumToInt(self.tu.?));
     gl.bindTexture(@enumToInt(self.tt), self.id);
     gl.util.checkError();

@@ -98,7 +98,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // load texture
     texture_material = Material.init(.{
-        .single_texture = try Texture2D.fromFilePath("assets/wall.jpg", false),
+        .single_texture = try Texture2D.fromFilePath(std.testing.allocator, "assets/wall.jpg", false),
     });
     _ = texture_material.allocTextureUnit(0);
     color_material = Material.init(.{

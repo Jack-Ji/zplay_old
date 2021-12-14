@@ -32,25 +32,40 @@ pub const MaterialData = union(MaterialType) {
 /// material properties
 data: MaterialData = undefined,
 
-/// create a new material
+/// create material
 pub fn init(data: MaterialData) Self {
     return .{
         .data = data,
     };
 }
 
+/// remove material
+pub fn deinit(self: Self) void {
+    switch (self.data) {
+        .phong => |mr| {
+            mr.diffuse_map.deinit();
+            mr.specular_map.deinit();
+        },
+        .pbr => {},
+        .single_texture => |t| {
+            t.deinit();
+        },
+        .single_color => {},
+    }
+}
+
 /// alloc texture unit, return next unused unit
-pub fn allocTextureUnit(self: *Self, start_unit: i32) i32 {
+pub fn allocTextureUnit(self: Self, start_unit: i32) i32 {
     var unit = start_unit;
     switch (self.data) {
-        .phong => |*mr| {
+        .phong => |mr| {
             mr.diffuse_map.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
             unit += 1;
             mr.specular_map.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
             unit += 1;
         },
         .pbr => {},
-        .single_texture => |*t| {
+        .single_texture => |t| {
             t.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
             unit += 1;
         },

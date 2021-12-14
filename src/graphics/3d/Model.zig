@@ -77,6 +77,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
             var buffer_data = @ptrCast([*]const u8, image.buffer_view.*.buffer.*.data.?);
             var image_data = buffer_data + image.buffer_view.*.offset;
             self.textures.append(try Texture2D.fromFileData(
+                allocator,
                 image_data[0..image.buffer_view.*.size],
                 false,
             )) catch unreachable;
@@ -89,6 +90,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
                 .{ dirname, std.fs.path.sep_str, image.uri },
             ) catch unreachable;
             self.textures.append(try Texture2D.fromFilePath(
+                allocator,
                 image_path,
                 false,
             )) catch unreachable;
@@ -135,15 +137,18 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
 }
 
 /// deallocate resources
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: Self) void {
+    for (self.materials.items) |m| {
+        m.deinit();
+    }
     self.materials.deinit();
-    for (self.meshes.items) |*m| {
+    for (self.meshes.items) |m| {
         m.deinit();
     }
     self.meshes.deinit();
     self.transforms.deinit();
     self.material_indices.deinit();
-    for (self.textures.items) |*t| {
+    for (self.textures.items) |t| {
         t.deinit();
     }
     self.textures.deinit();

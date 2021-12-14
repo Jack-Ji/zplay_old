@@ -9,7 +9,7 @@ pub const Error = error{
 };
 
 /// gpu texture
-tex: Texture = undefined,
+tex: *Texture,
 
 /// size of texture
 width: u32 = undefined,
@@ -20,12 +20,13 @@ format: Texture.ImageFormat = undefined,
 
 /// init 2d texture from pixel data
 pub fn init(
+    allocator: std.mem.Allocator,
     pixel_data: []const u8,
     format: Texture.ImageFormat,
     width: u32,
     height: u32,
-) Self {
-    var tex = Texture.init(.texture_2d);
+) !Self {
+    var tex = try Texture.init(allocator, .texture_2d);
     tex.updateImageData(
         .texture_2d,
         0,
@@ -47,12 +48,12 @@ pub fn init(
     };
 }
 
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: Self) void {
     self.tex.deinit();
 }
 
 /// create 2d texture with path to image file
-pub fn fromFilePath(file_path: []const u8, flip: bool) Error!Self {
+pub fn fromFilePath(allocator: std.mem.Allocator, file_path: []const u8, flip: bool) !Self {
     var width: c_int = undefined;
     var height: c_int = undefined;
     var channels: c_int = undefined;
@@ -71,6 +72,7 @@ pub fn fromFilePath(file_path: []const u8, flip: bool) Error!Self {
     defer stb_image.stbi_image_free(image_data);
 
     return Self.init(
+        allocator,
         image_data[0..@intCast(u32, width * height * channels)],
         switch (channels) {
             3 => .rgb,
@@ -86,7 +88,7 @@ pub fn fromFilePath(file_path: []const u8, flip: bool) Error!Self {
 }
 
 /// create 2d texture with given file's data buffer
-pub fn fromFileData(data: []const u8, flip: bool) Error!Self {
+pub fn fromFileData(allocator: std.mem.Allocator, data: []const u8, flip: bool) !Self {
     var width: c_int = undefined;
     var height: c_int = undefined;
     var channels: c_int = undefined;
@@ -106,6 +108,7 @@ pub fn fromFileData(data: []const u8, flip: bool) Error!Self {
     defer stb_image.stbi_image_free(image_data);
 
     return Self.init(
+        allocator,
         image_data[0..@intCast(u32, width * height * channels)],
         switch (channels) {
             3 => .rgb,

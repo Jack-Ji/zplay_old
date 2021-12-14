@@ -18,6 +18,7 @@ var dog: Model = undefined;
 var girl: Model = undefined;
 var helmet: Model = undefined;
 var total_vertices: u32 = undefined;
+var total_meshes: u32 = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(0, 0, 3),
     Vec3.zero(),
@@ -155,7 +156,8 @@ fn loop(ctx: *zp.Context) void {
             var buf: [32]u8 = undefined;
             dig.text(std.fmt.bufPrintZ(&buf, "FPS: {d:.2}", .{dig.getIO().*.Framerate}) catch unreachable);
             dig.text(std.fmt.bufPrintZ(&buf, "ms/frame: {d:.2}", .{ctx.delta_tick * 1000}) catch unreachable);
-            dig.text("Total Vertices: %d", total_vertices);
+            dig.text(std.fmt.bufPrintZ(&buf, "Total Vertices: {d}", .{total_vertices}) catch unreachable);
+            dig.text(std.fmt.bufPrintZ(&buf, "Total Meshes: {d}", .{total_meshes}) catch unreachable);
             dig.separator();
             if (dig.checkbox("wireframe", &wireframe_mode)) {
                 ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
@@ -170,16 +172,25 @@ fn loop(ctx: *zp.Context) void {
         dig.end();
 
         const S = struct {
-            const MAX_SIZE = 200000;
+            const MAX_SIZE = 20000;
             var data = std.ArrayList(Vec2).init(std.testing.allocator);
             var offset: u32 = 0;
             var history: f32 = 10;
+            var interval: f32 = 0;
+            var count: f32 = 0;
         };
-        if (S.data.items.len < S.MAX_SIZE) {
-            S.data.append(Vec2.new(ctx.tick, ctx.delta_tick)) catch unreachable;
-        } else {
-            S.data.items[S.offset] = Vec2.new(ctx.tick, ctx.delta_tick);
-            S.offset = (S.offset + 1) % S.MAX_SIZE;
+        S.interval += ctx.delta_tick;
+        S.count += 1;
+        if (S.interval > 0.1) {
+            var mpf = S.interval / S.count;
+            if (S.data.items.len < S.MAX_SIZE) {
+                S.data.append(Vec2.new(ctx.tick, mpf)) catch unreachable;
+            } else {
+                S.data.items[S.offset] = Vec2.new(ctx.tick, mpf);
+                S.offset = (S.offset + 1) % S.MAX_SIZE;
+            }
+            S.interval = 0;
+            S.count = 0;
         }
         const plot = dig.ext.plot;
         if (dig.begin("monitor", null, 0)) {
@@ -193,20 +204,22 @@ fn loop(ctx: *zp.Context) void {
                 .{ .x = -1, .y = 200 },
                 0,
                 plot.ImPlotAxisFlags_NoTickLabels,
-                plot.ImPlotAxisFlags_NoTickLabels,
+                0,
                 plot.ImPlotAxisFlags_NoGridLines,
                 plot.ImPlotAxisFlags_NoGridLines,
                 null,
                 null,
             )) {
-                plot.plotLine_FloatPtrFloatPtr(
-                    "line",
-                    &S.data.items[0].x,
-                    &S.data.items[0].y,
-                    @intCast(c_int, S.data.items.len),
-                    @intCast(c_int, S.offset),
-                    @intCast(c_int, @sizeOf(Vec2)),
-                );
+                if (S.data.items.len > 0) {
+                    plot.plotLine_FloatPtrFloatPtr(
+                        "line",
+                        &S.data.items[0].x,
+                        &S.data.items[0].y,
+                        @intCast(c_int, S.data.items.len),
+                        @intCast(c_int, S.offset),
+                        @intCast(c_int, @sizeOf(Vec2)),
+                    );
+                }
                 plot.endPlot();
             }
         }
@@ -226,28 +239,33 @@ fn loadScene() void {
     }
 
     // load models
+    total_vertices = 0;
+    total_meshes = 0;
     dog = Model.fromGLTF(std.testing.allocator, "assets/dog.gltf", merge_meshes) catch unreachable;
     girl = Model.fromGLTF(std.testing.allocator, "assets/girl.glb", merge_meshes) catch unreachable;
     helmet = Model.fromGLTF(std.testing.allocator, "assets/SciFiHelmet/SciFiHelmet.gltf", merge_meshes) catch unreachable;
     for (dog.meshes.items) |m| {
         total_vertices += @intCast(u32, m.positions.items.len);
+        total_meshes += 1;
     }
     for (girl.meshes.items) |m| {
         total_vertices += @intCast(u32, m.positions.items.len);
+        total_meshes += 1;
     }
     for (helmet.meshes.items) |m| {
         total_vertices += @intCast(u32, m.positions.items.len);
+        total_meshes += 1;
     }
 
     // allocate texture units
     var unit: i32 = 0;
-    for (dog.materials.items) |*m| {
+    for (dog.materials.items) |m| {
         unit = m.allocTextureUnit(unit);
     }
-    for (girl.materials.items) |*m| {
+    for (girl.materials.items) |m| {
         unit = m.allocTextureUnit(unit);
     }
-    for (helmet.materials.items) |*m| {
+    for (helmet.materials.items) |m| {
         unit = m.allocTextureUnit(unit);
     }
     S.loaded = true;

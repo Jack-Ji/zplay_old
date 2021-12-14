@@ -123,7 +123,7 @@ pub fn setup(self: Self) void {
 }
 
 /// free resources
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: Self) void {
     self.vertex_array.deinit();
     if (self.owns_data) {
         self.positions.deinit();
