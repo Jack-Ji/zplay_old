@@ -8,7 +8,7 @@ pub const Error = error{
     LoadImageError,
 };
 
-/// opengl texture
+/// gpu texture
 tex: Texture = undefined,
 
 /// size of texture
@@ -24,10 +24,8 @@ pub fn init(
     format: Texture.ImageFormat,
     width: u32,
     height: u32,
-    texture_unit: ?Texture.TextureUnit,
 ) Self {
     var tex = Texture.init(.texture_2d);
-    tex.bindToTextureUnit(texture_unit orelse .texture_unit_0);
     tex.updateImageData(
         .texture_2d,
         0,
@@ -54,11 +52,7 @@ pub fn deinit(self: *Self) void {
 }
 
 /// create 2d texture with path to image file
-pub fn fromFilePath(
-    file_path: []const u8,
-    texture_unit: ?Texture.TextureUnit,
-    flip: bool,
-) Error!Self {
+pub fn fromFilePath(file_path: []const u8, flip: bool) Error!Self {
     var width: c_int = undefined;
     var height: c_int = undefined;
     var channels: c_int = undefined;
@@ -88,16 +82,11 @@ pub fn fromFilePath(
         },
         @intCast(u32, width),
         @intCast(u32, height),
-        texture_unit,
     );
 }
 
 /// create 2d texture with given file's data buffer
-pub fn fromFileData(
-    data: []const u8,
-    texture_unit: ?Texture.TextureUnit,
-    flip: bool,
-) Error!Self {
+pub fn fromFileData(data: []const u8, flip: bool) Error!Self {
     var width: c_int = undefined;
     var height: c_int = undefined;
     var channels: c_int = undefined;
@@ -128,6 +117,5 @@ pub fn fromFileData(
         },
         @intCast(u32, width),
         @intCast(u32, height),
-        texture_unit,
     );
 }

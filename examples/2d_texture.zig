@@ -44,8 +44,9 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // load texture
     material = Material.init(.{
-        .single_texture = try Texture2D.fromFilePath("assets/wall.jpg", null, false),
+        .single_texture = try Texture2D.fromFilePath("assets/wall.jpg", false),
     });
+    _ = material.allocTextureUnit(3);
 }
 
 fn loop(ctx: *zp.Context) void {

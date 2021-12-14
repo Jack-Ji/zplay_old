@@ -5,7 +5,6 @@ const Renderer = @import("Renderer.zig");
 const Mesh = @import("Mesh.zig");
 const Material = @import("Material.zig");
 const zp = @import("../../zplay.zig");
-const Texture = zp.graphics.common.Texture;
 const Texture2D = zp.graphics.texture.Texture2D;
 const gltf = zp.deps.gltf;
 const alg = zp.deps.alg;
@@ -71,17 +70,14 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
     );
 
     // load images
-    // TODO: Texture Unit allocation problem
     var i: u32 = 0;
     while (i < data.images_count) : (i += 1) {
         var image = @ptrCast(*gltf.Image, &data.images[i]);
-        var unit = Texture.TextureUnit.fromInt(@intCast(u32, self.textures.items.len));
         if (image.buffer_view != null) {
             var buffer_data = @ptrCast([*]const u8, image.buffer_view.*.buffer.*.data.?);
             var image_data = buffer_data + image.buffer_view.*.offset;
             self.textures.append(try Texture2D.fromFileData(
                 image_data[0..image.buffer_view.*.size],
-                unit,
                 false,
             )) catch unreachable;
         } else {
@@ -94,7 +90,6 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
             ) catch unreachable;
             self.textures.append(try Texture2D.fromFilePath(
                 image_path,
-                unit,
                 false,
             )) catch unreachable;
         }

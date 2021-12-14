@@ -3,6 +3,10 @@ const zp = @import("../../zplay.zig");
 const gl = zp.deps.gl;
 const Self = @This();
 
+pub const Error = error{
+    TextureUnitUsed,
+};
+
 pub const TextureType = enum(c_uint) {
     texture_1d = gl.GL_TEXTURE_1D,
     texture_2d = gl.GL_TEXTURE_2D,
@@ -127,8 +131,28 @@ pub const TextureUnit = enum(c_uint) {
     texture_unit_30 = gl.GL_TEXTURE30,
     texture_unit_31 = gl.GL_TEXTURE31,
 
-    pub fn fromInt(int: u32) @This() {
-        return @intToEnum(@This(), @intCast(c_int, int) + gl.GL_TEXTURE0);
+    pub fn fromInt(int: i32) @This() {
+        return @intToEnum(@This(), int + gl.GL_TEXTURE0);
+    }
+
+    pub fn toInt(self: @This()) i32 {
+        return @intCast(i32, @enumToInt(self) - gl.GL_TEXTURE0);
+    }
+
+    // mark where texture unit is allocated to
+    var alloc_map = std.EnumArray(@This(), ?*Self).initFill(null);
+    fn allocUnit(unit: @This(), tex: *Self) void {
+        if (alloc_map.get(unit)) |t| {
+            if (tex == t) return;
+            t.tu = null; // detach unit from old texture
+        }
+        alloc_map.set(unit, tex);
+    }
+    fn freeUnit(unit: @This()) void {
+        if (alloc_map.get(unit)) |t| {
+            t.tu = null; // detach unit from old texture
+            alloc_map.set(unit, null);
+        }
     }
 };
 
@@ -166,7 +190,7 @@ id: gl.GLuint = undefined,
 tt: TextureType = undefined,
 
 /// texture unit
-tu: TextureUnit = undefined,
+tu: ?TextureUnit = undefined,
 
 pub fn init(tt: TextureType) Self {
     var texture: Self = .{
@@ -177,26 +201,29 @@ pub fn init(tt: TextureType) Self {
     return texture;
 }
 
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: Self) void {
+    if (self.tu) |u| {
+        TextureUnit.freeUnit(u);
+    }
     gl.deleteTextures(1, &self.id);
-    self.id = undefined;
-    self.tt = undefined;
-    self.tu = undefined;
     gl.util.checkError();
 }
 
-// activate and bind to given texture unit
+/// activate and bind to given texture unit
+/// NOTE: because a texture unit can be stolen anytime
+/// by other textures, we just blindly bind them everytime. 
+/// Maybe we need to look out for performance issue.
 pub fn bindToTextureUnit(self: *Self, unit: TextureUnit) void {
     self.tu = unit;
-    gl.activeTexture(@enumToInt(self.tu));
+    TextureUnit.allocUnit(unit, self);
+    gl.activeTexture(@enumToInt(self.tu.?));
     gl.bindTexture(@enumToInt(self.tt), self.id);
     gl.util.checkError();
 }
 
-// get binded texture unit
+/// get binded texture unit
 pub fn getTextureUnit(self: Self) i32 {
-    std.debug.assert(self.tu != undefined);
-    return @intCast(i32, @enumToInt(self.tu) - gl.GL_TEXTURE0);
+    return @intCast(i32, @enumToInt(self.tu.?) - gl.GL_TEXTURE0);
 }
 
 /// set texture wrapping mode
@@ -240,6 +267,7 @@ pub fn updateImageData(
     data: []const T,
     gen_mipmap: bool,
 ) void {
+    gl.bindTexture(@enumToInt(self.tt), self.id);
     switch (self.tt) {
         .texture_1d => {
             std.debug.assert(target == .texture_1d or target == .proxy_texture_1d);

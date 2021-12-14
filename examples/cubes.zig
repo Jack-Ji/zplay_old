@@ -98,8 +98,9 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // load texture
     texture_material = Material.init(.{
-        .single_texture = try Texture2D.fromFilePath("assets/wall.jpg", null, false),
+        .single_texture = try Texture2D.fromFilePath("assets/wall.jpg", false),
     });
+    _ = texture_material.allocTextureUnit(0);
     color_material = Material.init(.{
         .single_color = alg.Vec4.new(0, 1, 0, 1),
     });

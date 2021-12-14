@@ -1,10 +1,6 @@
 const std = @import("std");
 const zp = @import("zplay");
-const VertexArray = zp.graphics.common.VertexArray;
-const Texture2D = zp.graphics.texture.Texture2D;
-const Renderer = zp.graphics.@"3d".Renderer;
 const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
-const Material = zp.graphics.@"3d".Material;
 const Camera = zp.graphics.@"3d".Camera;
 const Model = zp.graphics.@"3d".Model;
 const dig = zp.deps.dig;
@@ -37,8 +33,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     // create renderer
     simple_renderer = SimpleRenderer.init();
 
-    // load models
-    loadModels();
+    // load scene
+    loadScene();
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -168,10 +164,7 @@ fn loop(ctx: *zp.Context) void {
                 ctx.graphics.setVsyncMode(vsync_mode);
             }
             if (dig.checkbox("merge meshes", &merge_meshes)) {
-                dog.deinit();
-                girl.deinit();
-                helmet.deinit();
-                loadModels();
+                loadScene();
             }
         }
         dig.end();
@@ -222,7 +215,17 @@ fn loop(ctx: *zp.Context) void {
     dig.endFrame();
 }
 
-fn loadModels() void {
+fn loadScene() void {
+    const S = struct {
+        var loaded = false;
+    };
+    if (S.loaded) {
+        dog.deinit();
+        girl.deinit();
+        helmet.deinit();
+    }
+
+    // load models
     dog = Model.fromGLTF(std.testing.allocator, "assets/dog.gltf", merge_meshes) catch unreachable;
     girl = Model.fromGLTF(std.testing.allocator, "assets/girl.glb", merge_meshes) catch unreachable;
     helmet = Model.fromGLTF(std.testing.allocator, "assets/SciFiHelmet/SciFiHelmet.gltf", merge_meshes) catch unreachable;
@@ -235,6 +238,19 @@ fn loadModels() void {
     for (helmet.meshes.items) |m| {
         total_vertices += @intCast(u32, m.positions.items.len);
     }
+
+    // allocate texture units
+    var unit: i32 = 0;
+    for (dog.materials.items) |*m| {
+        unit = m.allocTextureUnit(unit);
+    }
+    for (girl.materials.items) |*m| {
+        unit = m.allocTextureUnit(unit);
+    }
+    for (helmet.materials.items) |*m| {
+        unit = m.allocTextureUnit(unit);
+    }
+    S.loaded = true;
 }
 
 fn quit(ctx: *zp.Context) void {

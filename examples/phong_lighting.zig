@@ -170,8 +170,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     lighting_cube_va.disuse();
 
     // material init
-    var diffuse_texture = try Texture2D.fromFilePath("assets/container2.png", null, false);
-    var specular_texture = try Texture2D.fromFilePath("assets/container2_specular.png", .texture_unit_1, false);
+    var diffuse_texture = try Texture2D.fromFilePath("assets/container2.png", false);
+    var specular_texture = try Texture2D.fromFilePath("assets/container2_specular.png", false);
     material_for_phong = Material.init(.{
         .phong = .{
             .diffuse_map = diffuse_texture,
@@ -179,6 +179,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .shiness = 32,
         },
     });
+    _ = material_for_phong.allocTextureUnit(0);
     material_for_simple = Material.init(.{
         .single_color = Vec4.one(),
     });

@@ -98,6 +98,10 @@ fn end(self: *Self) void {
 /// use material data
 fn applyMaterial(self: *Self, material: Material) void {
     switch (material.data) {
+        .phong => |m| {
+            self.program.setUniformByName("u_use_texture", true);
+            self.program.setUniformByName("u_texture", m.diffuse_map.tex.getTextureUnit());
+        },
         .single_texture => |t| {
             self.program.setUniformByName("u_use_texture", true);
             self.program.setUniformByName("u_texture", t.tex.getTextureUnit());

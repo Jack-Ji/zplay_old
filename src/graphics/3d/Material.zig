@@ -2,6 +2,7 @@ const std = @import("std");
 const PhongRenderer = @import("PhongRenderer.zig");
 const SimpleRenderer = @import("SimpleRenderer.zig");
 const zp = @import("../../zplay.zig");
+const TextureUnit = zp.graphics.common.Texture.TextureUnit;
 const Texture2D = zp.graphics.texture.Texture2D;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
@@ -36,4 +37,24 @@ pub fn init(data: MaterialData) Self {
     return .{
         .data = data,
     };
+}
+
+/// alloc texture unit, return next unused unit
+pub fn allocTextureUnit(self: *Self, start_unit: i32) i32 {
+    var unit = start_unit;
+    switch (self.data) {
+        .phong => |*mr| {
+            mr.diffuse_map.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
+            unit += 1;
+            mr.specular_map.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
+            unit += 1;
+        },
+        .pbr => {},
+        .single_texture => |*t| {
+            t.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
+            unit += 1;
+        },
+        .single_color => {},
+    }
+    return unit;
 }
