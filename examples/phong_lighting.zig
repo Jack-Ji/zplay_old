@@ -170,8 +170,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     lighting_cube_va.disuse();
 
     // material init
-    var diffuse_texture = try Texture2D.fromFilePath("assets/container2.png", false);
-    var specular_texture = try Texture2D.fromFilePath("assets/container2_specular.png", false);
+    var diffuse_texture = try Texture2D.fromFilePath(std.testing.allocator, "assets/container2.png", false);
+    var specular_texture = try Texture2D.fromFilePath(std.testing.allocator, "assets/container2_specular.png", false);
     material_for_phong = Material.init(.{
         .phong = .{
             .diffuse_map = diffuse_texture,

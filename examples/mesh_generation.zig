@@ -128,15 +128,17 @@ fn loop(ctx: *zp.Context) void {
     {
         dig.setNextWindowPos(
             .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
-            dig.ImGuiCond_Always,
-            .{ .x = 1, .y = 0 },
+            .{
+                .cond = dig.c.ImGuiCond_Always,
+                .pivot = .{ .x = 1, .y = 0 },
+            },
         );
         if (dig.begin(
             "settings",
             null,
-            dig.ImGuiWindowFlags_NoMove |
-                dig.ImGuiWindowFlags_NoResize |
-                dig.ImGuiWindowFlags_AlwaysAutoResize,
+            dig.c.ImGuiWindowFlags_NoMove |
+                dig.c.ImGuiWindowFlags_NoResize |
+                dig.c.ImGuiWindowFlags_AlwaysAutoResize,
         )) {
             if (dig.checkbox("wireframe", &wireframe_mode)) {
                 ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);

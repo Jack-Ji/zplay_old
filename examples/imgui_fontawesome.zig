@@ -3,8 +3,8 @@ const zp = @import("zplay");
 const dig = zp.deps.dig;
 const fontawesome = dig.fontawesome;
 
-var regular_font: *dig.ImFont = undefined;
-var solid_font: *dig.ImFont = undefined;
+var regular_font: *dig.Font = undefined;
+var solid_font: *dig.Font = undefined;
 const codepoints = [_][:0]const u8{
     fontawesome.ICON_FA_AD,
     fontawesome.ICON_FA_ADDRESS_BOOK,
@@ -2029,9 +2029,7 @@ fn printIcons(column_size: usize) void {
     if (dig.beginTable(
         "table",
         @intCast(c_int, column_size),
-        dig.ImGuiTableFlags_Borders,
-        std.mem.zeroes(dig.ImVec2),
-        0,
+        .{ .flags = dig.c.ImGuiTableFlags_Borders },
     )) {
         var count: usize = 0;
         for (codepoints) |c, i| {
@@ -2043,7 +2041,7 @@ fn printIcons(column_size: usize) void {
                 _ = dig.text(codepoint_names[i].ptr);
                 dig.newLine();
                 dig.newLine();
-                dig.sameLine(dig.getColumnWidth(dig.getColumnIndex()) - 40, 10);
+                dig.sameLine(.{ .offset_from_start_x = dig.getColumnWidth(dig.getColumnIndex()) - 40, .spacing = 10 });
                 _ = dig.text(c.ptr);
                 count += 1;
             }

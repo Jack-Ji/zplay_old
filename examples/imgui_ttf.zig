@@ -3,8 +3,8 @@ const zp = @import("zplay");
 const dig = zp.deps.dig;
 const fontawesome = dig.fontawesome;
 
-var big_font: *dig.ImFont = undefined;
-var small_font: *dig.ImFont = undefined;
+var big_font: *dig.Font = undefined;
+var small_font: *dig.Font = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -15,19 +15,19 @@ fn init(ctx: *zp.Context) anyerror!void {
     big_font = try dig.loadTTF(
         "assets/msyh.ttf",
         25,
-        dig.ImFontAtlas_GetGlyphRangesChineseFull(dig.getIO().*.Fonts),
+        dig.c.ImFontAtlas_GetGlyphRangesChineseFull(dig.getIO().*.Fonts),
     );
     small_font = try dig.loadTTF(
         "assets/msyh.ttf",
         22,
-        dig.ImFontAtlas_GetGlyphRangesChineseFull(dig.getIO().*.Fonts),
+        dig.c.ImFontAtlas_GetGlyphRangesChineseFull(dig.getIO().*.Fonts),
     );
 }
 
 fn printSection(title: [:0]const u8, text: [:0]const u8) void {
     dig.pushFont(big_font);
     defer dig.popFont();
-    if (dig.collapsingHeader_TreeNodeFlags(title.ptr, 0)) {
+    if (dig.collapsingHeader_TreeNodeFlags(title, null)) {
         dig.pushFont(small_font);
         dig.textWrapped(text.ptr);
         dig.popFont();
@@ -59,7 +59,7 @@ fn loop(ctx: *zp.Context) void {
         dig.beginFrame();
         defer dig.endFrame();
 
-        if (dig.begin("金刚经（上）", null, 0)) {
+        if (dig.begin("金刚经（上）", null, null)) {
             printSection("第一品 法会因由分",
                 \\如是我闻，一时，佛在舍卫国祗树给孤独园，与大比丘众千二百五十人俱。尔时，世尊食时，著衣持钵，
                 \\入舍卫大城乞食。于其城中，次第乞已，还至本处。饭食讫，收衣钵，洗足已，敷座而坐。

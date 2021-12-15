@@ -5,6 +5,9 @@ const vec2_zero = c.ImVec2{ .x = 0, .y = 0 };
 const vec2_one = c.ImVec2{ .x = 1, .y = 1 };
 const vec4_zero = c.ImVec4{ .x = 0, .y = 0, .z = 0, .w = 0 };
 const vec4_one = c.ImVec4{ .x = 1, .y = 1, .z = 1, .w = 1 };
+pub const Font = c.ImFont;
+pub const DrawList = c.ImDrawList;
+pub const DrawCmd = c.ImDrawCmd;
 pub const getIO = c.igGetIO;
 pub const getStyle = c.igGetStyle;
 pub const getDrawData = c.igGetDrawData;
@@ -2354,29 +2357,29 @@ pub const internal = struct {
 /// ImFontAtlas internal API
 pub const fontatlas = struct {
     // Helper for font builder
-    pub const fontAtlasGetBuilderForStbTruetype = c.igImFontAtlasGetBuilderForStbTruetype;
-    pub fn fontAtlasBuildInit(atlas: *c.ImFontAtlas) void {
+    pub const getBuilderForStbTruetype = c.igImFontAtlasGetBuilderForStbTruetype;
+    pub fn buildInit(atlas: *c.ImFontAtlas) void {
         return c.igImFontAtlasBuildInit(atlas);
     }
-    pub fn fontAtlasBuildSetupFont(atlas: *c.ImFontAtlas, font: *c.ImFont, font_config: *c.ImFontConfig, ascent: f32, descent: f32) void {
+    pub fn buildSetupFont(atlas: *c.ImFontAtlas, font: *c.ImFont, font_config: *c.ImFontConfig, ascent: f32, descent: f32) void {
         return c.igImFontAtlasBuildSetupFont(atlas, font, font_config, ascent, descent);
     }
-    pub fn fontAtlasBuildPackCustomRects(atlas: *c.ImFontAtlas, stbrp_context_opaque: ?*c_void) void {
+    pub fn buildPackCustomRects(atlas: *c.ImFontAtlas, stbrp_context_opaque: ?*c_void) void {
         return c.igImFontAtlasBuildPackCustomRects(atlas, stbrp_context_opaque);
     }
-    pub fn fontAtlasBuildFinish(atlas: *c.ImFontAtlas) void {
+    pub fn buildFinish(atlas: *c.ImFontAtlas) void {
         return c.igImFontAtlasBuildFinish(atlas);
     }
-    pub fn fontAtlasBuildRender8bppRectFromString(atlas: *c.ImFontAtlas, x: c_int, y: c_int, w: c_int, h: c_int, in_str: [*c]const u8, in_marker_char: u8, in_marker_pixel_value: u8) void {
+    pub fn buildRender8bppRectFromString(atlas: *c.ImFontAtlas, x: c_int, y: c_int, w: c_int, h: c_int, in_str: [*c]const u8, in_marker_char: u8, in_marker_pixel_value: u8) void {
         return c.igImFontAtlasBuildRender8bppRectFromString(atlas, x, y, w, h, in_str, in_marker_char, in_marker_pixel_value);
     }
-    pub fn fontAtlasBuildRender32bppRectFromString(atlas: *c.ImFontAtlas, x: c_int, y: c_int, w: c_int, h: c_int, in_str: [*c]const u8, in_marker_char: u8, in_marker_pixel_value: c_uint) void {
+    pub fn buildRender32bppRectFromString(atlas: *c.ImFontAtlas, x: c_int, y: c_int, w: c_int, h: c_int, in_str: [*c]const u8, in_marker_char: u8, in_marker_pixel_value: c_uint) void {
         return c.igImFontAtlasBuildRender32bppRectFromString(atlas, x, y, w, h, in_str, in_marker_char, in_marker_pixel_value);
     }
-    pub fn fontAtlasBuildMultiplyCalcLookupTable(out_table: [*c]u8, in_multiply_factor: f32) void {
+    pub fn buildMultiplyCalcLookupTable(out_table: [*c]u8, in_multiply_factor: f32) void {
         return c.igImFontAtlasBuildMultiplyCalcLookupTable(out_table, in_multiply_factor);
     }
-    pub fn fontAtlasBuildMultiplyRectAlpha8(table: [*c]const u8, pixels: [*c]u8, x: c_int, y: c_int, w: c_int, h: c_int, stride: c_int) void {
+    pub fn buildMultiplyRectAlpha8(table: [*c]const u8, pixels: [*c]u8, x: c_int, y: c_int, w: c_int, h: c_int, stride: c_int) void {
         return c.igImFontAtlasBuildMultiplyRectAlpha8(table, pixels, x, y, w, h, stride);
     }
 };
