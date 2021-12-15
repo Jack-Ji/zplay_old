@@ -44,17 +44,18 @@ fn loop(ctx: *zp.Context) void {
         dig.beginFrame();
         defer dig.endFrame();
 
-        if (dig.begin("Hello, world!", null, 0)) {
+        if (dig.begin("Hello, world!", null, null)) {
             dig.text("This is some useful text");
+            dig.textUnformatted("some useful text");
             _ = dig.checkbox("Demo Window", &S.show_demo_window);
             _ = dig.checkbox("Another Window", &S.show_another_window);
             _ = dig.checkbox("Plot Demo Window", &S.show_plot_demo_window);
             _ = dig.checkbox("Nodes Demo Window", &S.show_nodes_demo_window);
-            _ = dig.sliderFloat("float", &S.f, 0, 1, null, 0);
-            _ = dig.colorEdit3("clear color", &S.clear_color, 0);
-            if (dig.button("Button", .{ .x = 0, .y = 0 }))
+            _ = dig.sliderFloat("float", &S.f, 0, 1, .{});
+            _ = dig.colorEdit4("clear color", &S.clear_color, null);
+            if (dig.button("Button", null))
                 S.counter += 1;
-            dig.sameLine(0, 0);
+            dig.sameLine(.{});
             dig.text("count = %d", S.counter);
         }
         dig.end();
@@ -64,9 +65,9 @@ fn loop(ctx: *zp.Context) void {
         }
 
         if (S.show_another_window) {
-            if (dig.begin("Another Window", &S.show_another_window, 0)) {
+            if (dig.begin("Another Window", &S.show_another_window, null)) {
                 dig.text("Hello from another window!");
-                if (dig.button("Close Me", .{ .x = 0, .y = 0 }))
+                if (dig.button("Close Me", null))
                     S.show_another_window = false;
             }
             dig.end();

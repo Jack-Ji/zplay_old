@@ -143,15 +143,17 @@ fn loop(ctx: *zp.Context) void {
     {
         dig.setNextWindowPos(
             .{ .x = @intToFloat(f32, width) - 30, .y = 50 },
-            dig.ImGuiCond_Always,
-            .{ .x = 1, .y = 0 },
+            .{
+                .cond = dig.c.ImGuiCond_Always,
+                .pivot = .{ .x = 1, .y = 0 },
+            },
         );
         if (dig.begin(
             "control",
             null,
-            dig.ImGuiWindowFlags_NoMove |
-                dig.ImGuiWindowFlags_NoResize |
-                dig.ImGuiWindowFlags_AlwaysAutoResize,
+            dig.c.ImGuiWindowFlags_NoMove |
+                dig.c.ImGuiWindowFlags_NoResize |
+                dig.c.ImGuiWindowFlags_AlwaysAutoResize,
         )) {
             var buf: [32]u8 = undefined;
             dig.text(std.fmt.bufPrintZ(&buf, "FPS: {d:.2}", .{dig.getIO().*.Framerate}) catch unreachable);
@@ -194,30 +196,18 @@ fn loop(ctx: *zp.Context) void {
         }
         const plot = dig.ext.plot;
         if (dig.begin("monitor", null, 0)) {
-            _ = dig.sliderFloat("History", &S.history, 1, 30, "%.1f s", 0);
-            plot.setNextPlotLimitsX(ctx.tick - S.history, ctx.tick, dig.ImGuiCond_Always);
-            plot.setNextPlotLimitsY(0, 0.02, dig.ImGuiCond_Once, plot.ImPlotYAxis_1);
-            if (plot.beginPlot(
-                "milliseconds per frame",
-                null,
-                null,
-                .{ .x = -1, .y = 200 },
-                0,
-                plot.ImPlotAxisFlags_NoTickLabels,
-                0,
-                plot.ImPlotAxisFlags_NoGridLines,
-                plot.ImPlotAxisFlags_NoGridLines,
-                null,
-                null,
-            )) {
+            _ = dig.sliderFloat("History", &S.history, 1, 30, .{});
+            plot.setNextPlotLimitsX(ctx.tick - S.history, ctx.tick, dig.c.ImGuiCond_Always);
+            plot.setNextPlotLimitsY(0, 0.02, dig.c.ImGuiCond_Once, plot.c.ImPlotYAxis_1);
+            if (plot.beginPlot("milliseconds per frame", .{})) {
                 if (S.data.items.len > 0) {
-                    plot.plotLine_FloatPtrFloatPtr(
+                    plot.plotLine_PtrPtr(
                         "line",
+                        f32,
                         &S.data.items[0].x,
                         &S.data.items[0].y,
-                        @intCast(c_int, S.data.items.len),
-                        @intCast(c_int, S.offset),
-                        @intCast(c_int, @sizeOf(Vec2)),
+                        @intCast(u32, S.data.items.len),
+                        .{ .offset = @intCast(c_int, S.offset) },
                     );
                 }
                 plot.endPlot();

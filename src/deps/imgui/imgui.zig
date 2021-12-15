@@ -3,10 +3,10 @@ const zp = @import("../../zplay.zig");
 const event = zp.event;
 const sdl = zp.deps.sdl;
 const sdl_impl = @import("sdl_impl.zig");
+pub const c = @import("c.zig");
 
-/// export imgui api 
-pub usingnamespace @import("c.zig");
-const c = @import("c.zig");
+/// export friendly api 
+pub usingnamespace @import("api.zig");
 
 /// icon font: font-awesome 
 pub const fontawesome = @import("fonts/fontawesome.zig");
@@ -26,7 +26,7 @@ var nodes_ctx: ?*ext.nodes.ImNodesContext = undefined;
 
 /// initialize sdl2 and opengl3 backend
 pub fn init(window: sdl.Window) !void {
-    _ = c.createContext(null);
+    _ = c.igCreateContext(null);
     try sdl_impl.init(window.ptr);
     if (!_ImGui_ImplOpenGL3_Init(null)) {
         std.debug.panic("init render backend failed", .{});
@@ -69,7 +69,7 @@ pub fn beginFrame() void {
     }
     sdl_impl.newFrame();
     _ImGui_ImplOpenGL3_NewFrame();
-    c.newFrame();
+    c.igNewFrame();
 }
 
 /// end frame
@@ -77,8 +77,8 @@ pub fn endFrame() void {
     if (!initialized) {
         std.debug.panic("cimgui isn't initialized!", .{});
     }
-    c.render();
-    _ImGui_ImplOpenGL3_RenderDrawData(c.getDrawData());
+    c.igRender();
+    _ImGui_ImplOpenGL3_RenderDrawData(c.igGetDrawData());
 }
 
 /// load font awesome
@@ -87,7 +87,7 @@ pub fn loadFontAwesome(size: f32, regular: bool, monospaced: bool) !*c.ImFont {
         std.debug.panic("cimgui isn't initialized!", .{});
     }
 
-    var font_atlas = c.getIO().*.Fonts;
+    var font_atlas = c.igGetIO().*.Fonts;
     _ = c.ImFontAtlas_AddFontDefault(
         font_atlas,
         null,
@@ -133,7 +133,7 @@ pub fn loadTTF(
     if (!initialized) {
         std.debug.panic("cimgui isn't initialized!", .{});
     }
-    var font_atlas = c.getIO().*.Fonts;
+    var font_atlas = c.igGetIO().*.Fonts;
 
     var default_ranges = c.ImFontAtlas_GetGlyphRangesDefault(font_atlas);
     var font = c.ImFontAtlas_AddFontFromFileTTF(
@@ -172,12 +172,12 @@ pub fn loadTTF(
 /// determine whether next character in given buffer is renderable
 pub fn isCharRenderable(buf: []const u8) bool {
     var char: c_uint = undefined;
-    _ = c.imTextCharFromUtf8(&char, buf.ptr, buf.ptr + buf.len);
+    _ = c.igImTextCharFromUtf8(&char, buf.ptr, buf.ptr + buf.len);
     if (char == 0) {
         return false;
     }
     return c.ImFont_FindGlyphNoFallback(
-        c.getFont(),
+        c.igGetFont(),
         @intCast(c.ImWchar, char),
     ) != null;
 }

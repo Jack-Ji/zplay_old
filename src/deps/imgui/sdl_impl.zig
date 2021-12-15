@@ -3,26 +3,25 @@ const builtin = @import("builtin");
 const zp = @import("../../zplay.zig");
 const event = zp.event;
 const sdl = zp.deps.sdl;
-
-const imgui = @import("imgui.zig");
+const c = @import("c.zig");
 const string_c = @cImport({
     @cInclude("string.h");
 });
-extern fn SDL_free(mem: ?*c_void) void;
 
+extern fn SDL_free(mem: ?*c_void) void;
 var performance_frequency: u64 = undefined;
 
 const BackendData = struct {
     window: *sdl.c.SDL_Window,
     time: u64,
     mouse_pressed: [3]bool,
-    mouse_cursors: [imgui.ImGuiMouseCursor_COUNT]?*sdl.c.SDL_Cursor,
+    mouse_cursors: [c.ImGuiMouseCursor_COUNT]?*sdl.c.SDL_Cursor,
     clipboard_text_data: ?[*c]u8,
     mouse_can_use_global_state: bool,
 };
 
 pub fn init(window: *sdl.c.SDL_Window) !void {
-    const io = @ptrCast(*imgui.ImGuiIO, imgui.igGetIO());
+    const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     if (io.BackendPlatformUserData != null) {
         std.debug.panic("already initialized!", .{});
     }
@@ -53,32 +52,32 @@ pub fn init(window: *sdl.c.SDL_Window) !void {
     bd.mouse_can_use_global_state = mouse_can_use_global_state;
     io.BackendPlatformUserData = bd;
     io.BackendPlatformName = "imgui_impl_sdl";
-    io.BackendFlags |= imgui.ImGuiBackendFlags_HasMouseCursors;
-    io.BackendFlags |= imgui.ImGuiBackendFlags_HasSetMousePos;
+    io.BackendFlags |= c.ImGuiBackendFlags_HasMouseCursors;
+    io.BackendFlags |= c.ImGuiBackendFlags_HasSetMousePos;
 
     // keyboard mapping. Dear ImGui will use those indices to peek into the io.KeysDown[] array.
-    io.KeyMap[imgui.ImGuiKey_Tab] = sdl.c.SDL_SCANCODE_TAB;
-    io.KeyMap[imgui.ImGuiKey_LeftArrow] = sdl.c.SDL_SCANCODE_LEFT;
-    io.KeyMap[imgui.ImGuiKey_RightArrow] = sdl.c.SDL_SCANCODE_RIGHT;
-    io.KeyMap[imgui.ImGuiKey_UpArrow] = sdl.c.SDL_SCANCODE_UP;
-    io.KeyMap[imgui.ImGuiKey_DownArrow] = sdl.c.SDL_SCANCODE_DOWN;
-    io.KeyMap[imgui.ImGuiKey_PageUp] = sdl.c.SDL_SCANCODE_PAGEUP;
-    io.KeyMap[imgui.ImGuiKey_PageDown] = sdl.c.SDL_SCANCODE_PAGEDOWN;
-    io.KeyMap[imgui.ImGuiKey_Home] = sdl.c.SDL_SCANCODE_HOME;
-    io.KeyMap[imgui.ImGuiKey_End] = sdl.c.SDL_SCANCODE_END;
-    io.KeyMap[imgui.ImGuiKey_Insert] = sdl.c.SDL_SCANCODE_INSERT;
-    io.KeyMap[imgui.ImGuiKey_Delete] = sdl.c.SDL_SCANCODE_DELETE;
-    io.KeyMap[imgui.ImGuiKey_Backspace] = sdl.c.SDL_SCANCODE_BACKSPACE;
-    io.KeyMap[imgui.ImGuiKey_Space] = sdl.c.SDL_SCANCODE_SPACE;
-    io.KeyMap[imgui.ImGuiKey_Enter] = sdl.c.SDL_SCANCODE_RETURN;
-    io.KeyMap[imgui.ImGuiKey_Escape] = sdl.c.SDL_SCANCODE_ESCAPE;
-    io.KeyMap[imgui.ImGuiKey_KeyPadEnter] = sdl.c.SDL_SCANCODE_KP_ENTER;
-    io.KeyMap[imgui.ImGuiKey_A] = sdl.c.SDL_SCANCODE_A;
-    io.KeyMap[imgui.ImGuiKey_C] = sdl.c.SDL_SCANCODE_C;
-    io.KeyMap[imgui.ImGuiKey_V] = sdl.c.SDL_SCANCODE_V;
-    io.KeyMap[imgui.ImGuiKey_X] = sdl.c.SDL_SCANCODE_X;
-    io.KeyMap[imgui.ImGuiKey_Y] = sdl.c.SDL_SCANCODE_Y;
-    io.KeyMap[imgui.ImGuiKey_Z] = sdl.c.SDL_SCANCODE_Z;
+    io.KeyMap[c.ImGuiKey_Tab] = sdl.c.SDL_SCANCODE_TAB;
+    io.KeyMap[c.ImGuiKey_LeftArrow] = sdl.c.SDL_SCANCODE_LEFT;
+    io.KeyMap[c.ImGuiKey_RightArrow] = sdl.c.SDL_SCANCODE_RIGHT;
+    io.KeyMap[c.ImGuiKey_UpArrow] = sdl.c.SDL_SCANCODE_UP;
+    io.KeyMap[c.ImGuiKey_DownArrow] = sdl.c.SDL_SCANCODE_DOWN;
+    io.KeyMap[c.ImGuiKey_PageUp] = sdl.c.SDL_SCANCODE_PAGEUP;
+    io.KeyMap[c.ImGuiKey_PageDown] = sdl.c.SDL_SCANCODE_PAGEDOWN;
+    io.KeyMap[c.ImGuiKey_Home] = sdl.c.SDL_SCANCODE_HOME;
+    io.KeyMap[c.ImGuiKey_End] = sdl.c.SDL_SCANCODE_END;
+    io.KeyMap[c.ImGuiKey_Insert] = sdl.c.SDL_SCANCODE_INSERT;
+    io.KeyMap[c.ImGuiKey_Delete] = sdl.c.SDL_SCANCODE_DELETE;
+    io.KeyMap[c.ImGuiKey_Backspace] = sdl.c.SDL_SCANCODE_BACKSPACE;
+    io.KeyMap[c.ImGuiKey_Space] = sdl.c.SDL_SCANCODE_SPACE;
+    io.KeyMap[c.ImGuiKey_Enter] = sdl.c.SDL_SCANCODE_RETURN;
+    io.KeyMap[c.ImGuiKey_Escape] = sdl.c.SDL_SCANCODE_ESCAPE;
+    io.KeyMap[c.ImGuiKey_KeyPadEnter] = sdl.c.SDL_SCANCODE_KP_ENTER;
+    io.KeyMap[c.ImGuiKey_A] = sdl.c.SDL_SCANCODE_A;
+    io.KeyMap[c.ImGuiKey_C] = sdl.c.SDL_SCANCODE_C;
+    io.KeyMap[c.ImGuiKey_V] = sdl.c.SDL_SCANCODE_V;
+    io.KeyMap[c.ImGuiKey_X] = sdl.c.SDL_SCANCODE_X;
+    io.KeyMap[c.ImGuiKey_Y] = sdl.c.SDL_SCANCODE_Y;
+    io.KeyMap[c.ImGuiKey_Z] = sdl.c.SDL_SCANCODE_Z;
 
     // clipboard callbacks
     io.SetClipboardTextFn = setClipboardText;
@@ -86,15 +85,15 @@ pub fn init(window: *sdl.c.SDL_Window) !void {
     io.ClipboardUserData = null;
 
     // load mouse cursors
-    bd.mouse_cursors[imgui.ImGuiMouseCursor_Arrow] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_ARROW);
-    bd.mouse_cursors[imgui.ImGuiMouseCursor_TextInput] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_IBEAM);
-    bd.mouse_cursors[imgui.ImGuiMouseCursor_ResizeAll] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_SIZEALL);
-    bd.mouse_cursors[imgui.ImGuiMouseCursor_ResizeNS] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_SIZENS);
-    bd.mouse_cursors[imgui.ImGuiMouseCursor_ResizeEW] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_SIZEWE);
-    bd.mouse_cursors[imgui.ImGuiMouseCursor_ResizeNESW] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_SIZENESW);
-    bd.mouse_cursors[imgui.ImGuiMouseCursor_ResizeNWSE] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_SIZENWSE);
-    bd.mouse_cursors[imgui.ImGuiMouseCursor_Hand] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_HAND);
-    bd.mouse_cursors[imgui.ImGuiMouseCursor_NotAllowed] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_NO);
+    bd.mouse_cursors[c.ImGuiMouseCursor_Arrow] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_ARROW);
+    bd.mouse_cursors[c.ImGuiMouseCursor_TextInput] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_IBEAM);
+    bd.mouse_cursors[c.ImGuiMouseCursor_ResizeAll] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_SIZEALL);
+    bd.mouse_cursors[c.ImGuiMouseCursor_ResizeNS] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_SIZENS);
+    bd.mouse_cursors[c.ImGuiMouseCursor_ResizeEW] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_SIZEWE);
+    bd.mouse_cursors[c.ImGuiMouseCursor_ResizeNESW] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_SIZENESW);
+    bd.mouse_cursors[c.ImGuiMouseCursor_ResizeNWSE] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_SIZENWSE);
+    bd.mouse_cursors[c.ImGuiMouseCursor_Hand] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_HAND);
+    bd.mouse_cursors[c.ImGuiMouseCursor_NotAllowed] = sdl.c.SDL_CreateSystemCursor(sdl.c.SDL_SYSTEM_CURSOR_NO);
 
     // Set SDL hint to receive mouse click events on window focus, otherwise SDL doesn't emit the event.
     // Without this, when clicking to gain focus, our widgets wouldn't activate even though they showed as hovered.
@@ -107,7 +106,7 @@ pub fn init(window: *sdl.c.SDL_Window) !void {
 }
 
 pub fn deinit() void {
-    const io = @ptrCast(*imgui.ImGuiIO, imgui.igGetIO());
+    const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     const bd = getBackendData().?;
 
     if (bd.clipboard_text_data) |data| {
@@ -123,13 +122,13 @@ pub fn deinit() void {
     std.heap.c_allocator.destroy(bd);
 }
 
-// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
+// You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear c wants to use your inputs.
 // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
 // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
-// Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
-// If you have multiple SDL events and some of them are not meant to be used by dear imgui, you may need to filter events based on their windowID field.
+// Generally you may always pass all inputs to dear c, and hide them from your application based on those two flags.
+// If you have multiple SDL events and some of them are not meant to be used by dear c, you may need to filter events based on their windowID field.
 pub fn processEvent(e: event.Event) bool {
-    const io = @ptrCast(*imgui.ImGuiIO, imgui.igGetIO());
+    const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     const bd = getBackendData().?;
 
     switch (e) {
@@ -156,7 +155,7 @@ pub fn processEvent(e: event.Event) bool {
             }
         },
         .text_input_event => |ee| {
-            imgui.ImGuiIO_AddInputCharactersUTF8(io, &ee.text);
+            c.ImGuiIO_AddInputCharactersUTF8(io, &ee.text);
         },
         .keyboard_event => |ee| {
             const key = ee.scan_code;
@@ -181,7 +180,7 @@ pub fn processEvent(e: event.Event) bool {
 
 // begin new frame for gui rendering
 pub fn newFrame() void {
-    const io = @ptrCast(*imgui.ImGuiIO, imgui.igGetIO());
+    const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     const bd = getBackendData().?;
 
     // Setup display size (every frame to accommodate for window resizing)
@@ -225,8 +224,8 @@ pub fn newFrame() void {
 // backend data stored in io.BackendPlatformUserData to allow support for multiple Dear ImGui contexts
 // It is STRONGLY preferred that you use docking branch with multi-viewports (== single Dear ImGui context + multiple windows) instead of multiple Dear ImGui contexts.
 fn getBackendData() ?*BackendData {
-    const io = @ptrCast(*imgui.ImGuiIO, imgui.igGetIO());
-    const context = @ptrCast(?*imgui.ImGuiContext, imgui.igGetCurrentContext());
+    const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
+    const context = @ptrCast(?*c.ImGuiContext, c.igGetCurrentContext());
     if (context) |_| {
         return @ptrCast(
             ?*BackendData,
@@ -253,7 +252,7 @@ fn setClipboardText(_: ?*c_void, text: [*c]const u8) callconv(.C) void {
 }
 
 fn updateMousePosAndButtons() void {
-    const io = @ptrCast(*imgui.ImGuiIO, imgui.igGetIO());
+    const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     const bd = getBackendData().?;
 
     const mouse_pos_prev = io.MousePos;
@@ -283,8 +282,8 @@ fn updateMousePosAndButtons() void {
         mouse_window = focused_window;
     }
 
-    // SDL_CaptureMouse() let the OS know e.g. that our imgui drag outside the SDL window boundaries shouldn't e.g. trigger other operations outside
-    _ = sdl.c.SDL_CaptureMouse(if (imgui.igIsAnyMouseDown())
+    // SDL_CaptureMouse() let the OS know e.g. that our c drag outside the SDL window boundaries shouldn't e.g. trigger other operations outside
+    _ = sdl.c.SDL_CaptureMouse(if (c.igIsAnyMouseDown())
         sdl.c.SDL_TRUE
     else
         sdl.c.SDL_FALSE);
@@ -321,66 +320,66 @@ fn updateMousePosAndButtons() void {
 }
 
 fn updateMouseCursor() void {
-    const io = @ptrCast(*imgui.ImGuiIO, imgui.igGetIO());
+    const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     const bd = getBackendData().?;
 
-    if ((io.ConfigFlags & imgui.ImGuiConfigFlags_NoMouseCursorChange) != 0) {
+    if ((io.ConfigFlags & c.ImGuiConfigFlags_NoMouseCursorChange) != 0) {
         return;
     }
 
-    const cursor = imgui.igGetMouseCursor();
-    if (io.MouseDrawCursor or cursor == imgui.ImGuiMouseCursor_None) {
-        // hide OS mouse cursor if imgui is drawing it or if it wants no cursor
+    const cursor = c.igGetMouseCursor();
+    if (io.MouseDrawCursor or cursor == c.ImGuiMouseCursor_None) {
+        // hide OS mouse cursor if c is drawing it or if it wants no cursor
         _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_FALSE);
     } else {
         // show OS mouse cursor
         if (bd.mouse_cursors[@intCast(u32, cursor)]) |cs| {
             sdl.c.SDL_SetCursor(cs);
         } else {
-            sdl.c.SDL_SetCursor(bd.mouse_cursors[imgui.ImGuiMouseCursor_Arrow]);
+            sdl.c.SDL_SetCursor(bd.mouse_cursors[c.ImGuiMouseCursor_Arrow]);
         }
         _ = sdl.c.SDL_ShowCursor(sdl.c.SDL_TRUE);
     }
 }
 
 fn updateGamePads() void {
-    const io = @ptrCast(*imgui.ImGuiIO, imgui.igGetIO());
+    const io = @ptrCast(*c.ImGuiIO, c.igGetIO());
     @memset(@ptrCast([*]u8, &io.NavInputs), 0, @sizeOf(@TypeOf(io.NavInputs)));
 
-    if ((io.ConfigFlags & imgui.ImGuiConfigFlags_NavEnableGamepad) == 0) {
+    if ((io.ConfigFlags & c.ImGuiConfigFlags_NavEnableGamepad) == 0) {
         return;
     }
 
     // get gamepad
     const controller = sdl.c.SDL_GameControllerOpen(0);
     if (controller == null) {
-        io.BackendFlags &= ~imgui.ImGuiBackendFlags_HasGamepad;
+        io.BackendFlags &= ~c.ImGuiBackendFlags_HasGamepad;
     }
 
     // update gamepad inputs
     const thumb_dead_zone = 8000; // SDL_gamecontroller.h suggests using this value.
-    mapButton(io, controller, imgui.ImGuiNavInput_Activate, sdl.c.SDL_CONTROLLER_BUTTON_A); // Cross / A
-    mapButton(io, controller, imgui.ImGuiNavInput_Cancel, sdl.c.SDL_CONTROLLER_BUTTON_B); // Circle / B
-    mapButton(io, controller, imgui.ImGuiNavInput_Menu, sdl.c.SDL_CONTROLLER_BUTTON_X); // Square / X
-    mapButton(io, controller, imgui.ImGuiNavInput_Input, sdl.c.SDL_CONTROLLER_BUTTON_Y); // Triangle / Y
-    mapButton(io, controller, imgui.ImGuiNavInput_DpadLeft, sdl.c.SDL_CONTROLLER_BUTTON_DPAD_LEFT); // D-Pad Left
-    mapButton(io, controller, imgui.ImGuiNavInput_DpadRight, sdl.c.SDL_CONTROLLER_BUTTON_DPAD_RIGHT); // D-Pad Right
-    mapButton(io, controller, imgui.ImGuiNavInput_DpadUp, sdl.c.SDL_CONTROLLER_BUTTON_DPAD_UP); // D-Pad Up
-    mapButton(io, controller, imgui.ImGuiNavInput_DpadDown, sdl.c.SDL_CONTROLLER_BUTTON_DPAD_DOWN); // D-Pad Down
-    mapButton(io, controller, imgui.ImGuiNavInput_FocusPrev, sdl.c.SDL_CONTROLLER_BUTTON_LEFTSHOULDER); // L1 / LB
-    mapButton(io, controller, imgui.ImGuiNavInput_FocusNext, sdl.c.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); // R1 / RB
-    mapButton(io, controller, imgui.ImGuiNavInput_TweakSlow, sdl.c.SDL_CONTROLLER_BUTTON_LEFTSHOULDER); // L1 / LB
-    mapButton(io, controller, imgui.ImGuiNavInput_TweakFast, sdl.c.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); // R1 / RB
-    mapAnalog(io, controller, imgui.ImGuiNavInput_LStickLeft, sdl.c.SDL_CONTROLLER_AXIS_LEFTX, -thumb_dead_zone, -32768);
-    mapAnalog(io, controller, imgui.ImGuiNavInput_LStickRight, sdl.c.SDL_CONTROLLER_AXIS_LEFTX, thumb_dead_zone, 32767);
-    mapAnalog(io, controller, imgui.ImGuiNavInput_LStickUp, sdl.c.SDL_CONTROLLER_AXIS_LEFTY, -thumb_dead_zone, -32767);
-    mapAnalog(io, controller, imgui.ImGuiNavInput_LStickDown, sdl.c.SDL_CONTROLLER_AXIS_LEFTY, thumb_dead_zone, 32767);
+    mapButton(io, controller, c.ImGuiNavInput_Activate, sdl.c.SDL_CONTROLLER_BUTTON_A); // Cross / A
+    mapButton(io, controller, c.ImGuiNavInput_Cancel, sdl.c.SDL_CONTROLLER_BUTTON_B); // Circle / B
+    mapButton(io, controller, c.ImGuiNavInput_Menu, sdl.c.SDL_CONTROLLER_BUTTON_X); // Square / X
+    mapButton(io, controller, c.ImGuiNavInput_Input, sdl.c.SDL_CONTROLLER_BUTTON_Y); // Triangle / Y
+    mapButton(io, controller, c.ImGuiNavInput_DpadLeft, sdl.c.SDL_CONTROLLER_BUTTON_DPAD_LEFT); // D-Pad Left
+    mapButton(io, controller, c.ImGuiNavInput_DpadRight, sdl.c.SDL_CONTROLLER_BUTTON_DPAD_RIGHT); // D-Pad Right
+    mapButton(io, controller, c.ImGuiNavInput_DpadUp, sdl.c.SDL_CONTROLLER_BUTTON_DPAD_UP); // D-Pad Up
+    mapButton(io, controller, c.ImGuiNavInput_DpadDown, sdl.c.SDL_CONTROLLER_BUTTON_DPAD_DOWN); // D-Pad Down
+    mapButton(io, controller, c.ImGuiNavInput_FocusPrev, sdl.c.SDL_CONTROLLER_BUTTON_LEFTSHOULDER); // L1 / LB
+    mapButton(io, controller, c.ImGuiNavInput_FocusNext, sdl.c.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); // R1 / RB
+    mapButton(io, controller, c.ImGuiNavInput_TweakSlow, sdl.c.SDL_CONTROLLER_BUTTON_LEFTSHOULDER); // L1 / LB
+    mapButton(io, controller, c.ImGuiNavInput_TweakFast, sdl.c.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); // R1 / RB
+    mapAnalog(io, controller, c.ImGuiNavInput_LStickLeft, sdl.c.SDL_CONTROLLER_AXIS_LEFTX, -thumb_dead_zone, -32768);
+    mapAnalog(io, controller, c.ImGuiNavInput_LStickRight, sdl.c.SDL_CONTROLLER_AXIS_LEFTX, thumb_dead_zone, 32767);
+    mapAnalog(io, controller, c.ImGuiNavInput_LStickUp, sdl.c.SDL_CONTROLLER_AXIS_LEFTY, -thumb_dead_zone, -32767);
+    mapAnalog(io, controller, c.ImGuiNavInput_LStickDown, sdl.c.SDL_CONTROLLER_AXIS_LEFTY, thumb_dead_zone, 32767);
 
-    io.BackendFlags |= imgui.ImGuiBackendFlags_HasGamepad;
+    io.BackendFlags |= c.ImGuiBackendFlags_HasGamepad;
 }
 
 inline fn mapButton(
-    io: *imgui.ImGuiIO,
+    io: *c.ImGuiIO,
     controller: ?*sdl.c.SDL_GameController,
     input: c_int,
     button: c_int,
@@ -393,9 +392,9 @@ inline fn mapButton(
 }
 
 inline fn mapAnalog(
-    io: *imgui.ImGuiIO,
+    io: *c.ImGuiIO,
     controller: ?*sdl.c.SDL_GameController,
-    input: imgui.ImGuiNavInput,
+    input: c.ImGuiNavInput,
     axis: c_int,
     v0: i16,
     v1: i16,
