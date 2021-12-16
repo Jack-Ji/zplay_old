@@ -64,6 +64,31 @@ pub const StencilOp = enum(c_uint) {
     invert = gl.GL_INVERT, // Bitwise inverts the current stencil buffer value.
 };
 
+pub const BlendFactor = enum(c_uint) {
+    zero = gl.GL_ZERO, // Factor is equal to 0.
+    one = gl.GL_ONE, // Factor is equal to 1.
+    src_color = gl.GL_SRC_COLOR, // Factor is equal to the source color vector C¯source.
+    one_minus_src_color = gl.GL_ONE_MINUS_SRC_COLOR, // Factor is equal to 1 minus the source color vector: 1−C¯source.
+    dst_color = gl.GL_DST_COLOR, // Factor is equal to the destination color vector C¯destination
+    one_minus_dst_color = gl.GL_ONE_MINUS_DST_COLOR, // Factor is equal to 1 minus the destination color vector: 1−C¯destination.
+    src_alpha = gl.GL_SRC_ALPHA, // Factor is equal to the alpha component of the source color vector C¯source.
+    one_minus_src_alpha = gl.GL_ONE_MINUS_SRC_ALPHA, // Factor is equal to 1−alpha of the source color vector C¯source.
+    dst_alpha = gl.GL_DST_ALPHA, // Factor is equal to the alpha component of the destination color vector C¯destination.
+    one_minus_dst_alpha = gl.GL_ONE_MINUS_DST_ALPHA, // Factor is equal to 1−alpha of the destination color vector C¯destination.
+    constant_color = gl.GL_CONSTANT_COLOR, // Factor is equal to the constant color vector C¯constant.
+    one_minus_constant_color = gl.GL_ONE_MINUS_CONSTANT_COLOR, // Factor is equal to 1 - the constant color vector C¯constant.
+    constant_alpha = gl.GL_CONSTANT_ALPHA, // Factor is equal to the alpha component of the constant color vector C¯constant.
+    one_minus_constant_alpha = gl.GL_ONE_MINUS_CONSTANT_ALPHA, // Factor is equal to 1−alpha of the constant color vector C¯constant.
+};
+
+pub const BlendEquation = enum(c_uint) {
+    add = gl.GL_FUNC_ADD, // the default, adds both colors to each other: C¯result=Src+Dst.
+    sub = gl.GL_FUNC_SUBTRACT, // subtracts both colors from each other: C¯result=Src−Dst.
+    rev_sub = gl.GL_FUNC_REVERSE_SUBTRACT, // subtracts both colors, but reverses order: C¯result=Dst−Src.
+    min = gl.GL_MIN, // takes the component-wise minimum of both colors: C¯result=min(Dst,Src).
+    max = gl.GL_MAX, // takes the component-wise maximum of both colors: C¯result=max(Dst,Src).
+};
+
 /// opengl context
 gl_ctx: sdl.gl.Context,
 
@@ -215,34 +240,58 @@ pub fn setDepthUpdateMode(self: Self, on_off: bool) void {
     gl.util.checkError();
 }
 
-/// set stencil mask
-/// mask: bitmask that is ANDed with the stencil value about to be written to the buffer.
-pub fn setStencilMask(self: Self, mask: u8) void {
+/// set stencil options
+pub const StencilOption = struct {
+    test_func: ?TestFunc = null, // stencil test function that determines whether a fragment passes or is discarded.
+    test_ref: u8 = 0, // the reference value for the stencil test. The stencil buffer's content is compared to this value.
+    test_mask: ?u8 = null, // ANDed with both the reference value and the stored stencil value before the test compares them.
+    action_sfail: StencilOp = .keep, // action to take if the stencil test fails.
+    action_dpfail: StencilOp = .keep, // action to take if the stencil test passes, but the depth test fails.
+    action_dppass: StencilOp = .keep, // action to take if both the stencil and the depth test pass.
+    write_mask: ?u8 = null, // bitmask that is ANDed with the stencil value about to be written to the buffer.
+};
+pub fn setStencilOption(self: Self, option: StencilOption) void {
     _ = self;
-    gl.stencilMask(@intCast(gl.GLuint, mask));
-    gl.util.checkError();
-}
-
-/// set stencil test params, which determines whether fragment is accepted.
-/// func: stencil test function that determines whether a fragment passes or is discarded.
-/// ref: the reference value for the stencil test. The stencil buffer's content is compared to this value.
-/// mask: ANDed with both the reference value and the stored stencil value before the test compares them.
-pub fn setStencilTestFunc(self: Self, func: TestFunc, ref: u8, mask: ?u8) void {
-    _ = self;
-    gl.stencilFunc(
-        @enumToInt(func),
-        @intCast(gl.GLint, ref),
-        @intCast(gl.GLuint, mask orelse 0xff),
+    if (option.test_func) |func| {
+        gl.stencilFunc(
+            @enumToInt(func),
+            @intCast(gl.GLint, option.test_ref),
+            @intCast(gl.GLuint, option.test_mask orelse 0xff),
+        );
+    }
+    if (option.write_mask) |mask| {
+        gl.stencilMask(@intCast(gl.GLuint, mask));
+    }
+    gl.stencilOp(
+        @enumToInt(option.action_sfail),
+        @enumToInt(option.action_dpfail),
+        @enumToInt(option.action_dppass),
     );
     gl.util.checkError();
 }
 
-/// set stencil update mode
-/// sfail: action to take if the stencil test fails.
-/// dpfail: action to take if the stencil test passes, but the depth test fails.
-/// dppass: action to take if both the stencil and the depth test pass.
-pub fn setStencilUpdateMode(self: Self, sfail: StencilOp, dpfail: StencilOp, dppass: StencilOp) void {
+/// set color blending options
+pub const BlendOption = struct {
+    src_rgb: BlendFactor, // blend factors for rgb
+    dst_rgb: BlendFactor = .zero,
+    src_alpha: BlendFactor = .one, // blend factors for alpha
+    dst_alpha: BlendFactor = .zero,
+    constant_color: ?[4]f32 = null, // constant blend color
+    equation: ?BlendEquation = null, // blend equation
+};
+pub fn setBlendOption(self: Self, option: BlendOption) void {
     _ = self;
-    gl.stencilOp(@enumToInt(sfail), @enumToInt(dpfail), @enumToInt(dppass));
+    gl.blendFuncSeparate(
+        @enumToInt(option.src_rgb),
+        @enumToInt(option.dst_rgb),
+        @enumToInt(option.src_alpha),
+        @enumToInt(option.dst_alpha),
+    );
+    if (option.constant_color) |color| {
+        gl.blendColor(color[0], color[1], color[2], color[3]);
+    }
+    if (option.equation) |eq| {
+        gl.blendEquation(eq);
+    }
     gl.util.checkError();
 }

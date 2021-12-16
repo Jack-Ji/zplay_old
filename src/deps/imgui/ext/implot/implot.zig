@@ -2055,7 +2055,7 @@ pub fn showDemoWindow(p_open: [*c]bool) void {
     return c.ImPlot_ShowDemoWindow(p_open);
 }
 
-// internal functions
+/// ImPlot internal API
 pub const internal = struct {
     pub fn log10_Float(x: f32) f32 {
         return c.ImPlot_ImLog10_Float(x);

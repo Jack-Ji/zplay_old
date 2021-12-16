@@ -189,8 +189,11 @@ fn render_boxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
 
     // update stencil buffers
     if (outlined) {
-        ctx.graphics.setStencilTestFunc(.always, 1, 0xff);
-        ctx.graphics.setStencilUpdateMode(.keep, .keep, .replace);
+        ctx.graphics.setStencilOption(.{
+            .test_func = .always,
+            .test_ref = 1,
+            .action_dppass = .replace,
+        });
     }
     for (cube_positions) |pos, i| {
         var model = alg.Mat4.fromRotation(
@@ -214,7 +217,10 @@ fn render_boxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
     // outline cubes
     // draw scaled up cubes, using single color
     if (outlined) {
-        ctx.graphics.setStencilTestFunc(.not_equal, 1, 0xff);
+        ctx.graphics.setStencilOption(.{
+            .test_func = .not_equal,
+            .test_ref = 1,
+        });
         for (cube_positions) |pos, i| {
             var model = alg.Mat4.fromRotation(
                 20 * @intToFloat(f32, i) + frame,

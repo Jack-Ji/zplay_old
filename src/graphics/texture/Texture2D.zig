@@ -30,7 +30,11 @@ pub fn init(
     tex.updateImageData(
         .texture_2d,
         0,
-        .rgb,
+        switch (format) {
+            .rgb => .rgb,
+            .rgba => .rgba,
+            else => unreachable,
+        },
         width,
         height,
         null,
