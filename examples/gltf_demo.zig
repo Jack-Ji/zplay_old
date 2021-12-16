@@ -198,7 +198,7 @@ fn loop(ctx: *zp.Context) void {
         if (dig.begin("monitor", null, 0)) {
             _ = dig.sliderFloat("History", &S.history, 1, 30, .{});
             plot.setNextPlotLimitsX(ctx.tick - S.history, ctx.tick, dig.c.ImGuiCond_Always);
-            plot.setNextPlotLimitsY(0, 0.02, dig.c.ImGuiCond_Once, plot.c.ImPlotYAxis_1);
+            plot.setNextPlotLimitsY(0, 0.02, .{});
             if (plot.beginPlot("milliseconds per frame", .{})) {
                 if (S.data.items.len > 0) {
                     plot.plotLine_PtrPtr(

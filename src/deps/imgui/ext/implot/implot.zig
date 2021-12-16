@@ -1,8 +1,10 @@
 /// help wrappers of raw implot api
+const assert = @import("std").debug.assert;
 const imgui = @import("../../c.zig");
 pub const c = @import("c.zig");
 pub const ImPlotContext = c.ImPlotContext;
-
+pub const IMPLOT_AUTO = -1;
+pub const IMPLOT_AUTO_COL = imgui.ImVec4{ .x = 0, .y = 0, .z = 0, .w = -1 };
 pub const Point = struct {
     pub fn init() *c.ImPlotPoint {
         return c.ImPlotPoint_ImPlotPoint_Nil();
@@ -619,7 +621,7 @@ pub const PlotLineOption = struct {
     offset: c_int = 0,
     stride: ?c_int = null,
 };
-pub fn plotLine_Ptr(label_id: [:0]const u8, comptime T: type, values: []const T, option: PlotLineOption) void {
+pub fn plotLine_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, option: PlotLineOption) void {
     const plotFn = switch (T) {
         f32 => c.ImPlot_PlotLine_FloatPtrInt,
         f64 => c.ImPlot_PlotLine_doublePtrInt,
@@ -636,7 +638,7 @@ pub fn plotLine_Ptr(label_id: [:0]const u8, comptime T: type, values: []const T,
     plotFn(
         label_id,
         values,
-        @intCast(c_int, values.len),
+        @intCast(c_int, count),
         option.xscale,
         option.x0,
         option.offset,
@@ -677,7 +679,7 @@ pub const PlotScatterOption = struct {
     offset: c_int = 0,
     stride: ?c_int = null,
 };
-pub fn plotScatter_Ptr(label_id: [:0]const u8, comptime T: type, values: []const T, option: PlotScatterOption) void {
+pub fn plotScatter_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, option: PlotScatterOption) void {
     const plotFn = switch (T) {
         f32 => c.ImPlot_PlotScatter_FloatPtrInt,
         f64 => c.ImPlot_PlotScatter_doublePtrInt,
@@ -694,7 +696,7 @@ pub fn plotScatter_Ptr(label_id: [:0]const u8, comptime T: type, values: []const
     plotFn(
         label_id,
         values,
-        @intCast(c_int, values.len),
+        @intCast(c_int, count),
         option.xscale,
         option.x0,
         option.offset,
@@ -735,7 +737,7 @@ pub const PlotStairsOption = struct {
     offset: c_int = 0,
     stride: ?c_int = null,
 };
-pub fn plotStairs_Ptr(label_id: [:0]const u8, comptime T: type, values: []const T, option: PlotScatterOption) void {
+pub fn plotStairs_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, option: PlotScatterOption) void {
     const plotFn = switch (T) {
         f32 => c.ImPlot_PlotStairs_FloatPtrInt,
         f64 => c.ImPlot_PlotStairs_doublePtrInt,
@@ -752,7 +754,7 @@ pub fn plotStairs_Ptr(label_id: [:0]const u8, comptime T: type, values: []const 
     plotFn(
         label_id,
         values,
-        @intCast(c_int, values.len),
+        @intCast(c_int, count),
         option.xscale,
         option.x0,
         option.offset,
@@ -794,7 +796,7 @@ pub const PlotShadedOption = struct {
     offset: c_int = 0,
     stride: ?c_int = null,
 };
-pub fn plotShaded_Ptr(label_id: [:0]const u8, comptime T: type, values: []const T, option: PlotShadedOption) void {
+pub fn plotShaded_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, option: PlotShadedOption) void {
     const plotFn = switch (T) {
         f32 => c.ImPlot_PlotShaded_FloatPtrInt,
         f64 => c.ImPlot_PlotShaded_doublePtrInt,
@@ -811,7 +813,7 @@ pub fn plotShaded_Ptr(label_id: [:0]const u8, comptime T: type, values: []const 
     plotFn(
         label_id,
         values,
-        @intCast(c_int, values.len),
+        @intCast(c_int, count),
         option.y_ref,
         option.xscale,
         option.x0,
@@ -872,538 +874,551 @@ pub fn plotShadedG(label_id: [:0]const u8, getter1: c.ImPlotPoint_getter, data1:
 }
 
 // Plots a vertical bar graph. #width and #shift are in X units.
-pub fn plotBars_FloatPtrInt(label_id: [*c]const u8, values: [*c]const f32, count: c_int, width: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_FloatPtrInt(label_id, values, count, width, shift, offset, stride);
-}
-pub fn plotBars_doublePtrInt(label_id: [*c]const u8, values: [*c]const f64, count: c_int, width: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_doublePtrInt(label_id, values, count, width, shift, offset, stride);
-}
-pub fn plotBars_S8PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS8, count: c_int, width: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_S8PtrInt(label_id, values, count, width, shift, offset, stride);
-}
-pub fn plotBars_U8PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU8, count: c_int, width: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_U8PtrInt(label_id, values, count, width, shift, offset, stride);
-}
-pub fn plotBars_S16PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS16, count: c_int, width: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_S16PtrInt(label_id, values, count, width, shift, offset, stride);
-}
-pub fn plotBars_U16PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU16, count: c_int, width: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_U16PtrInt(label_id, values, count, width, shift, offset, stride);
-}
-pub fn plotBars_S32PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS32, count: c_int, width: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_S32PtrInt(label_id, values, count, width, shift, offset, stride);
-}
-pub fn plotBars_U32PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU32, count: c_int, width: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_U32PtrInt(label_id, values, count, width, shift, offset, stride);
-}
-pub fn plotBars_S64PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS64, count: c_int, width: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_S64PtrInt(label_id, values, count, width, shift, offset, stride);
-}
-pub fn plotBars_U64PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU64, count: c_int, width: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_U64PtrInt(label_id, values, count, width, shift, offset, stride);
-}
-pub fn plotBars_FloatPtrFloatPtr(label_id: [*c]const u8, xs: [*c]const f32, ys: [*c]const f32, count: c_int, width: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_FloatPtrFloatPtr(label_id, xs, ys, count, width, offset, stride);
-}
-pub fn plotBars_doublePtrdoublePtr(label_id: [*c]const u8, xs: [*c]const f64, ys: [*c]const f64, count: c_int, width: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_doublePtrdoublePtr(label_id, xs, ys, count, width, offset, stride);
-}
-pub fn plotBars_S8PtrS8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS8, ys: [*c]const imgui.ImS8, count: c_int, width: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_S8PtrS8Ptr(label_id, xs, ys, count, width, offset, stride);
-}
-pub fn plotBars_U8PtrU8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU8, ys: [*c]const imgui.ImU8, count: c_int, width: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_U8PtrU8Ptr(label_id, xs, ys, count, width, offset, stride);
-}
-pub fn plotBars_S16PtrS16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS16, ys: [*c]const imgui.ImS16, count: c_int, width: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_S16PtrS16Ptr(label_id, xs, ys, count, width, offset, stride);
-}
-pub fn plotBars_U16PtrU16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU16, ys: [*c]const imgui.ImU16, count: c_int, width: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_U16PtrU16Ptr(label_id, xs, ys, count, width, offset, stride);
-}
-pub fn plotBars_S32PtrS32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS32, ys: [*c]const imgui.ImS32, count: c_int, width: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_S32PtrS32Ptr(label_id, xs, ys, count, width, offset, stride);
-}
-pub fn plotBars_U32PtrU32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, ys: [*c]const imgui.ImU32, count: c_int, width: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_U32PtrU32Ptr(label_id, xs, ys, count, width, offset, stride);
-}
-pub fn plotBars_S64PtrS64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, ys: [*c]const imgui.ImS64, count: c_int, width: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_S64PtrS64Ptr(label_id, xs, ys, count, width, offset, stride);
-}
-pub fn plotBars_U64PtrU64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, ys: [*c]const imgui.ImU64, count: c_int, width: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBars_U64PtrU64Ptr(label_id, xs, ys, count, width, offset, stride);
-}
-pub fn plotBarsH_FloatPtrInt(label_id: [*c]const u8, values: [*c]const f32, count: c_int, height: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_FloatPtrInt(label_id, values, count, height, shift, offset, stride);
-}
-pub fn plotBarsH_doublePtrInt(label_id: [*c]const u8, values: [*c]const f64, count: c_int, height: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_doublePtrInt(label_id, values, count, height, shift, offset, stride);
-}
-pub fn plotBarsH_S8PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS8, count: c_int, height: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_S8PtrInt(label_id, values, count, height, shift, offset, stride);
-}
-pub fn plotBarsH_U8PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU8, count: c_int, height: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_U8PtrInt(label_id, values, count, height, shift, offset, stride);
-}
-pub fn plotBarsH_S16PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS16, count: c_int, height: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_S16PtrInt(label_id, values, count, height, shift, offset, stride);
-}
-pub fn plotBarsH_U16PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU16, count: c_int, height: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_U16PtrInt(label_id, values, count, height, shift, offset, stride);
-}
-pub fn plotBarsH_S32PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS32, count: c_int, height: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_S32PtrInt(label_id, values, count, height, shift, offset, stride);
-}
-pub fn plotBarsH_U32PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU32, count: c_int, height: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_U32PtrInt(label_id, values, count, height, shift, offset, stride);
-}
-pub fn plotBarsH_S64PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS64, count: c_int, height: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_S64PtrInt(label_id, values, count, height, shift, offset, stride);
-}
-pub fn plotBarsH_U64PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU64, count: c_int, height: f64, shift: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_U64PtrInt(label_id, values, count, height, shift, offset, stride);
-}
-pub fn plotBarsH_FloatPtrFloatPtr(label_id: [*c]const u8, xs: [*c]const f32, ys: [*c]const f32, count: c_int, height: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_FloatPtrFloatPtr(label_id, xs, ys, count, height, offset, stride);
-}
-pub fn plotBarsH_doublePtrdoublePtr(label_id: [*c]const u8, xs: [*c]const f64, ys: [*c]const f64, count: c_int, height: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_doublePtrdoublePtr(label_id, xs, ys, count, height, offset, stride);
-}
-pub fn plotBarsH_S8PtrS8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS8, ys: [*c]const imgui.ImS8, count: c_int, height: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_S8PtrS8Ptr(label_id, xs, ys, count, height, offset, stride);
-}
-pub fn plotBarsH_U8PtrU8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU8, ys: [*c]const imgui.ImU8, count: c_int, height: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_U8PtrU8Ptr(label_id, xs, ys, count, height, offset, stride);
-}
-pub fn plotBarsH_S16PtrS16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS16, ys: [*c]const imgui.ImS16, count: c_int, height: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_S16PtrS16Ptr(label_id, xs, ys, count, height, offset, stride);
-}
-pub fn plotBarsH_U16PtrU16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU16, ys: [*c]const imgui.ImU16, count: c_int, height: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_U16PtrU16Ptr(label_id, xs, ys, count, height, offset, stride);
-}
-pub fn plotBarsH_S32PtrS32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS32, ys: [*c]const imgui.ImS32, count: c_int, height: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_S32PtrS32Ptr(label_id, xs, ys, count, height, offset, stride);
-}
-pub fn plotBarsH_U32PtrU32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, ys: [*c]const imgui.ImU32, count: c_int, height: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_U32PtrU32Ptr(label_id, xs, ys, count, height, offset, stride);
-}
-pub fn plotBarsH_S64PtrS64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, ys: [*c]const imgui.ImS64, count: c_int, height: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_S64PtrS64Ptr(label_id, xs, ys, count, height, offset, stride);
-}
-pub fn plotBarsH_U64PtrU64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, ys: [*c]const imgui.ImU64, count: c_int, height: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotBarsH_U64PtrU64Ptr(label_id, xs, ys, count, height, offset, stride);
-}
-pub fn plotErrorBars_FloatPtrFloatPtrFloatPtrInt(label_id: [*c]const u8, xs: [*c]const f32, ys: [*c]const f32, err: [*c]const f32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_FloatPtrFloatPtrFloatPtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBars_doublePtrdoublePtrdoublePtrInt(label_id: [*c]const u8, xs: [*c]const f64, ys: [*c]const f64, err: [*c]const f64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_doublePtrdoublePtrdoublePtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBars_S8PtrS8PtrS8PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImS8, ys: [*c]const imgui.ImS8, err: [*c]const imgui.ImS8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_S8PtrS8PtrS8PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBars_U8PtrU8PtrU8PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImU8, ys: [*c]const imgui.ImU8, err: [*c]const imgui.ImU8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_U8PtrU8PtrU8PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBars_S16PtrS16PtrS16PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImS16, ys: [*c]const imgui.ImS16, err: [*c]const imgui.ImS16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_S16PtrS16PtrS16PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBars_U16PtrU16PtrU16PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImU16, ys: [*c]const imgui.ImU16, err: [*c]const imgui.ImU16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_U16PtrU16PtrU16PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBars_S32PtrS32PtrS32PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImS32, ys: [*c]const imgui.ImS32, err: [*c]const imgui.ImS32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_S32PtrS32PtrS32PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBars_U32PtrU32PtrU32PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, ys: [*c]const imgui.ImU32, err: [*c]const imgui.ImU32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_U32PtrU32PtrU32PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBars_S64PtrS64PtrS64PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, ys: [*c]const imgui.ImS64, err: [*c]const imgui.ImS64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_S64PtrS64PtrS64PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBars_U64PtrU64PtrU64PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, ys: [*c]const imgui.ImU64, err: [*c]const imgui.ImU64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_U64PtrU64PtrU64PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBars_FloatPtrFloatPtrFloatPtrFloatPtr(label_id: [*c]const u8, xs: [*c]const f32, ys: [*c]const f32, neg: [*c]const f32, pos: [*c]const f32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_FloatPtrFloatPtrFloatPtrFloatPtr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBars_doublePtrdoublePtrdoublePtrdoublePtr(label_id: [*c]const u8, xs: [*c]const f64, ys: [*c]const f64, neg: [*c]const f64, pos: [*c]const f64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_doublePtrdoublePtrdoublePtrdoublePtr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBars_S8PtrS8PtrS8PtrS8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS8, ys: [*c]const imgui.ImS8, neg: [*c]const imgui.ImS8, pos: [*c]const imgui.ImS8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_S8PtrS8PtrS8PtrS8Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBars_U8PtrU8PtrU8PtrU8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU8, ys: [*c]const imgui.ImU8, neg: [*c]const imgui.ImU8, pos: [*c]const imgui.ImU8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_U8PtrU8PtrU8PtrU8Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBars_S16PtrS16PtrS16PtrS16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS16, ys: [*c]const imgui.ImS16, neg: [*c]const imgui.ImS16, pos: [*c]const imgui.ImS16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_S16PtrS16PtrS16PtrS16Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBars_U16PtrU16PtrU16PtrU16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU16, ys: [*c]const imgui.ImU16, neg: [*c]const imgui.ImU16, pos: [*c]const imgui.ImU16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_U16PtrU16PtrU16PtrU16Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBars_S32PtrS32PtrS32PtrS32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS32, ys: [*c]const imgui.ImS32, neg: [*c]const imgui.ImS32, pos: [*c]const imgui.ImS32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_S32PtrS32PtrS32PtrS32Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBars_U32PtrU32PtrU32PtrU32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, ys: [*c]const imgui.ImU32, neg: [*c]const imgui.ImU32, pos: [*c]const imgui.ImU32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_U32PtrU32PtrU32PtrU32Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBars_S64PtrS64PtrS64PtrS64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, ys: [*c]const imgui.ImS64, neg: [*c]const imgui.ImS64, pos: [*c]const imgui.ImS64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_S64PtrS64PtrS64PtrS64Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBars_U64PtrU64PtrU64PtrU64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, ys: [*c]const imgui.ImU64, neg: [*c]const imgui.ImU64, pos: [*c]const imgui.ImU64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBars_U64PtrU64PtrU64PtrU64Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBarsH_FloatPtrFloatPtrFloatPtrInt(label_id: [*c]const u8, xs: [*c]const f32, ys: [*c]const f32, err: [*c]const f32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_FloatPtrFloatPtrFloatPtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBarsH_doublePtrdoublePtrdoublePtrInt(label_id: [*c]const u8, xs: [*c]const f64, ys: [*c]const f64, err: [*c]const f64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_doublePtrdoublePtrdoublePtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBarsH_S8PtrS8PtrS8PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImS8, ys: [*c]const imgui.ImS8, err: [*c]const imgui.ImS8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_S8PtrS8PtrS8PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBarsH_U8PtrU8PtrU8PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImU8, ys: [*c]const imgui.ImU8, err: [*c]const imgui.ImU8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_U8PtrU8PtrU8PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBarsH_S16PtrS16PtrS16PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImS16, ys: [*c]const imgui.ImS16, err: [*c]const imgui.ImS16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_S16PtrS16PtrS16PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBarsH_U16PtrU16PtrU16PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImU16, ys: [*c]const imgui.ImU16, err: [*c]const imgui.ImU16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_U16PtrU16PtrU16PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBarsH_S32PtrS32PtrS32PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImS32, ys: [*c]const imgui.ImS32, err: [*c]const imgui.ImS32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_S32PtrS32PtrS32PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBarsH_U32PtrU32PtrU32PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, ys: [*c]const imgui.ImU32, err: [*c]const imgui.ImU32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_U32PtrU32PtrU32PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBarsH_S64PtrS64PtrS64PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, ys: [*c]const imgui.ImS64, err: [*c]const imgui.ImS64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_S64PtrS64PtrS64PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBarsH_U64PtrU64PtrU64PtrInt(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, ys: [*c]const imgui.ImU64, err: [*c]const imgui.ImU64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_U64PtrU64PtrU64PtrInt(label_id, xs, ys, err, count, offset, stride);
-}
-pub fn plotErrorBarsH_FloatPtrFloatPtrFloatPtrFloatPtr(label_id: [*c]const u8, xs: [*c]const f32, ys: [*c]const f32, neg: [*c]const f32, pos: [*c]const f32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_FloatPtrFloatPtrFloatPtrFloatPtr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBarsH_doublePtrdoublePtrdoublePtrdoublePtr(label_id: [*c]const u8, xs: [*c]const f64, ys: [*c]const f64, neg: [*c]const f64, pos: [*c]const f64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_doublePtrdoublePtrdoublePtrdoublePtr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBarsH_S8PtrS8PtrS8PtrS8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS8, ys: [*c]const imgui.ImS8, neg: [*c]const imgui.ImS8, pos: [*c]const imgui.ImS8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_S8PtrS8PtrS8PtrS8Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBarsH_U8PtrU8PtrU8PtrU8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU8, ys: [*c]const imgui.ImU8, neg: [*c]const imgui.ImU8, pos: [*c]const imgui.ImU8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_U8PtrU8PtrU8PtrU8Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBarsH_S16PtrS16PtrS16PtrS16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS16, ys: [*c]const imgui.ImS16, neg: [*c]const imgui.ImS16, pos: [*c]const imgui.ImS16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_S16PtrS16PtrS16PtrS16Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBarsH_U16PtrU16PtrU16PtrU16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU16, ys: [*c]const imgui.ImU16, neg: [*c]const imgui.ImU16, pos: [*c]const imgui.ImU16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_U16PtrU16PtrU16PtrU16Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBarsH_S32PtrS32PtrS32PtrS32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS32, ys: [*c]const imgui.ImS32, neg: [*c]const imgui.ImS32, pos: [*c]const imgui.ImS32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_S32PtrS32PtrS32PtrS32Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBarsH_U32PtrU32PtrU32PtrU32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, ys: [*c]const imgui.ImU32, neg: [*c]const imgui.ImU32, pos: [*c]const imgui.ImU32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_U32PtrU32PtrU32PtrU32Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBarsH_S64PtrS64PtrS64PtrS64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, ys: [*c]const imgui.ImS64, neg: [*c]const imgui.ImS64, pos: [*c]const imgui.ImS64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_S64PtrS64PtrS64PtrS64Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotErrorBarsH_U64PtrU64PtrU64PtrU64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, ys: [*c]const imgui.ImU64, neg: [*c]const imgui.ImU64, pos: [*c]const imgui.ImU64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotErrorBarsH_U64PtrU64PtrU64PtrU64Ptr(label_id, xs, ys, neg, pos, count, offset, stride);
-}
-pub fn plotStems_FloatPtrInt(label_id: [*c]const u8, values: [*c]const f32, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_FloatPtrInt(label_id, values, count, y_ref, xscale, x0, offset, stride);
-}
-pub fn plotStems_doublePtrInt(label_id: [*c]const u8, values: [*c]const f64, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_doublePtrInt(label_id, values, count, y_ref, xscale, x0, offset, stride);
-}
-pub fn plotStems_S8PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS8, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_S8PtrInt(label_id, values, count, y_ref, xscale, x0, offset, stride);
-}
-pub fn plotStems_U8PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU8, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_U8PtrInt(label_id, values, count, y_ref, xscale, x0, offset, stride);
-}
-pub fn plotStems_S16PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS16, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_S16PtrInt(label_id, values, count, y_ref, xscale, x0, offset, stride);
-}
-pub fn plotStems_U16PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU16, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_U16PtrInt(label_id, values, count, y_ref, xscale, x0, offset, stride);
-}
-pub fn plotStems_S32PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS32, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_S32PtrInt(label_id, values, count, y_ref, xscale, x0, offset, stride);
-}
-pub fn plotStems_U32PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU32, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_U32PtrInt(label_id, values, count, y_ref, xscale, x0, offset, stride);
-}
-pub fn plotStems_S64PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS64, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_S64PtrInt(label_id, values, count, y_ref, xscale, x0, offset, stride);
-}
-pub fn plotStems_U64PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImU64, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_U64PtrInt(label_id, values, count, y_ref, xscale, x0, offset, stride);
-}
-pub fn plotStems_FloatPtrFloatPtr(label_id: [*c]const u8, xs: [*c]const f32, ys: [*c]const f32, count: c_int, y_ref: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_FloatPtrFloatPtr(label_id, xs, ys, count, y_ref, offset, stride);
-}
-pub fn plotStems_doublePtrdoublePtr(label_id: [*c]const u8, xs: [*c]const f64, ys: [*c]const f64, count: c_int, y_ref: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_doublePtrdoublePtr(label_id, xs, ys, count, y_ref, offset, stride);
-}
-pub fn plotStems_S8PtrS8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS8, ys: [*c]const imgui.ImS8, count: c_int, y_ref: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_S8PtrS8Ptr(label_id, xs, ys, count, y_ref, offset, stride);
-}
-pub fn plotStems_U8PtrU8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU8, ys: [*c]const imgui.ImU8, count: c_int, y_ref: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_U8PtrU8Ptr(label_id, xs, ys, count, y_ref, offset, stride);
-}
-pub fn plotStems_S16PtrS16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS16, ys: [*c]const imgui.ImS16, count: c_int, y_ref: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_S16PtrS16Ptr(label_id, xs, ys, count, y_ref, offset, stride);
-}
-pub fn plotStems_U16PtrU16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU16, ys: [*c]const imgui.ImU16, count: c_int, y_ref: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_U16PtrU16Ptr(label_id, xs, ys, count, y_ref, offset, stride);
-}
-pub fn plotStems_S32PtrS32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS32, ys: [*c]const imgui.ImS32, count: c_int, y_ref: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_S32PtrS32Ptr(label_id, xs, ys, count, y_ref, offset, stride);
-}
-pub fn plotStems_U32PtrU32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, ys: [*c]const imgui.ImU32, count: c_int, y_ref: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_U32PtrU32Ptr(label_id, xs, ys, count, y_ref, offset, stride);
-}
-pub fn plotStems_S64PtrS64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, ys: [*c]const imgui.ImS64, count: c_int, y_ref: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_S64PtrS64Ptr(label_id, xs, ys, count, y_ref, offset, stride);
-}
-pub fn plotStems_U64PtrU64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, ys: [*c]const imgui.ImU64, count: c_int, y_ref: f64, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotStems_U64PtrU64Ptr(label_id, xs, ys, count, y_ref, offset, stride);
-}
-pub fn plotVLines_FloatPtr(label_id: [*c]const u8, xs: [*c]const f32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotVLines_FloatPtr(label_id, xs, count, offset, stride);
-}
-pub fn plotVLines_doublePtr(label_id: [*c]const u8, xs: [*c]const f64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotVLines_doublePtr(label_id, xs, count, offset, stride);
-}
-pub fn plotVLines_S8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotVLines_S8Ptr(label_id, xs, count, offset, stride);
-}
-pub fn plotVLines_U8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotVLines_U8Ptr(label_id, xs, count, offset, stride);
-}
-pub fn plotVLines_S16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotVLines_S16Ptr(label_id, xs, count, offset, stride);
-}
-pub fn plotVLines_U16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotVLines_U16Ptr(label_id, xs, count, offset, stride);
-}
-pub fn plotVLines_S32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotVLines_S32Ptr(label_id, xs, count, offset, stride);
-}
-pub fn plotVLines_U32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotVLines_U32Ptr(label_id, xs, count, offset, stride);
-}
-pub fn plotVLines_S64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotVLines_S64Ptr(label_id, xs, count, offset, stride);
-}
-pub fn plotVLines_U64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotVLines_U64Ptr(label_id, xs, count, offset, stride);
-}
-pub fn plotHLines_FloatPtr(label_id: [*c]const u8, ys: [*c]const f32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotHLines_FloatPtr(label_id, ys, count, offset, stride);
-}
-pub fn plotHLines_doublePtr(label_id: [*c]const u8, ys: [*c]const f64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotHLines_doublePtr(label_id, ys, count, offset, stride);
-}
-pub fn plotHLines_S8Ptr(label_id: [*c]const u8, ys: [*c]const imgui.ImS8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotHLines_S8Ptr(label_id, ys, count, offset, stride);
-}
-pub fn plotHLines_U8Ptr(label_id: [*c]const u8, ys: [*c]const imgui.ImU8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotHLines_U8Ptr(label_id, ys, count, offset, stride);
-}
-pub fn plotHLines_S16Ptr(label_id: [*c]const u8, ys: [*c]const imgui.ImS16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotHLines_S16Ptr(label_id, ys, count, offset, stride);
-}
-pub fn plotHLines_U16Ptr(label_id: [*c]const u8, ys: [*c]const imgui.ImU16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotHLines_U16Ptr(label_id, ys, count, offset, stride);
-}
-pub fn plotHLines_S32Ptr(label_id: [*c]const u8, ys: [*c]const imgui.ImS32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotHLines_S32Ptr(label_id, ys, count, offset, stride);
-}
-pub fn plotHLines_U32Ptr(label_id: [*c]const u8, ys: [*c]const imgui.ImU32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotHLines_U32Ptr(label_id, ys, count, offset, stride);
-}
-pub fn plotHLines_S64Ptr(label_id: [*c]const u8, ys: [*c]const imgui.ImS64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotHLines_S64Ptr(label_id, ys, count, offset, stride);
-}
-pub fn plotHLines_U64Ptr(label_id: [*c]const u8, ys: [*c]const imgui.ImU64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotHLines_U64Ptr(label_id, ys, count, offset, stride);
-}
-pub fn plotPieChart_FloatPtr(label_ids: [*c]const [*c]const u8, values: [*c]const f32, count: c_int, x: f64, y: f64, radius: f64, normalize: bool, label_fmt: [*c]const u8, angle0: f64) void {
-    return c.ImPlot_PlotPieChart_FloatPtr(label_ids, values, count, x, y, radius, normalize, label_fmt, angle0);
-}
-pub fn plotPieChart_doublePtr(label_ids: [*c]const [*c]const u8, values: [*c]const f64, count: c_int, x: f64, y: f64, radius: f64, normalize: bool, label_fmt: [*c]const u8, angle0: f64) void {
-    return c.ImPlot_PlotPieChart_doublePtr(label_ids, values, count, x, y, radius, normalize, label_fmt, angle0);
-}
-pub fn plotPieChart_S8Ptr(label_ids: [*c]const [*c]const u8, values: [*c]const imgui.ImS8, count: c_int, x: f64, y: f64, radius: f64, normalize: bool, label_fmt: [*c]const u8, angle0: f64) void {
-    return c.ImPlot_PlotPieChart_S8Ptr(label_ids, values, count, x, y, radius, normalize, label_fmt, angle0);
-}
-pub fn plotPieChart_U8Ptr(label_ids: [*c]const [*c]const u8, values: [*c]const imgui.ImU8, count: c_int, x: f64, y: f64, radius: f64, normalize: bool, label_fmt: [*c]const u8, angle0: f64) void {
-    return c.ImPlot_PlotPieChart_U8Ptr(label_ids, values, count, x, y, radius, normalize, label_fmt, angle0);
-}
-pub fn plotPieChart_S16Ptr(label_ids: [*c]const [*c]const u8, values: [*c]const imgui.ImS16, count: c_int, x: f64, y: f64, radius: f64, normalize: bool, label_fmt: [*c]const u8, angle0: f64) void {
-    return c.ImPlot_PlotPieChart_S16Ptr(label_ids, values, count, x, y, radius, normalize, label_fmt, angle0);
-}
-pub fn plotPieChart_U16Ptr(label_ids: [*c]const [*c]const u8, values: [*c]const imgui.ImU16, count: c_int, x: f64, y: f64, radius: f64, normalize: bool, label_fmt: [*c]const u8, angle0: f64) void {
-    return c.ImPlot_PlotPieChart_U16Ptr(label_ids, values, count, x, y, radius, normalize, label_fmt, angle0);
-}
-pub fn plotPieChart_S32Ptr(label_ids: [*c]const [*c]const u8, values: [*c]const imgui.ImS32, count: c_int, x: f64, y: f64, radius: f64, normalize: bool, label_fmt: [*c]const u8, angle0: f64) void {
-    return c.ImPlot_PlotPieChart_S32Ptr(label_ids, values, count, x, y, radius, normalize, label_fmt, angle0);
-}
-pub fn plotPieChart_U32Ptr(label_ids: [*c]const [*c]const u8, values: [*c]const imgui.ImU32, count: c_int, x: f64, y: f64, radius: f64, normalize: bool, label_fmt: [*c]const u8, angle0: f64) void {
-    return c.ImPlot_PlotPieChart_U32Ptr(label_ids, values, count, x, y, radius, normalize, label_fmt, angle0);
-}
-pub fn plotPieChart_S64Ptr(label_ids: [*c]const [*c]const u8, values: [*c]const imgui.ImS64, count: c_int, x: f64, y: f64, radius: f64, normalize: bool, label_fmt: [*c]const u8, angle0: f64) void {
-    return c.ImPlot_PlotPieChart_S64Ptr(label_ids, values, count, x, y, radius, normalize, label_fmt, angle0);
-}
-pub fn plotPieChart_U64Ptr(label_ids: [*c]const [*c]const u8, values: [*c]const imgui.ImU64, count: c_int, x: f64, y: f64, radius: f64, normalize: bool, label_fmt: [*c]const u8, angle0: f64) void {
-    return c.ImPlot_PlotPieChart_U64Ptr(label_ids, values, count, x, y, radius, normalize, label_fmt, angle0);
-}
-pub fn plotHeatmap_FloatPtr(label_id: [*c]const u8, values: [*c]const f32, rows: c_int, cols: c_int, scale_min: f64, scale_max: f64, label_fmt: [*c]const u8, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint) void {
-    return c.ImPlot_PlotHeatmap_FloatPtr(label_id, values, rows, cols, scale_min, scale_max, label_fmt, bounds_min, bounds_max);
-}
-pub fn plotHeatmap_doublePtr(label_id: [*c]const u8, values: [*c]const f64, rows: c_int, cols: c_int, scale_min: f64, scale_max: f64, label_fmt: [*c]const u8, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint) void {
-    return c.ImPlot_PlotHeatmap_doublePtr(label_id, values, rows, cols, scale_min, scale_max, label_fmt, bounds_min, bounds_max);
-}
-pub fn plotHeatmap_S8Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImS8, rows: c_int, cols: c_int, scale_min: f64, scale_max: f64, label_fmt: [*c]const u8, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint) void {
-    return c.ImPlot_PlotHeatmap_S8Ptr(label_id, values, rows, cols, scale_min, scale_max, label_fmt, bounds_min, bounds_max);
-}
-pub fn plotHeatmap_U8Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImU8, rows: c_int, cols: c_int, scale_min: f64, scale_max: f64, label_fmt: [*c]const u8, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint) void {
-    return c.ImPlot_PlotHeatmap_U8Ptr(label_id, values, rows, cols, scale_min, scale_max, label_fmt, bounds_min, bounds_max);
-}
-pub fn plotHeatmap_S16Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImS16, rows: c_int, cols: c_int, scale_min: f64, scale_max: f64, label_fmt: [*c]const u8, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint) void {
-    return c.ImPlot_PlotHeatmap_S16Ptr(label_id, values, rows, cols, scale_min, scale_max, label_fmt, bounds_min, bounds_max);
-}
-pub fn plotHeatmap_U16Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImU16, rows: c_int, cols: c_int, scale_min: f64, scale_max: f64, label_fmt: [*c]const u8, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint) void {
-    return c.ImPlot_PlotHeatmap_U16Ptr(label_id, values, rows, cols, scale_min, scale_max, label_fmt, bounds_min, bounds_max);
-}
-pub fn plotHeatmap_S32Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImS32, rows: c_int, cols: c_int, scale_min: f64, scale_max: f64, label_fmt: [*c]const u8, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint) void {
-    return c.ImPlot_PlotHeatmap_S32Ptr(label_id, values, rows, cols, scale_min, scale_max, label_fmt, bounds_min, bounds_max);
-}
-pub fn plotHeatmap_U32Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImU32, rows: c_int, cols: c_int, scale_min: f64, scale_max: f64, label_fmt: [*c]const u8, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint) void {
-    return c.ImPlot_PlotHeatmap_U32Ptr(label_id, values, rows, cols, scale_min, scale_max, label_fmt, bounds_min, bounds_max);
-}
-pub fn plotHeatmap_S64Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImS64, rows: c_int, cols: c_int, scale_min: f64, scale_max: f64, label_fmt: [*c]const u8, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint) void {
-    return c.ImPlot_PlotHeatmap_S64Ptr(label_id, values, rows, cols, scale_min, scale_max, label_fmt, bounds_min, bounds_max);
-}
-pub fn plotHeatmap_U64Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImU64, rows: c_int, cols: c_int, scale_min: f64, scale_max: f64, label_fmt: [*c]const u8, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint) void {
-    return c.ImPlot_PlotHeatmap_U64Ptr(label_id, values, rows, cols, scale_min, scale_max, label_fmt, bounds_min, bounds_max);
-}
-pub fn plotHistogram_FloatPtr(label_id: [*c]const u8, values: [*c]const f32, count: c_int, bins: c_int, cumulative: bool, density: bool, range: c.ImPlotRange, outliers: bool, bar_scale: f64) f64 {
-    return c.ImPlot_PlotHistogram_FloatPtr(label_id, values, count, bins, cumulative, density, range, outliers, bar_scale);
-}
-pub fn plotHistogram_doublePtr(label_id: [*c]const u8, values: [*c]const f64, count: c_int, bins: c_int, cumulative: bool, density: bool, range: c.ImPlotRange, outliers: bool, bar_scale: f64) f64 {
-    return c.ImPlot_PlotHistogram_doublePtr(label_id, values, count, bins, cumulative, density, range, outliers, bar_scale);
-}
-pub fn plotHistogram_S8Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImS8, count: c_int, bins: c_int, cumulative: bool, density: bool, range: c.ImPlotRange, outliers: bool, bar_scale: f64) f64 {
-    return c.ImPlot_PlotHistogram_S8Ptr(label_id, values, count, bins, cumulative, density, range, outliers, bar_scale);
-}
-pub fn plotHistogram_U8Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImU8, count: c_int, bins: c_int, cumulative: bool, density: bool, range: c.ImPlotRange, outliers: bool, bar_scale: f64) f64 {
-    return c.ImPlot_PlotHistogram_U8Ptr(label_id, values, count, bins, cumulative, density, range, outliers, bar_scale);
-}
-pub fn plotHistogram_S16Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImS16, count: c_int, bins: c_int, cumulative: bool, density: bool, range: c.ImPlotRange, outliers: bool, bar_scale: f64) f64 {
-    return c.ImPlot_PlotHistogram_S16Ptr(label_id, values, count, bins, cumulative, density, range, outliers, bar_scale);
-}
-pub fn plotHistogram_U16Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImU16, count: c_int, bins: c_int, cumulative: bool, density: bool, range: c.ImPlotRange, outliers: bool, bar_scale: f64) f64 {
-    return c.ImPlot_PlotHistogram_U16Ptr(label_id, values, count, bins, cumulative, density, range, outliers, bar_scale);
-}
-pub fn plotHistogram_S32Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImS32, count: c_int, bins: c_int, cumulative: bool, density: bool, range: c.ImPlotRange, outliers: bool, bar_scale: f64) f64 {
-    return c.ImPlot_PlotHistogram_S32Ptr(label_id, values, count, bins, cumulative, density, range, outliers, bar_scale);
-}
-pub fn plotHistogram_U32Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImU32, count: c_int, bins: c_int, cumulative: bool, density: bool, range: c.ImPlotRange, outliers: bool, bar_scale: f64) f64 {
-    return c.ImPlot_PlotHistogram_U32Ptr(label_id, values, count, bins, cumulative, density, range, outliers, bar_scale);
-}
-pub fn plotHistogram_S64Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImS64, count: c_int, bins: c_int, cumulative: bool, density: bool, range: c.ImPlotRange, outliers: bool, bar_scale: f64) f64 {
-    return c.ImPlot_PlotHistogram_S64Ptr(label_id, values, count, bins, cumulative, density, range, outliers, bar_scale);
-}
-pub fn plotHistogram_U64Ptr(label_id: [*c]const u8, values: [*c]const imgui.ImU64, count: c_int, bins: c_int, cumulative: bool, density: bool, range: c.ImPlotRange, outliers: bool, bar_scale: f64) f64 {
-    return c.ImPlot_PlotHistogram_U64Ptr(label_id, values, count, bins, cumulative, density, range, outliers, bar_scale);
-}
-pub fn plotHistogram2D_FloatPtr(label_id: [*c]const u8, xs: [*c]const f32, ys: [*c]const f32, count: c_int, x_bins: c_int, y_bins: c_int, density: bool, range: c.ImPlotLimits, outliers: bool) f64 {
-    return c.ImPlot_PlotHistogram2D_FloatPtr(label_id, xs, ys, count, x_bins, y_bins, density, range, outliers);
-}
-pub fn plotHistogram2D_doublePtr(label_id: [*c]const u8, xs: [*c]const f64, ys: [*c]const f64, count: c_int, x_bins: c_int, y_bins: c_int, density: bool, range: c.ImPlotLimits, outliers: bool) f64 {
-    return c.ImPlot_PlotHistogram2D_doublePtr(label_id, xs, ys, count, x_bins, y_bins, density, range, outliers);
-}
-pub fn plotHistogram2D_S8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS8, ys: [*c]const imgui.ImS8, count: c_int, x_bins: c_int, y_bins: c_int, density: bool, range: c.ImPlotLimits, outliers: bool) f64 {
-    return c.ImPlot_PlotHistogram2D_S8Ptr(label_id, xs, ys, count, x_bins, y_bins, density, range, outliers);
-}
-pub fn plotHistogram2D_U8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU8, ys: [*c]const imgui.ImU8, count: c_int, x_bins: c_int, y_bins: c_int, density: bool, range: c.ImPlotLimits, outliers: bool) f64 {
-    return c.ImPlot_PlotHistogram2D_U8Ptr(label_id, xs, ys, count, x_bins, y_bins, density, range, outliers);
-}
-pub fn plotHistogram2D_S16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS16, ys: [*c]const imgui.ImS16, count: c_int, x_bins: c_int, y_bins: c_int, density: bool, range: c.ImPlotLimits, outliers: bool) f64 {
-    return c.ImPlot_PlotHistogram2D_S16Ptr(label_id, xs, ys, count, x_bins, y_bins, density, range, outliers);
-}
-pub fn plotHistogram2D_U16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU16, ys: [*c]const imgui.ImU16, count: c_int, x_bins: c_int, y_bins: c_int, density: bool, range: c.ImPlotLimits, outliers: bool) f64 {
-    return c.ImPlot_PlotHistogram2D_U16Ptr(label_id, xs, ys, count, x_bins, y_bins, density, range, outliers);
-}
-pub fn plotHistogram2D_S32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS32, ys: [*c]const imgui.ImS32, count: c_int, x_bins: c_int, y_bins: c_int, density: bool, range: c.ImPlotLimits, outliers: bool) f64 {
-    return c.ImPlot_PlotHistogram2D_S32Ptr(label_id, xs, ys, count, x_bins, y_bins, density, range, outliers);
-}
-pub fn plotHistogram2D_U32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, ys: [*c]const imgui.ImU32, count: c_int, x_bins: c_int, y_bins: c_int, density: bool, range: c.ImPlotLimits, outliers: bool) f64 {
-    return c.ImPlot_PlotHistogram2D_U32Ptr(label_id, xs, ys, count, x_bins, y_bins, density, range, outliers);
-}
-pub fn plotHistogram2D_S64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, ys: [*c]const imgui.ImS64, count: c_int, x_bins: c_int, y_bins: c_int, density: bool, range: c.ImPlotLimits, outliers: bool) f64 {
-    return c.ImPlot_PlotHistogram2D_S64Ptr(label_id, xs, ys, count, x_bins, y_bins, density, range, outliers);
-}
-pub fn plotHistogram2D_U64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, ys: [*c]const imgui.ImU64, count: c_int, x_bins: c_int, y_bins: c_int, density: bool, range: c.ImPlotLimits, outliers: bool) f64 {
-    return c.ImPlot_PlotHistogram2D_U64Ptr(label_id, xs, ys, count, x_bins, y_bins, density, range, outliers);
-}
-pub fn plotDigital_FloatPtr(label_id: [*c]const u8, xs: [*c]const f32, ys: [*c]const f32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotDigital_FloatPtr(label_id, xs, ys, count, offset, stride);
-}
-pub fn plotDigital_doublePtr(label_id: [*c]const u8, xs: [*c]const f64, ys: [*c]const f64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotDigital_doublePtr(label_id, xs, ys, count, offset, stride);
-}
-pub fn plotDigital_S8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS8, ys: [*c]const imgui.ImS8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotDigital_S8Ptr(label_id, xs, ys, count, offset, stride);
-}
-pub fn plotDigital_U8Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU8, ys: [*c]const imgui.ImU8, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotDigital_U8Ptr(label_id, xs, ys, count, offset, stride);
-}
-pub fn plotDigital_S16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS16, ys: [*c]const imgui.ImS16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotDigital_S16Ptr(label_id, xs, ys, count, offset, stride);
-}
-pub fn plotDigital_U16Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU16, ys: [*c]const imgui.ImU16, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotDigital_U16Ptr(label_id, xs, ys, count, offset, stride);
-}
-pub fn plotDigital_S32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS32, ys: [*c]const imgui.ImS32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotDigital_S32Ptr(label_id, xs, ys, count, offset, stride);
-}
-pub fn plotDigital_U32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, ys: [*c]const imgui.ImU32, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotDigital_U32Ptr(label_id, xs, ys, count, offset, stride);
-}
-pub fn plotDigital_S64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, ys: [*c]const imgui.ImS64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotDigital_S64Ptr(label_id, xs, ys, count, offset, stride);
-}
-pub fn plotDigital_U64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, ys: [*c]const imgui.ImU64, count: c_int, offset: c_int, stride: c_int) void {
-    return c.ImPlot_PlotDigital_U64Ptr(label_id, xs, ys, count, offset, stride);
-}
-
-// Plots an axis-aligned image. #bounds_min/bounds_max are in plot coordinates (y-up) and #uv0/uv1 are in texture coordinates (y-down).
-pub fn plotImage(label_id: [*c]const u8, user_texture_id: imgui.ImTextureID, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint, uv0: imgui.ImVec2, uv1: imgui.ImVec2, tint_col: imgui.ImVec4) void {
-    return c.ImPlot_PlotImage(label_id, user_texture_id, bounds_min, bounds_max, uv0, uv1, tint_col);
-}
-pub fn plotBarsG(label_id: [*c]const u8, getter: c.ImPlotPoint_getter, data: ?*c_void, count: c_int, width: f64) void {
+pub const PlotBarsOption = struct {
+    width: f64 = 0.67,
+    shift: f64 = 0,
+    offset: c_int = 0,
+    stride: ?c_int = null,
+};
+pub fn plotBars_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, option: PlotBarsOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotBars_FloatPtrInt,
+        f64 => c.ImPlot_PlotBars_doublePtrInt,
+        i8 => c.ImPlot_PlotBars_S8PtrInt,
+        u8 => c.ImPlot_PlotBars_U8PtrInt,
+        i16 => c.ImPlot_PlotBars_S16PtrInt,
+        u16 => c.ImPlot_PlotBars_U16PtrInt,
+        i32 => c.ImPlot_PlotBars_S32PtrInt,
+        u32 => c.ImPlot_PlotBars_U32PtrInt,
+        i64 => c.ImPlot_PlotBars_S64PtrInt,
+        u64 => c.ImPlot_PlotBars_U64PtrInt,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        values,
+        @intCast(c_int, count),
+        option.width,
+        option.shift,
+        option.offset,
+        option.stride orelse @sizeOf(T),
+    );
+}
+pub fn plotBars_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys: [*c]const T, count: u32, option: PlotBarsOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotBars_FloatPtrFloatPtr,
+        f64 => c.ImPlot_PlotBars_doublePtrdoublePtr,
+        i8 => c.ImPlot_PlotBars_S8PtrS8Ptr,
+        u8 => c.ImPlot_PlotBars_U8PtrU8Ptr,
+        i16 => c.ImPlot_PlotBars_S16PtrS16Ptr,
+        u16 => c.ImPlot_PlotBars_U16PtrU16Ptr,
+        i32 => c.ImPlot_PlotBars_S32PtrS32Ptr,
+        u32 => c.ImPlot_PlotBars_U32PtrU32Ptr,
+        i64 => c.ImPlot_PlotBars_S64PtrS64Ptr,
+        u64 => c.ImPlot_PlotBars_U64PtrU64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        xs,
+        ys,
+        @intCast(c_int, count),
+        option.width,
+        option.offset,
+        option.stride orelse @sizeOf(T) * 2,
+    );
+}
+pub fn plotBarsG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*c_void, count: c_int, width: f64) void {
     return c.ImPlot_PlotBarsG(label_id, getter, data, count, width);
 }
-pub fn plotBarsHG(label_id: [*c]const u8, getter: c.ImPlotPoint_getter, data: ?*c_void, count: c_int, height: f64) void {
+
+// Plots a horizontal bar graph. #height and #shift are in Y units.
+pub const PlotBarsHOption = struct {
+    height: f64 = 0.67,
+    shift: f64 = 0,
+    offset: c_int = 0,
+    stride: ?c_int = null,
+};
+pub fn plotBarsH_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, option: PlotBarsHOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotBarsH_FloatPtrInt,
+        f64 => c.ImPlot_PlotBarsH_doublePtrInt,
+        i8 => c.ImPlot_PlotBarsH_S8PtrInt,
+        u8 => c.ImPlot_PlotBarsH_U8PtrInt,
+        i16 => c.ImPlot_PlotBarsH_S16PtrInt,
+        u16 => c.ImPlot_PlotBarsH_U16PtrInt,
+        i32 => c.ImPlot_PlotBarsH_S32PtrInt,
+        u32 => c.ImPlot_PlotBarsH_U32PtrInt,
+        i64 => c.ImPlot_PlotBarsH_S64PtrInt,
+        u64 => c.ImPlot_PlotBarsH_U64PtrInt,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        values,
+        @intCast(c_int, count),
+        option.height,
+        option.shift,
+        option.offset,
+        option.stride orelse @sizeOf(T),
+    );
+}
+pub fn plotBarsH_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys: [*c]const T, count: u32, option: PlotBarsHOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotBarsH_FloatPtrFloatPtr,
+        f64 => c.ImPlot_PlotBarsH_doublePtrdoublePtr,
+        i8 => c.ImPlot_PlotBarsH_S8PtrS8Ptr,
+        u8 => c.ImPlot_PlotBarsH_U8PtrU8Ptr,
+        i16 => c.ImPlot_PlotBarsH_S16PtrS16Ptr,
+        u16 => c.ImPlot_PlotBarsH_U16PtrU16Ptr,
+        i32 => c.ImPlot_PlotBarsH_S32PtrS32Ptr,
+        u32 => c.ImPlot_PlotBarsH_U32PtrU32Ptr,
+        i64 => c.ImPlot_PlotBarsH_S64PtrS64Ptr,
+        u64 => c.ImPlot_PlotBarsH_U64PtrU64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        xs,
+        ys,
+        @intCast(c_int, count),
+        option.height,
+        option.offset,
+        option.stride orelse @sizeOf(T) * 2,
+    );
+}
+pub fn plotBarsHG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*c_void, count: c_int, height: f64) void {
     return c.ImPlot_PlotBarsHG(label_id, getter, data, count, height);
+}
+
+// Plots vertical error bar. The label_id should be the same as the label_id of the associated line or bar plot.
+pub const PlotErrorBarsOption = struct {
+    offset: c_int = 0,
+    stride: ?c_int = null,
+};
+pub fn plotErrorBars_PtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys: [*c]const T, err: [*c]const T, count: u32, option: PlotErrorBarsOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotErrorBars_FloatPtrFloatPtrFloatPtrInt,
+        f64 => c.ImPlot_PlotErrorBars_doublePtrdoublePtrdoublePtrInt,
+        i8 => c.ImPlot_PlotErrorBars_S8PtrS8PtrS8PtrInt,
+        u8 => c.ImPlot_PlotErrorBars_U8PtrU8PtrU8PtrInt,
+        i16 => c.ImPlot_PlotErrorBars_S16PtrS16PtrS16PtrInt,
+        u16 => c.ImPlot_PlotErrorBars_U16PtrU16PtrU16PtrInt,
+        i32 => c.ImPlot_PlotErrorBars_S32PtrS32PtrS32PtrInt,
+        u32 => c.ImPlot_PlotErrorBars_U32PtrU32PtrU32PtrInt,
+        i64 => c.ImPlot_PlotErrorBars_S64PtrS64PtrS64PtrInt,
+        u64 => c.ImPlot_PlotErrorBars_U64PtrU64PtrU64PtrInt,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        xs,
+        ys,
+        err,
+        @intCast(c_int, count),
+        option.offset,
+        option.stride orelse @sizeOf(T) * 3,
+    );
+}
+pub fn plotErrorBars_PtrPtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys: [*c]const T, neg: [*c]const T, pos: [*c]const T, count: u32, option: PlotErrorBarsOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotErrorBars_FloatPtrFloatPtrFloatPtrFloatPtr,
+        f64 => c.ImPlot_PlotErrorBars_doublePtrdoublePtrdoublePtrdoublePtr,
+        i8 => c.ImPlot_PlotErrorBars_S8PtrS8PtrS8PtrS8Ptr,
+        u8 => c.ImPlot_PlotErrorBars_U8PtrU8PtrU8PtrU8Ptr,
+        i16 => c.ImPlot_PlotErrorBars_S16PtrS16PtrS16PtrS16Ptr,
+        u16 => c.ImPlot_PlotErrorBars_U16PtrU16PtrU16PtrU16Ptr,
+        i32 => c.ImPlot_PlotErrorBars_S32PtrS32PtrS32PtrS32Ptr,
+        u32 => c.ImPlot_PlotErrorBars_U32PtrU32PtrU32PtrU32Ptr,
+        i64 => c.ImPlot_PlotErrorBars_S64PtrS64PtrS64PtrS64Ptr,
+        u64 => c.ImPlot_PlotErrorBars_U64PtrU64PtrU64PtrU64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        xs,
+        ys,
+        neg,
+        pos,
+        @intCast(c_int, count),
+        option.offset,
+        option.stride orelse @sizeOf(T) * 4,
+    );
+}
+
+// Plots horizontal error bars. The label_id should be the same as the label_id of the associated line or bar plot.
+pub const PlotErrorBarsHOption = struct {
+    offset: c_int = 0,
+    stride: ?c_int = null,
+};
+pub fn plotErrorBarsH_PtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys: [*c]const T, err: [*c]const T, count: u32, option: PlotErrorBarsHOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotErrorBarsH_FloatPtrFloatPtrFloatPtrInt,
+        f64 => c.ImPlot_PlotErrorBarsH_doublePtrdoublePtrdoublePtrInt,
+        i8 => c.ImPlot_PlotErrorBarsH_S8PtrS8PtrS8PtrInt,
+        u8 => c.ImPlot_PlotErrorBarsH_U8PtrU8PtrU8PtrInt,
+        i16 => c.ImPlot_PlotErrorBarsH_S16PtrS16PtrS16PtrInt,
+        u16 => c.ImPlot_PlotErrorBarsH_U16PtrU16PtrU16PtrInt,
+        i32 => c.ImPlot_PlotErrorBarsH_S32PtrS32PtrS32PtrInt,
+        u32 => c.ImPlot_PlotErrorBarsH_U32PtrU32PtrU32PtrInt,
+        i64 => c.ImPlot_PlotErrorBarsH_S64PtrS64PtrS64PtrInt,
+        u64 => c.ImPlot_PlotErrorBarsH_U64PtrU64PtrU64PtrInt,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        xs,
+        ys,
+        err,
+        @intCast(c_int, count),
+        option.offset,
+        option.stride orelse @sizeOf(T) * 3,
+    );
+}
+pub fn plotErrorBarsH_PtrPtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys: [*c]const T, neg: [*c]const T, pos: [*c]const T, count: u32, option: PlotErrorBarsHOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotErrorBarsH_FloatPtrFloatPtrFloatPtrFloatPtr,
+        f64 => c.ImPlot_PlotErrorBarsH_doublePtrdoublePtrdoublePtrdoublePtr,
+        i8 => c.ImPlot_PlotErrorBarsH_S8PtrS8PtrS8PtrS8Ptr,
+        u8 => c.ImPlot_PlotErrorBarsH_U8PtrU8PtrU8PtrU8Ptr,
+        i16 => c.ImPlot_PlotErrorBarsH_S16PtrS16PtrS16PtrS16Ptr,
+        u16 => c.ImPlot_PlotErrorBarsH_U16PtrU16PtrU16PtrU16Ptr,
+        i32 => c.ImPlot_PlotErrorBarsH_S32PtrS32PtrS32PtrS32Ptr,
+        u32 => c.ImPlot_PlotErrorBarsH_U32PtrU32PtrU32PtrU32Ptr,
+        i64 => c.ImPlot_PlotErrorBarsH_S64PtrS64PtrS64PtrS64Ptr,
+        u64 => c.ImPlot_PlotErrorBarsH_U64PtrU64PtrU64PtrU64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        xs,
+        ys,
+        neg,
+        pos,
+        @intCast(c_int, count),
+        option.offset,
+        option.stride orelse @sizeOf(T) * 4,
+    );
+}
+
+// Plots vertical stems.
+pub const PlotStemsOption = struct {
+    y_ref: f64 = 0,
+    xscale: f64 = 1,
+    x0: f64 = 0,
+    offset: c_int = 0,
+    stride: ?c_int = null,
+};
+pub fn plotStems_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, option: PlotStemsOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotStems_FloatPtrInt,
+        f64 => c.ImPlot_PlotStems_doublePtrInt,
+        i8 => c.ImPlot_PlotStems_S8PtrInt,
+        u8 => c.ImPlot_PlotStems_U8PtrInt,
+        i16 => c.ImPlot_PlotStems_S16PtrInt,
+        u16 => c.ImPlot_PlotStems_U16PtrInt,
+        i32 => c.ImPlot_PlotStems_S32PtrInt,
+        u32 => c.ImPlot_PlotStems_U32PtrInt,
+        i64 => c.ImPlot_PlotStems_S64PtrInt,
+        u64 => c.ImPlot_PlotStems_U64PtrInt,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        values,
+        @intCast(c_int, count),
+        option.y_ref,
+        option.xscale,
+        option.x0,
+        option.offset,
+        option.stride orelse @sizeOf(T),
+    );
+}
+pub fn plotStems_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys: [*c]const T, count: u32, option: PlotStemsOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotStems_FloatPtrFloatPtr,
+        f64 => c.ImPlot_PlotStems_doublePtrdoublePtr,
+        i8 => c.ImPlot_PlotStems_S8PtrS8Ptr,
+        u8 => c.ImPlot_PlotStems_U8PtrU8Ptr,
+        i16 => c.ImPlot_PlotStems_S16PtrS16Ptr,
+        u16 => c.ImPlot_PlotStems_U16PtrU16Ptr,
+        i32 => c.ImPlot_PlotStems_S32PtrS32Ptr,
+        u32 => c.ImPlot_PlotStems_U32PtrU32Ptr,
+        i64 => c.ImPlot_PlotStems_S64PtrS64Ptr,
+        u64 => c.ImPlot_PlotStems_U64PtrU64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        xs,
+        ys,
+        @intCast(c_int, count),
+        option.y_ref,
+        option.offset,
+        option.stride orelse @sizeOf(T) * 2,
+    );
+}
+
+// Plots infinite vertical or horizontal lines (e.g. for references or asymptotes).
+pub const PlotVHLinesOption = struct {
+    offset: c_int = 0,
+    stride: ?c_int = null,
+};
+pub fn plotVLines_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, option: PlotVHLinesOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotVLines_FloatPtr,
+        f64 => c.ImPlot_PlotVLines_doublePtr,
+        i8 => c.ImPlot_PlotVLines_S8Ptr,
+        u8 => c.ImPlot_PlotVLines_U8Ptr,
+        i16 => c.ImPlot_PlotVLines_S16Ptr,
+        u16 => c.ImPlot_PlotVLines_U16Ptr,
+        i32 => c.ImPlot_PlotVLines_S32Ptr,
+        u32 => c.ImPlot_PlotVLines_U32Ptr,
+        i64 => c.ImPlot_PlotVLines_S64Ptr,
+        u64 => c.ImPlot_PlotVLines_U64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        values,
+        @intCast(c_int, count),
+        option.y_ref,
+        option.xscale,
+        option.x0,
+        option.offset,
+        option.stride orelse @sizeOf(T),
+    );
+}
+pub fn plotHLines_Ptr(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, option: PlotVHLinesOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotHLines_FloatPtr,
+        f64 => c.ImPlot_PlotHLines_doublePtr,
+        i8 => c.ImPlot_PlotHLines_S8Ptr,
+        u8 => c.ImPlot_PlotHLines_U8Ptr,
+        i16 => c.ImPlot_PlotHLines_S16Ptr,
+        u16 => c.ImPlot_PlotHLines_U16Ptr,
+        i32 => c.ImPlot_PlotHLines_S32Ptr,
+        u32 => c.ImPlot_PlotHLines_U32Ptr,
+        i64 => c.ImPlot_PlotHLines_S64Ptr,
+        u64 => c.ImPlot_PlotHLines_U64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        values,
+        @intCast(c_int, count),
+        option.y_ref,
+        option.xscale,
+        option.x0,
+        option.offset,
+        option.stride orelse @sizeOf(T),
+    );
+}
+
+// Plots a pie chart. If the sum of values > 1 or normalize is true, each value will be normalized. Center and radius are in plot units. #label_fmt can be set to NULL for no labels.
+pub const PlotPieChartOption = struct {
+    normalized: bool = false,
+    label_fmt: [:0]const u8 = "%.1f",
+    angle0: f64 = 90,
+};
+pub fn plotPieChart(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, x: f64, y: f64, radius: f64, option: PlotPieChartOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotPieChart_FloatPtr,
+        f64 => c.ImPlot_PlotPieChart_doublePtr,
+        i8 => c.ImPlot_PlotPieChart_S8Ptr,
+        u8 => c.ImPlot_PlotPieChart_U8Ptr,
+        i16 => c.ImPlot_PlotPieChart_S16Ptr,
+        u16 => c.ImPlot_PlotPieChart_U16Ptr,
+        i32 => c.ImPlot_PlotPieChart_S32Ptr,
+        u32 => c.ImPlot_PlotPieChart_U32Ptr,
+        i64 => c.ImPlot_PlotPieChart_S64Ptr,
+        u64 => c.ImPlot_PlotPieChart_U64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        values,
+        @intCast(c_int, count),
+        x,
+        y,
+        radius,
+        option.normalized,
+        option.label_fmt,
+        option.angle0,
+    );
+}
+
+// Plots a 2D heatmap chart. Values are expected to be in row-major order. Leave #scale_min and scale_max both at 0 for automatic color scaling, or set them to a predefined range. #label_fmt can be set to NULL for no labels.
+pub const PlotHeatmapOption = struct {
+    scale_min: f64 = 0,
+    scale_max: f64 = 0,
+    label_fmt: [:0]const u8 = "%.1f",
+    bounds_min: c.ImPlotPoint = .{ .x = 0, .y = 0 },
+    bounds_max: c.ImPlotPoint = .{ .x = 1, .y = 1 },
+};
+pub fn plotHeatmap(label_id: [:0]const u8, comptime T: type, values: [*]const T, rows: u32, cols: u32, option: PlotHeatmapOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotHeatmap_FloatPtr,
+        f64 => c.ImPlot_PlotHeatmap_doublePtr,
+        i8 => c.ImPlot_PlotHeatmap_S8Ptr,
+        u8 => c.ImPlot_PlotHeatmap_U8Ptr,
+        i16 => c.ImPlot_PlotHeatmap_S16Ptr,
+        u16 => c.ImPlot_PlotHeatmap_U16Ptr,
+        i32 => c.ImPlot_PlotHeatmap_S32Ptr,
+        u32 => c.ImPlot_PlotHeatmap_U32Ptr,
+        i64 => c.ImPlot_PlotHeatmap_S64Ptr,
+        u64 => c.ImPlot_PlotHeatmap_U64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        values,
+        @intCast(c_int, rows),
+        @intCast(c_int, cols),
+        option.scale_min,
+        option.scale_max,
+        option.label_fmt,
+        option.bounds_min,
+        option.bounds_max,
+    );
+}
+
+// Plots a horizontal histogram. #bins can be a positive integer or an ImPlotBin_ method. If #cumulative is true, each bin contains its count plus the counts of all previous bins.
+// If #density is true, the PDF is visualized. If both are true, the CDF is visualized. If #range is left unspecified, the min/max of #values will be used as the range.
+// If #range is specified, outlier values outside of the range are not binned. However, outliers still count toward normalizing and cumulative counts unless #outliers is false. The largest bin count or density is returned.
+pub const PlotHistogramOption = struct {
+    bins: c_int = c.ImPlotBin_Sturges,
+    cumulative: bool = false,
+    density: bool = false,
+    range: c.ImPlotRange = .{ .x = 0, .y = 0 },
+    outlier: bool = true,
+    bar_scale: f64 = 1.0,
+};
+pub fn plotHistogram(label_id: [:0]const u8, comptime T: type, values: [*c]const T, count: u32, option: PlotHistogramOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotHistogram_FloatPtr,
+        f64 => c.ImPlot_PlotHistogram_doublePtr,
+        i8 => c.ImPlot_PlotHistogram_S8Ptr,
+        u8 => c.ImPlot_PlotHistogram_U8Ptr,
+        i16 => c.ImPlot_PlotHistogram_S16Ptr,
+        u16 => c.ImPlot_PlotHistogram_U16Ptr,
+        i32 => c.ImPlot_PlotHistogram_S32Ptr,
+        u32 => c.ImPlot_PlotHistogram_U32Ptr,
+        i64 => c.ImPlot_PlotHistogram_S64Ptr,
+        u64 => c.ImPlot_PlotHistogram_U64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        values,
+        @intCast(c_int, count),
+        option.bins,
+        option.cumulative,
+        option.density,
+        option.range,
+        option.outlier,
+        option.bar_scale,
+    );
+}
+
+// Plots two dimensional, bivariate histogram as a heatmap. #x_bins and #y_bins can be a positive integer or an ImPlotBin. If #density is true, the PDF is visualized.
+// If #range is left unspecified, the min/max of #xs an #ys will be used as the ranges. If #range is specified, outlier values outside of range are not binned.
+// However, outliers still count toward the normalizing count for density plots unless #outliers is false. The largest bin count or density is returned.
+pub const PlotHistogram2DOption = struct {
+    x_bins: c_int = c.ImPlotBin_Sturges,
+    y_bins: c_int = c.ImPlotBin_Sturges,
+    density: bool = false,
+    range: c.ImPlotRange = .{ .x = 0, .y = 0 },
+    outlier: bool = true,
+};
+pub fn plotHistogram2D(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys: [*c]const T, count: u32, option: PlotHistogram2DOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotHistogram2D_FloatPtr,
+        f64 => c.ImPlot_PlotHistogram2D_doublePtr,
+        i8 => c.ImPlot_PlotHistogram2D_S8Ptr,
+        u8 => c.ImPlot_PlotHistogram2D_U8Ptr,
+        i16 => c.ImPlot_PlotHistogram2D_S16Ptr,
+        u16 => c.ImPlot_PlotHistogram2D_U16Ptr,
+        i32 => c.ImPlot_PlotHistogram2D_S32Ptr,
+        u32 => c.ImPlot_PlotHistogram2D_U32Ptr,
+        i64 => c.ImPlot_PlotHistogram2D_S64Ptr,
+        u64 => c.ImPlot_PlotHistogram2D_U64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        xs,
+        ys,
+        @intCast(c_int, count),
+        option.x_bins,
+        option.y_bins,
+        option.density,
+        option.range,
+        option.outlier,
+    );
+}
+
+// Plots digital data. Digital plots do not respond to y drag or zoom, and are always referenced to the bottom of the plot.
+pub const PlotDigitalOption = struct {
+    offset: c_int = 0,
+    stride: ?c_int = null,
+};
+pub fn plotDigital(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys: [*c]const T, count: u32, option: PlotDigitalOption) void {
+    const plotFn = switch (T) {
+        f32 => c.ImPlot_PlotDigital_FloatPtr,
+        f64 => c.ImPlot_PlotDigital_doublePtr,
+        i8 => c.ImPlot_PlotDigital_S8Ptr,
+        u8 => c.ImPlot_PlotDigital_U8Ptr,
+        i16 => c.ImPlot_PlotDigital_S16Ptr,
+        u16 => c.ImPlot_PlotDigital_U16Ptr,
+        i32 => c.ImPlot_PlotDigital_S32Ptr,
+        u32 => c.ImPlot_PlotDigital_U32Ptr,
+        i64 => c.ImPlot_PlotDigital_S64Ptr,
+        u64 => c.ImPlot_PlotDigital_U64Ptr,
+        else => unreachable,
+    };
+    plotFn(
+        label_id,
+        xs,
+        ys,
+        @intCast(c_int, count),
+        option.offset,
+        option.stride orelse @sizeOf(T) * 2,
+    );
 }
 pub fn plotDigitalG(label_id: [*c]const u8, getter: c.ImPlotPoint_getter, data: ?*c_void, count: c_int) void {
     return c.ImPlot_PlotDigitalG(label_id, getter, data, count);
 }
 
+// Plots an axis-aligned image. #bounds_min/bounds_max are in plot coordinates (y-up) and #uv0/uv1 are in texture coordinates (y-down).
+pub const PlotImageOption = struct {
+    uv0: imgui.ImVec2 = .{ .x = 0, .y = 0 },
+    uv1: imgui.ImVec2 = .{ .x = 1, .y = 1 },
+    tint_col: imgui.ImVec4 = .{ .x = 1, .y = 1, .z = 1, .w = 1 },
+};
+pub fn plotImage(label_id: [:0]const u8, user_texture_id: imgui.ImTextureID, bounds_min: c.ImPlotPoint, bounds_max: c.ImPlotPoint, option: PlotImageOption) void {
+    return c.ImPlot_PlotImage(
+        label_id,
+        user_texture_id,
+        bounds_min,
+        bounds_max,
+        option.uv0,
+        option.uv1,
+        option.tint_col,
+    );
+}
+
 // Plots a centered text label at point x,y with an optional pixel offset. Text color can be changed with ImPlot::PushStyleColor(ImPlotCol_InlayText, ...).
-pub fn plotText(text: [*c]const u8, x: f64, y: f64, vertical: bool, pix_offset: imgui.ImVec2) void {
-    return c.ImPlot_PlotText(text, x, y, vertical, pix_offset);
+pub const PlotTextOption = struct {
+    vertical: bool = false,
+    pix_offset: imgui.ImVec2 = .{ .x = 0, .y = 0 },
+};
+pub fn plotText(text: [:0]const u8, x: f64, y: f64, option: PlotTextOption) void {
+    return c.ImPlot_PlotText(text, x, y, option.vertical, option.pix_offset);
 }
 
 // Plots a dummy item (i.e. adds a legend entry colored by ImPlotCol_Line)
-pub fn plotDummy(label_id: [*c]const u8) void {
+pub fn plotDummy(label_id: [:0]const u8) void {
     return c.ImPlot_PlotDummy(label_id);
 }
 
@@ -1413,46 +1428,85 @@ pub fn plotDummy(label_id: [*c]const u8) void {
 
 ////// The following functions MUST be called BEFORE BeginPlot!
 // Set the axes range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the axes limits will be locked.
-pub fn setNextPlotLimits(xmin: f64, xmax: f64, ymin: f64, ymax: f64, cond: imgui.ImGuiCond) void {
-    return c.ImPlot_SetNextPlotLimits(xmin, xmax, ymin, ymax, cond);
+pub fn setNextPlotLimits(xmin: f64, xmax: f64, ymin: f64, ymax: f64, cond: ?imgui.ImGuiCond) void {
+    return c.ImPlot_SetNextPlotLimits(xmin, xmax, ymin, ymax, cond orelse imgui.ImGuiCond_Once);
 }
 // Set the X axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the X axis limits will be locked.
-pub fn setNextPlotLimitsX(xmin: f64, xmax: f64, cond: imgui.ImGuiCond) void {
-    return c.ImPlot_SetNextPlotLimitsX(xmin, xmax, cond);
+pub fn setNextPlotLimitsX(xmin: f64, xmax: f64, cond: ?imgui.ImGuiCond) void {
+    return c.ImPlot_SetNextPlotLimitsX(xmin, xmax, cond orelse imgui.ImGuiCond_Once);
 }
 // Set the Y axis range limits of the next plot. Call right before BeginPlot(). If ImGuiCond_Always is used, the Y axis limits will be locked.
-pub fn setNextPlotLimitsY(ymin: f64, ymax: f64, cond: imgui.ImGuiCond, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_SetNextPlotLimitsY(ymin, ymax, cond, y_axis);
+pub const SetNextPlotLimitsYOption = struct {
+    cond: imgui.ImGuiCond = imgui.ImGuiCond_Once,
+    y_axis: c.ImPlotYAxis = c.ImPlotYAxis_1,
+};
+pub fn setNextPlotLimitsY(ymin: f64, ymax: f64, option: SetNextPlotLimitsYOption) void {
+    return c.ImPlot_SetNextPlotLimitsY(
+        ymin,
+        ymax,
+        option.cond,
+        option.y_axis,
+    );
 }
 // Links the next plot limits to external values. Set to NULL for no linkage. The pointer data must remain valid until the matching call to EndPlot.
-pub fn linkNextPlotLimits(xmin: [*c]f64, xmax: [*c]f64, ymin: [*c]f64, ymax: [*c]f64, ymin2: [*c]f64, ymax2: [*c]f64, ymin3: [*c]f64, ymax3: [*c]f64) void {
-    return c.ImPlot_LinkNextPlotLimits(xmin, xmax, ymin, ymax, ymin2, ymax2, ymin3, ymax3);
+pub const LinkNextPlotLimitsOption = struct {
+    ymin2: [*c]f64 = null,
+    ymax2: [*c]f64 = null,
+    ymin3: [*c]f64 = null,
+    ymax3: [*c]f64 = null,
+};
+pub fn linkNextPlotLimits(xmin: [*c]f64, xmax: [*c]f64, ymin: [*c]f64, ymax: [*c]f64, option: LinkNextPlotLimitsOption) void {
+    return c.ImPlot_LinkNextPlotLimits(
+        xmin,
+        xmax,
+        ymin,
+        ymax,
+        option.ymin2,
+        option.ymax2,
+        option.ymin3,
+        option.ymax3,
+    );
 }
 // Fits the next plot axes to all plotted data if they are unlocked (equivalent to double-clicks).
-pub fn fitNextPlotAxes(x: bool, y: bool, y2: bool, y3: bool) void {
-    return c.ImPlot_FitNextPlotAxes(x, y, y2, y3);
+pub const FitNextPlotAxes = struct {
+    x: bool = true,
+    y: bool = true,
+    y2: bool = true,
+    y3: bool = true,
+};
+pub fn fitNextPlotAxes(option: FitNextPlotAxes) void {
+    return c.ImPlot_FitNextPlotAxes(option.x, option.y, option.y2, option.y3);
 }
 // Set the X axis ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
-pub fn setNextPlotTicksX_doublePtr(values: [*c]const f64, n_ticks: c_int, labels: [*c]const [*c]const u8, keep_default: bool) void {
-    return c.ImPlot_SetNextPlotTicksX_doublePtr(values, n_ticks, labels, keep_default);
+pub const SetNextPlotTicksXOption = struct {
+    labels: [*c]const [*c]const u8 = null,
+    keep_default: bool = false,
+};
+pub fn setNextPlotTicksX_doublePtr(values: [*c]const f64, n_ticks: c_int, option: SetNextPlotTicksXOption) void {
+    return c.ImPlot_SetNextPlotTicksX_doublePtr(values, n_ticks, option.labels, option.keep_default);
 }
-pub fn setNextPlotTicksX_double(x_min: f64, x_max: f64, n_ticks: c_int, labels: [*c]const [*c]const u8, keep_default: bool) void {
-    return c.ImPlot_SetNextPlotTicksX_double(x_min, x_max, n_ticks, labels, keep_default);
+pub fn setNextPlotTicksX_double(x_min: f64, x_max: f64, n_ticks: c_int, option: SetNextPlotTicksXOption) void {
+    return c.ImPlot_SetNextPlotTicksX_double(x_min, x_max, n_ticks, option.labels, option.keep_default);
 }
 // Set the Y axis ticks and optionally the labels for the next plot. To keep the default ticks, set #keep_default=true.
-pub fn setNextPlotTicksY_doublePtr(values: [*c]const f64, n_ticks: c_int, labels: [*c]const [*c]const u8, keep_default: bool, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_SetNextPlotTicksY_doublePtr(values, n_ticks, labels, keep_default, y_axis);
+pub const SetNextPlotTicksYOption = struct {
+    labels: [*c]const [*c]const u8 = null,
+    keep_default: bool = false,
+    y_axis: c.ImPlotYAxis = c.ImPlotYAxis_1,
+};
+pub fn setNextPlotTicksY_doublePtr(values: [*c]const f64, n_ticks: c_int, option: SetNextPlotTicksYOption) void {
+    return c.ImPlot_SetNextPlotTicksY_doublePtr(values, n_ticks, option.labels, option.keep_default, option.y_axis);
 }
-pub fn setNextPlotTicksY_double(y_min: f64, y_max: f64, n_ticks: c_int, labels: [*c]const [*c]const u8, keep_default: bool, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_SetNextPlotTicksY_double(y_min, y_max, n_ticks, labels, keep_default, y_axis);
+pub fn setNextPlotTicksY_double(y_min: f64, y_max: f64, n_ticks: c_int, option: SetNextPlotTicksYOption) void {
+    return c.ImPlot_SetNextPlotTicksY_double(y_min, y_max, n_ticks, option.labels, option.keep_default, option.y_axis);
 }
 // Set the format for numeric X axis labels (default="%g"). Formated values will be doubles (i.e. don't supply %d, %i, etc.). Not applicable if ImPlotAxisFlags_Time enabled.
-pub fn setNextPlotFormatX(fmt: [*c]const u8) void {
+pub fn setNextPlotFormatX(fmt: [:0]const u8) void {
     return c.ImPlot_SetNextPlotFormatX(fmt);
 }
 // Set the format for numeric Y axis labels (default="%g"). Formated values will be doubles (i.e. don't supply %d, %i, etc.).
-pub fn setNextPlotFormatY(fmt: [*c]const u8, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_SetNextPlotFormatY(fmt, y_axis);
+pub fn setNextPlotFormatY(fmt: [:0]const u8, y_axis: ?c.ImPlotYAxis) void {
+    return c.ImPlot_SetNextPlotFormatY(fmt, y_axis orelse c.ImPlotYAxis_1);
 }
 
 //////// The following functions MUST be called BETWEEN Begin/EndPlot!
@@ -1461,23 +1515,27 @@ pub fn setPlotYAxis(y_axis: c.ImPlotYAxis) void {
     return c.ImPlot_SetPlotYAxis(y_axis);
 }
 // Hides or shows the next plot item (i.e. as if it were toggled from the legend). Use ImGuiCond_Always if you need to forcefully set this every frame.
-pub fn hideNextItem(hidden: bool, cond: imgui.ImGuiCond) void {
-    return c.ImPlot_HideNextItem(hidden, cond);
+pub const HideNextItemOption = struct {
+    hidden: bool = true,
+    cond: ?imgui.ImGuiCond = imgui.ImGuiCond_Once,
+};
+pub fn hideNextItem(option: HideNextItemOption) void {
+    return c.ImPlot_HideNextItem(option.hidden, option.cond);
 }
 
 // Convert pixels to a position in the current plot's coordinate system. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
-pub fn pixelsToPlot_Vec2(pOut: *c.ImPlotPoint, pix: imgui.ImVec2, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_PixelsToPlot_Vec2(pOut, pix, y_axis);
+pub fn pixelsToPlot_Vec2(pOut: *c.ImPlotPoint, pix: imgui.ImVec2, y_axis: ?c.ImPlotYAxis) void {
+    return c.ImPlot_PixelsToPlot_Vec2(pOut, pix, y_axis orelse IMPLOT_AUTO);
 }
-pub fn pixelsToPlot_Float(pOut: *c.ImPlotPoint, x: f32, y: f32, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_PixelsToPlot_Float(pOut, x, y, y_axis);
+pub fn pixelsToPlot_Float(pOut: *c.ImPlotPoint, x: f32, y: f32, y_axis: ?c.ImPlotYAxis) void {
+    return c.ImPlot_PixelsToPlot_Float(pOut, x, y, y_axis orelse IMPLOT_AUTO);
 }
 // Convert a position in the current plot's coordinate system to pixels. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
-pub fn plotToPixels_PlotPoInt(pOut: [*c]imgui.ImVec2, plt: c.ImPlotPoint, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_PlotToPixels_PlotPoInt(pOut, plt, y_axis);
+pub fn plotToPixels_PlotPoInt(pOut: [*c]imgui.ImVec2, plt: c.ImPlotPoint, y_axis: ?c.ImPlotYAxis) void {
+    return c.ImPlot_PlotToPixels_PlotPoInt(pOut, plt, y_axis orelse IMPLOT_AUTO);
 }
-pub fn plotToPixels_double(pOut: [*c]imgui.ImVec2, x: f64, y: f64, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_PlotToPixels_double(pOut, x, y, y_axis);
+pub fn plotToPixels_double(pOut: [*c]imgui.ImVec2, x: f64, y: f64, y_axis: ?c.ImPlotYAxis) void {
+    return c.ImPlot_PlotToPixels_double(pOut, x, y, y_axis orelse IMPLOT_AUTO);
 }
 // Get the current Plot position (top-left) in pixels.
 pub fn getPlotPos(pOut: [*c]imgui.ImVec2) void {
@@ -1496,36 +1554,36 @@ pub fn isPlotXAxisHovered() bool {
     return c.ImPlot_IsPlotXAxisHovered();
 }
 // Returns true if the YAxis[n] plot area in the current plot is hovered.
-pub fn isPlotYAxisHovered(y_axis: c.ImPlotYAxis) bool {
-    return c.ImPlot_IsPlotYAxisHovered(y_axis);
+pub fn isPlotYAxisHovered(y_axis: ?c.ImPlotYAxis) bool {
+    return c.ImPlot_IsPlotYAxisHovered(y_axis orelse 0);
 }
 // Returns the mouse position in x,y coordinates of the current plot. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
-pub fn getPlotMousePos(pOut: *c.ImPlotPoint, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_GetPlotMousePos(pOut, y_axis);
+pub fn getPlotMousePos(pOut: *c.ImPlotPoint, y_axis: ?c.ImPlotYAxis) void {
+    return c.ImPlot_GetPlotMousePos(pOut, y_axis orelse IMPLOT_AUTO);
 }
 // Returns the current plot axis range. A negative y_axis uses the current value of SetPlotYAxis (ImPlotYAxis_1 initially).
-pub fn getPlotLimits(pOut: *c.ImPlotLimits, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_GetPlotLimits(pOut, y_axis);
+pub fn getPlotLimits(pOut: *c.ImPlotLimits, y_axis: ?c.ImPlotYAxis) void {
+    return c.ImPlot_GetPlotLimits(pOut, y_axis orelse IMPLOT_AUTO);
 }
 // Returns true if the current plot is being box selected.
 pub fn isPlotSelected() bool {
     return c.ImPlot_IsPlotSelected();
 }
 // Returns the current plot box selection bounds.
-pub fn getPlotSelection(pOut: *c.ImPlotLimits, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_GetPlotSelection(pOut, y_axis);
+pub fn getPlotSelection(pOut: *c.ImPlotLimits, y_axis: ?c.ImPlotYAxis) void {
+    return c.ImPlot_GetPlotSelection(pOut, y_axis orelse IMPLOT_AUTO);
 }
 // Returns true if the current plot is being queried or has an active query. Query must be enabled with ImPlotFlags_Query.
 pub fn isPlotQueried() bool {
     return c.ImPlot_IsPlotQueried();
 }
 // Returns the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
-pub fn getPlotQuery(pOut: *c.ImPlotLimits, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_GetPlotQuery(pOut, y_axis);
+pub fn getPlotQuery(pOut: *c.ImPlotLimits, y_axis: ?c.ImPlotYAxis) void {
+    return c.ImPlot_GetPlotQuery(pOut, y_axis orelse IMPLOT_AUTO);
 }
 // Set the current plot query bounds. Query must be enabled with ImPlotFlags_Query.
-pub fn setPlotQuery(query: c.ImPlotLimits, y_axis: c.ImPlotYAxis) void {
-    return c.ImPlot_SetPlotQuery(query, y_axis);
+pub fn setPlotQuery(query: c.ImPlotLimits, y_axis: ?c.ImPlotYAxis) void {
+    return c.ImPlot_SetPlotQuery(query, y_axis orelse IMPLOT_AUTO);
 }
 // Returns true if the bounding frame of a subplot is hovered/
 pub fn isSubplotsHovered() bool {
@@ -1541,8 +1599,8 @@ pub fn isSubplotsHovered() bool {
 // level control of plot alignment.
 
 // Align axis padding over multiple plots in a single row or column. If this function returns true, EndAlignedPlots() must be called. #group_id must be unique.
-pub fn beginAlignedPlots(group_id: [*c]const u8, orientation: c.ImPlotOrientation) bool {
-    return c.ImPlot_BeginAlignedPlots(group_id, orientation);
+pub fn beginAlignedPlots(group_id: [:0]const u8, orientation: ?c.ImPlotOrientation) bool {
+    return c.ImPlot_BeginAlignedPlots(group_id, orientation orelse c.ImPlotOrientation_Vertical);
 }
 pub fn endAlignedPlots() void {
     return c.ImPlot_EndAlignedPlots();
@@ -1569,16 +1627,26 @@ pub fn annotateClamped_Vec4(x: f64, y: f64, pix_offset: imgui.ImVec2, color: img
     return c.ImPlot_AnnotateClamped_Vec4(x, y, pix_offset, color, fmt);
 }
 // Shows a draggable vertical guide line at an x-value. #col defaults to ImGuiCol_Text.
-pub fn dragLineX(id: [*c]const u8, x_value: [*c]f64, show_label: bool, col: imgui.ImVec4, thickness: f32) bool {
-    return c.ImPlot_DragLineX(id, x_value, show_label, col, thickness);
+pub const DragLineOption = struct {
+    show_label: bool = true,
+    col: imgui.ImVec4 = IMPLOT_AUTO_COL,
+    thickness: f32 = 1,
+};
+pub fn dragLineX(id: [:0]const u8, x_value: [*c]f64, option: DragLineOption) bool {
+    return c.ImPlot_DragLineX(id, x_value, option.show_label, option.col, option.thickness);
 }
 // Shows a draggable horizontal guide line at a y-value. #col defaults to ImGuiCol_Text.
-pub fn dragLineY(id: [*c]const u8, y_value: [*c]f64, show_label: bool, col: imgui.ImVec4, thickness: f32) bool {
-    return c.ImPlot_DragLineY(id, y_value, show_label, col, thickness);
+pub fn dragLineY(id: [:0]const u8, y_value: [*c]f64, option: DragLineOption) bool {
+    return c.ImPlot_DragLineY(id, y_value, option.show_label, option.col, option.thickness);
 }
 // Shows a draggable point at x,y. #col defaults to ImGuiCol_Text.
-pub fn dragPoint(id: [*c]const u8, x: [*c]f64, y: [*c]f64, show_label: bool, col: imgui.ImVec4, radius: f32) bool {
-    return c.ImPlot_DragPoint(id, x, y, show_label, col, radius);
+pub const DragPointOption = struct {
+    show_label: bool = true,
+    col: imgui.ImVec4 = IMPLOT_AUTO_COL,
+    thickness: f32 = 4,
+};
+pub fn dragPoint(id: [:0]const u8, x: [*c]f64, y: [*c]f64, option: DragPointOption) bool {
+    return c.ImPlot_DragPoint(id, x, y, option.show_label, option.col, option.radius);
 }
 
 //-----------------------------------------------------------------------------
@@ -1588,21 +1656,25 @@ pub fn dragPoint(id: [*c]const u8, x: [*c]f64, y: [*c]f64, show_label: bool, col
 // The following functions MUST be called BETWEEN Begin/EndPlot!
 
 // Set the location of the current plot's (or subplot's) legend.
-pub fn setLegendLocation(location: c.ImPlotLocation, orientation: c.ImPlotOrientation, outside: bool) void {
-    return c.ImPlot_SetLegendLocation(location, orientation, outside);
+pub const SetLegendLocationOption = struct {
+    orientation: c.ImPlotOrientation = c.ImPlotOrientation_Vertical,
+    outside: bool = false,
+};
+pub fn setLegendLocation(location: c.ImPlotLocation, option: SetLegendLocationOption) void {
+    return c.ImPlot_SetLegendLocation(location, option.orientation, option.outside);
 }
 // Set the location of the current plot's mouse position text (default = South|East).
 pub fn setMousePosLocation(location: c.ImPlotLocation) void {
     return c.ImPlot_SetMousePosLocation(location);
 }
 // Returns true if a plot item legend entry is hovered.
-pub fn isLegendEntryHovered(label_id: [*c]const u8) bool {
+pub fn isLegendEntryHovered(label_id: [:0]const u8) bool {
     return c.ImPlot_IsLegendEntryHovered(label_id);
 }
 
 // Begin a popup for a legend entry.
-pub fn beginLegendPopup(label_id: [*c]const u8, mouse_button: imgui.ImGuiMouseButton) bool {
-    return c.ImPlot_BeginLegendPopup(label_id, mouse_button);
+pub fn beginLegendPopup(label_id: [:0]const u8, mouse_button: ?imgui.ImGuiMouseButton) bool {
+    return c.ImPlot_BeginLegendPopup(label_id, mouse_button orelse 1);
 }
 // End a popup for a legend entry.
 pub fn endLegendPopup() void {
@@ -1624,8 +1696,8 @@ pub fn beginDragDropTargetX() bool {
     return c.ImPlot_BeginDragDropTargetX();
 }
 // Turns the current plot's Y-Axis into a drag and drop target. Don't forget to call EndDragDropTarget!
-pub fn beginDragDropTargetY(axis: c.ImPlotYAxis) bool {
-    return c.ImPlot_BeginDragDropTargetY(axis);
+pub fn beginDragDropTargetY(axis: ?c.ImPlotYAxis) bool {
+    return c.ImPlot_BeginDragDropTargetY(axis orelse c.ImPlotYAxis_1);
 }
 // Turns the current plot's legend into a drag and drop target. Don't forget to call EndDragDropTarget!
 pub fn beginDragDropTargetLegend() bool {
@@ -1640,20 +1712,29 @@ pub fn endDragDropTarget() void {
 // You can change the modifier if desired. If ImGuiKeyModFlags_None is provided, the axes will be locked from panning.
 
 // Turns the current plot's plotting area into a drag and drop source. Don't forget to call EndDragDropSource!
-pub fn beginDragDropSource(key_mods: imgui.ImGuiKeyModFlags, flags: imgui.ImGuiDragDropFlags) bool {
-    return c.ImPlot_BeginDragDropSource(key_mods, flags);
+pub const BeginDragDropSourceOption = struct {
+    key_mods: imgui.ImGuiKeyModFlags = imgui.ImGuiKeyModFlags_Ctrl,
+    flags: imgui.ImGuiDragDropFlags = 0,
+};
+pub fn beginDragDropSource(option: BeginDragDropSourceOption) bool {
+    return c.ImPlot_BeginDragDropSource(option.key_mods, option.flags);
 }
 // Turns the current plot's X-axis into a drag and drop source. Don't forget to call EndDragDropSource!
-pub fn beginDragDropSourceX(key_mods: imgui.ImGuiKeyModFlags, flags: imgui.ImGuiDragDropFlags) bool {
-    return c.ImPlot_BeginDragDropSourceX(key_mods, flags);
+pub fn beginDragDropSourceX(option: BeginDragDropSourceOption) bool {
+    return c.ImPlot_BeginDragDropSourceX(option.key_mods, option.flags);
 }
 // Turns the current plot's Y-axis into a drag and drop source. Don't forget to call EndDragDropSource!
-pub fn beginDragDropSourceY(axis: c.ImPlotYAxis, key_mods: imgui.ImGuiKeyModFlags, flags: imgui.ImGuiDragDropFlags) bool {
-    return c.ImPlot_BeginDragDropSourceY(axis, key_mods, flags);
+pub const BeginDragDropSourceYOption = struct {
+    axis: c.ImPlotYAxis = c.ImPlotYAxis_1,
+    key_mods: imgui.ImGuiKeyModFlags = imgui.ImGuiKeyModFlags_Ctrl,
+    flags: imgui.ImGuiDragDropFlags = 0,
+};
+pub fn beginDragDropSourceY(option: BeginDragDropSourceYOption) bool {
+    return c.ImPlot_BeginDragDropSourceY(option.axis, option.key_mods, option.flags);
 }
 // Turns an item in the current plot's legend into drag and drop source. Don't forget to call EndDragDropSource!
-pub fn beginDragDropSourceItem(label_id: [*c]const u8, flags: imgui.ImGuiDragDropFlags) bool {
-    return c.ImPlot_BeginDragDropSourceItem(label_id, flags);
+pub fn beginDragDropSourceItem(label_id: [:0]const u8, flags: ?imgui.ImGuiDragDropFlags) bool {
+    return c.ImPlot_BeginDragDropSourceItem(label_id, flags orelse 0);
 }
 // Ends a drag and drop source (currently just an alias for ImGui::EndDragDropSource).
 pub fn endDragDropSource() void {
@@ -1699,19 +1780,19 @@ pub fn getStyle() *c.ImPlotStyle {
 }
 
 // Style plot colors for current ImGui style (default).
-pub fn styleColorsAuto(dst: *c.ImPlotStyle) void {
+pub fn styleColorsAuto(dst: ?*c.ImPlotStyle) void {
     return c.ImPlot_StyleColorsAuto(dst);
 }
 // Style plot colors for ImGui "Classic".
-pub fn styleColorsClassic(dst: *c.ImPlotStyle) void {
+pub fn styleColorsClassic(dst: ?*c.ImPlotStyle) void {
     return c.ImPlot_StyleColorsClassic(dst);
 }
 // Style plot colors for ImGui "Dark".
-pub fn styleColorsDark(dst: *c.ImPlotStyle) void {
+pub fn styleColorsDark(dst: ?*c.ImPlotStyle) void {
     return c.ImPlot_StyleColorsDark(dst);
 }
 // Style plot colors for ImGui "Light".
-pub fn styleColorsLight(dst: *c.ImPlotStyle) void {
+pub fn styleColorsLight(dst: ?*c.ImPlotStyle) void {
     return c.ImPlot_StyleColorsLight(dst);
 }
 
@@ -1727,8 +1808,8 @@ pub fn pushStyleColor_Vec4(idx: c.ImPlotCol, col: imgui.ImVec4) void {
     return c.ImPlot_PushStyleColor_Vec4(idx, col);
 }
 // Undo temporary style color modification(s). Undo multiple pushes at once by increasing count.
-pub fn popStyleColor(count: c_int) void {
-    return c.ImPlot_PopStyleColor(count);
+pub fn popStyleColor(count: ?c_int) void {
+    return c.ImPlot_PopStyleColor(count orelse 1);
 }
 
 // Temporarily modify a style variable of float type. Don't forget to call PopStyleVar!
@@ -1744,8 +1825,8 @@ pub fn pushStyleVar_Vec2(idx: c.ImPlotStyleVar, val: imgui.ImVec2) void {
     return c.ImPlot_PushStyleVar_Vec2(idx, val);
 }
 // Undo temporary style variable modification(s). Undo multiple pushes at once by increasing count.
-pub fn popStyleVar(count: c_int) void {
-    return c.ImPlot_PopStyleVar(count);
+pub fn popStyleVar(count: ?c_int) void {
+    return c.ImPlot_PopStyleVar(count orelse 1);
 }
 
 // The following can be used to modify the style of the next plot item ONLY. They do
@@ -1754,20 +1835,40 @@ pub fn popStyleVar(count: c_int) void {
 // values in your ImPlotStyle or from Colormap data.
 
 // Set the line color and weight for the next item only.
-pub fn setNextLineStyle(col: imgui.ImVec4, weight: f32) void {
-    return c.ImPlot_SetNextLineStyle(col, weight);
+pub const SetNextLineStyleOption = struct {
+    col: imgui.ImVec4 = IMPLOT_AUTO_COL,
+    weight: f32 = IMPLOT_AUTO,
+};
+pub fn setNextLineStyle(option: SetNextLineStyleOption) void {
+    return c.ImPlot_SetNextLineStyle(option.col, option.weight);
 }
 // Set the fill color for the next item only.
-pub fn setNextFillStyle(col: imgui.ImVec4, alpha_mod: f32) void {
-    return c.ImPlot_SetNextFillStyle(col, alpha_mod);
+pub const SetNextFillStyleOption = struct {
+    col: imgui.ImVec4 = IMPLOT_AUTO_COL,
+    alpha_mod: f32 = IMPLOT_AUTO,
+};
+pub fn setNextFillStyle(option: SetNextFillStyleOption) void {
+    return c.ImPlot_SetNextFillStyle(option.col, option.alpha_mod);
 }
 // Set the marker style for the next item only.
-pub fn setNextMarkerStyle(marker: c.ImPlotMarker, size: f32, fill: imgui.ImVec4, weight: f32, outline: imgui.ImVec4) void {
-    return c.ImPlot_SetNextMarkerStyle(marker, size, fill, weight, outline);
+pub const SetNextMarkerStyleOption = struct {
+    marker: c.ImPlotMarker = IMPLOT_AUTO,
+    size: f32 = IMPLOT_AUTO,
+    fill: imgui.ImVec4 = IMPLOT_AUTO_COL,
+    weight: f32 = IMPLOT_AUTO,
+    outline: imgui.ImVec4 = IMPLOT_AUTO_COL,
+};
+pub fn setNextMarkerStyle(option: SetNextMarkerStyleOption) void {
+    return c.ImPlot_SetNextMarkerStyle(option.marker, option.size, option.fill, option.weight, option.outline);
 }
 // Set the error bar style for the next item only.
-pub fn setNextErrorBarStyle(col: imgui.ImVec4, size: f32, weight: f32) void {
-    return c.ImPlot_SetNextErrorBarStyle(col, size, weight);
+pub const SetNextErrorBarStyle = struct {
+    col: imgui.ImVec4 = IMPLOT_AUTO_COL,
+    size: f32 = IMPLOT_AUTO,
+    weight: f32 = IMPLOT_AUTO,
+};
+pub fn setNextErrorBarStyle(option: SetNextErrorBarStyle) void {
+    return c.ImPlot_SetNextErrorBarStyle(option.col, option.size, option.weight);
 }
 
 // Gets the last item primary color (i.e. its legend icon color)
@@ -1803,11 +1904,11 @@ pub fn getMarkerName(idx: c.ImPlotMarker) [*c]const u8 {
 // an assert otherwise! By default colormaps are considered to be qualitative (i.e. discrete). If you want to create a
 // continuous colormap, set #qual=false. This will treat the colors you provide as keys, and ImPlot will build a linearly
 // interpolated lookup table. The memory footprint of this table will be exactly ((size-1)*255+1)*4 bytes.
-pub fn addColormap_Vec4Ptr(name: [*c]const u8, cols: [*c]const imgui.ImVec4, size: c_int, qual: bool) c.ImPlotColormap {
-    return c.ImPlot_AddColormap_Vec4Ptr(name, cols, size, qual);
+pub fn addColormap_Vec4Ptr(name: [:0]const u8, cols: [*c]const imgui.ImVec4, size: c_int, qual: ?bool) c.ImPlotColormap {
+    return c.ImPlot_AddColormap_Vec4Ptr(name, cols, size, qual orelse true);
 }
-pub fn addColormap_U32Ptr(name: [*c]const u8, cols: [*c]const imgui.ImU32, size: c_int, qual: bool) c.ImPlotColormap {
-    return c.ImPlot_AddColormap_U32Ptr(name, cols, size, qual);
+pub fn addColormap_U32Ptr(name: [:0]const u8, cols: [*c]const imgui.ImU32, size: c_int, qual: ?bool) c.ImPlotColormap {
+    return c.ImPlot_AddColormap_U32Ptr(name, cols, size, qual orelse true);
 }
 
 // Returns the number of available colormaps (i.e. the built-in + user-added count).
@@ -1832,8 +1933,8 @@ pub fn pushColormap_Str(name: [*c]const u8) void {
     return c.ImPlot_PushColormap_Str(name);
 }
 // Undo temporary colormap modification(s). Undo multiple pushes at once by increasing count.
-pub fn popColormap(count: c_int) void {
-    return c.ImPlot_PopColormap(count);
+pub fn popColormap(count: ?c_int) void {
+    return c.ImPlot_PopColormap(count orelse 1);
 }
 
 // Returns the next color from the current colormap and advances the colormap for the current plot.
@@ -1846,29 +1947,43 @@ pub fn nextColormapColor(pOut: [*c]imgui.ImVec4) void {
 // Pass an explicit colormap index (built-in or user-added) to specify otherwise.
 
 // Returns the size of a colormap.
-pub fn getColormapSize(cmap: c.ImPlotColormap) c_int {
-    return c.ImPlot_GetColormapSize(cmap);
+pub fn getColormapSize(cmap: ?c.ImPlotColormap) c_int {
+    return c.ImPlot_GetColormapSize(cmap orelse IMPLOT_AUTO);
 }
 // Returns a color from a colormap given an index >= 0 (modulo will be performed).
-pub fn getColormapColor(pOut: [*c]imgui.ImVec4, idx: c_int, cmap: c.ImPlotColormap) void {
-    return c.ImPlot_GetColormapColor(pOut, idx, cmap);
+pub fn getColormapColor(pOut: [*c]imgui.ImVec4, idx: c_int, cmap: ?c.ImPlotColormap) void {
+    return c.ImPlot_GetColormapColor(pOut, idx, cmap orelse IMPLOT_AUTO);
 }
 // Sample a color from the current colormap given t between 0 and 1.
-pub fn sampleColormap(pOut: [*c]imgui.ImVec4, t: f32, cmap: c.ImPlotColormap) void {
-    return c.ImPlot_SampleColormap(pOut, t, cmap);
+pub fn sampleColormap(pOut: [*c]imgui.ImVec4, t: f32, cmap: ?c.ImPlotColormap) void {
+    return c.ImPlot_SampleColormap(pOut, t, cmap orelse IMPLOT_AUTO);
 }
 
 // Shows a vertical color scale with linear spaced ticks using the specified color map. Use double hashes to hide label (e.g. "##NoLabel").
-pub fn colormapScale(label: [:0]const u8, scale_min: f64, scale_max: f64, size: imgui.ImVec2, cmap: c.ImPlotColormap, fmt: [*c]const u8) void {
-    return c.ImPlot_ColormapScale(label, scale_min, scale_max, size, cmap, fmt);
+pub const ColormapScaleOption = struct {
+    size: imgui.ImVec2 = .{ .x = 0, .y = 0 },
+    cmap: c.ImPlotColormap = IMPLOT_AUTO,
+    fmt: [:0]const u8 = "%g",
+};
+pub fn colormapScale(label: [:0]const u8, scale_min: f64, scale_max: f64, option: ColormapScaleOption) void {
+    return c.ImPlot_ColormapScale(label, scale_min, scale_max, option.size, option.cmap, option.fmt);
 }
 // Shows a horizontal slider with a colormap gradient background. Optionally returns the color sampled at t in [0 1].
-pub fn colormapSlider(label: [:0]const u8, t: [*c]f32, out: [*c]imgui.ImVec4, format: [*c]const u8, cmap: c.ImPlotColormap) bool {
-    return c.ImPlot_ColormapSlider(label, t, out, format, cmap);
+pub const ColormapSliderOption = struct {
+    out: [*c]imgui.ImVec4 = null,
+    format: [:0]const u8 = "",
+    cmap: c.ImPlotColormap = IMPLOT_AUTO,
+};
+pub fn colormapSlider(label: [:0]const u8, t: *f32, option: ColormapSliderOption) bool {
+    return c.ImPlot_ColormapSlider(label, t, option.out, option.format, option.cmap);
 }
 // Shows a button with a colormap gradient brackground.
-pub fn colormapButton(label: [:0]const u8, size: imgui.ImVec2, cmap: c.ImPlotColormap) bool {
-    return c.ImPlot_ColormapButton(label, size, cmap);
+pub const ColormapButtonOption = struct {
+    size: imgui.ImVec2 = .{ .x = 0, .y = 0 },
+    cmap: c.ImPlotColormap = IMPLOT_AUTO,
+};
+pub fn colormapButton(label: [:0]const u8, option: ColormapButtonOption) bool {
+    return c.ImPlot_ColormapButton(label, option.size, option.cmap);
 }
 
 // When items in a plot sample their color from a colormap, the color is cached and does not change
@@ -1878,7 +1993,7 @@ pub fn colormapButton(label: [:0]const u8, size: imgui.ImVec2, cmap: c.ImPlotCol
 // will be cache busted. Otherwise only the plot specified by #plot_title_id will be busted. For the
 // latter, this function must be called in the same ImGui ID scope that the plot is in. You should rarely if ever
 // need this function, but it is available for applications that require runtime colormap swaps (e.g. Heatmaps demo).
-pub fn bustColorCache(plot_title_id: [*c]const u8) void {
+pub fn bustColorCache(plot_title_id: ?[:0]const u8) void {
     return c.ImPlot_BustColorCache(plot_title_id);
 }
 
@@ -1902,8 +2017,8 @@ pub fn getPlotDrawList() [*c]imgui.ImDrawList {
     return c.ImPlot_GetPlotDrawList();
 }
 // Push clip rect for rendering to current plot area. The rect can be expanded or contracted by #expand pixels. Call between Begin/EndPlot.
-pub fn pushPlotClipRect(expand: f32) void {
-    return c.ImPlot_PushPlotClipRect(expand);
+pub fn pushPlotClipRect(expand: ?f32) void {
+    return c.ImPlot_PushPlotClipRect(expand orelse 0);
 }
 // Pop plot clip rect. Call between Begin/EndPlot.
 pub fn popPlotClipRect() void {
@@ -1919,7 +2034,7 @@ pub fn showColormapSelector(label: [:0]const u8) bool {
     return c.ImPlot_ShowColormapSelector(label);
 }
 // Shows ImPlot style editor block (not a window).
-pub fn showStyleEditor(ref: *c.ImPlotStyle) void {
+pub fn showStyleEditor(ref: ?*c.ImPlotStyle) void {
     return c.ImPlot_ShowStyleEditor(ref);
 }
 // Add basic help/info block for end users (not a window).
@@ -1927,7 +2042,7 @@ pub fn showUserGuide() void {
     return c.ImPlot_ShowUserGuide();
 }
 // Shows ImPlot metrics/debug information window.
-pub fn showMetricsWindow(p_popen: [*c]bool) void {
+pub fn showMetricsWindow(p_popen: ?*bool) void {
     return c.ImPlot_ShowMetricsWindow(p_popen);
 }
 
