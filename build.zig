@@ -24,6 +24,7 @@ pub fn build(b: *std.build.Builder) void {
         "imgui_fontawesome",
         "imgui_ttf",
         "vector_graphics",
+        "vg_benchmark",
         "mesh_generation",
         "gltf_demo",
     };

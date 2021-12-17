@@ -306,10 +306,14 @@ pub fn rotate(angle: f32) void {
 }
 
 // Skews the current coordinate system along X axis. Angle is specified in radians.
-// void nvgSkewX(NVGcontext* ctx, float angle);
+pub fn skewX(x: f32, y: f32) void {
+    c.nvgSkewX(ctx, x, y);
+}
 
 // Skews the current coordinate system along Y axis. Angle is specified in radians.
-// void nvgSkewY(NVGcontext* ctx, float angle);
+pub fn skewY(x: f32, y: f32) void {
+    c.nvgSkewY(ctx, x, y);
+}
 
 // Scales the current coordinate system.
 pub fn scale(x: f32, y: f32) void {
@@ -722,8 +726,8 @@ pub fn textBreakLines(string: []const u8, row_width: f32, rows: []c.NVGtextrow) 
 }
 
 /// Draw svg data, loaded via NanoSVG
-pub fn svg(data: *nsvg.c.NSVGimage) void {
-    var shape = data.shapes;
+pub fn svg(data: nsvg.SVG) void {
+    var shape = data.image.shapes;
     while (shape != null) : (shape = shape.*.next) {
         // visibility
         if ((shape.*.flags & nsvg.c.NSVG_FLAGS_VISIBLE) == 0) {
