@@ -136,6 +136,7 @@ struct NVGcontext {
 	float fringeWidth;
 	float devicePxRatio;
 	NVGfontContext* fontContext;
+	int lastDrawCallCount;
 	int drawCallCount;
 	int fillTriCount;
 	int strokeTriCount;
@@ -402,6 +403,7 @@ void nvgBeginFrame(NVGcontext* ctx, float windowWidth, float windowHeight, float
 
 	ctx->params.renderViewport(ctx->params.userPtr, windowWidth, windowHeight, devicePixelRatio);
 
+	ctx->lastDrawCallCount = ctx->drawCallCount;
 	ctx->drawCallCount = 0;
 	ctx->fillTriCount = 0;
 	ctx->strokeTriCount = 0;
@@ -2267,6 +2269,11 @@ void nvgDebugDumpPathCache(NVGcontext* ctx)
 				printf("%f\t%f\n", path->stroke[j].x, path->stroke[j].y);
 		}
 	}
+}
+
+int nvgGetDrawCallCount(NVGcontext* ctx)
+{
+	return ctx->lastDrawCallCount;
 }
 
 void nvgFill(NVGcontext* ctx)

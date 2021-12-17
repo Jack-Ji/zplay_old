@@ -207,6 +207,7 @@ pub extern fn nvgTextBoxBounds(ctx: ?*NVGcontext, x: f32, y: f32, breakRowWidth:
 pub extern fn nvgTextGlyphPositions(ctx: ?*NVGcontext, x: f32, y: f32, string: [*c]const u8, end: [*c]const u8, positions: [*c]NVGglyphPosition, maxPositions: c_int) c_int;
 pub extern fn nvgTextMetrics(ctx: ?*NVGcontext, ascender: [*c]f32, descender: [*c]f32, lineh: [*c]f32) void;
 pub extern fn nvgTextBreakLines(ctx: ?*NVGcontext, string: [*c]const u8, end: [*c]const u8, breakRowWidth: f32, rows: [*c]NVGtextRow, maxRows: c_int) c_int;
+pub extern fn nvgGetDrawCallCount(ctx: ?*NVGcontext) c_int;
 pub const NVG_TEXTURE_ALPHA: c_int = 1;
 pub const NVG_TEXTURE_RGBA: c_int = 2;
 pub const enum_NVGtexture = c_uint;

@@ -725,6 +725,14 @@ pub fn textBreakLines(string: []const u8, row_width: f32, rows: []c.NVGtextrow) 
     );
 }
 
+/// Get draw call count of last frame
+pub fn getDrawCallCount() u32 {
+    return @intCast(
+        u32,
+        c.nvgGetDrawCallCount(ctx),
+    );
+}
+
 /// Draw svg data, loaded via NanoSVG
 pub fn svg(data: nsvg.SVG) void {
     var shape = data.image.shapes;

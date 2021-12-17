@@ -688,6 +688,10 @@ NVGparams* nvgInternalParams(NVGcontext* ctx);
 // Debug function to dump cached path data.
 void nvgDebugDumpPathCache(NVGcontext* ctx);
 
+// Get drawcall count of last frame
+int nvgGetDrawCallCount(NVGcontext* ctx);
+
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

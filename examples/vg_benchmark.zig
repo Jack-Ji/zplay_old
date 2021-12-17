@@ -77,6 +77,7 @@ fn loop(ctx: *zp.Context) void {
             var buf: [32]u8 = undefined;
             dig.text(std.fmt.bufPrintZ(&buf, "FPS: {d:.02}", .{dig.getIO().*.Framerate}) catch unreachable);
             dig.text(std.fmt.bufPrintZ(&buf, "ms/frame: {d:.02}", .{ctx.delta_tick * 1000}) catch unreachable);
+            dig.text(std.fmt.bufPrintZ(&buf, "drawcall count: {d}", .{nvg.getDrawCallCount()}) catch unreachable);
             dig.text(std.fmt.bufPrintZ(&buf, "tigers: {d}", .{S.positions.items.len}) catch unreachable);
             dig.text(std.fmt.bufPrintZ(&buf, "shapes: {d}", .{S.positions.items.len * tiger.nshape}) catch unreachable);
             dig.text(std.fmt.bufPrintZ(&buf, "strokes: {d}", .{S.positions.items.len * tiger.nstroke}) catch unreachable);
