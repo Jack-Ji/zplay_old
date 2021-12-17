@@ -89,6 +89,17 @@ pub const BlendEquation = enum(c_uint) {
     max = gl.GL_MAX, // takes the component-wise maximum of both colors: C¯result=max(Dst,Src).
 };
 
+pub const CullFace = enum(c_uint) {
+    back = gl.GL_BACK, // Culls only the back faces.
+    front = gl.GL_FRONT, // Culls only the front faces.
+    front_and_back = gl.GL_FRONT_AND_BACK, // Culls both the front and back faces.
+};
+
+pub const FrontFace = enum(c_uint) {
+    ccw = gl.GL_CCW, // counter-clockwise ordering
+    cw = gl.GL_CW, // clockwise ordering
+};
+
 /// opengl context
 gl_ctx: sdl.gl.Context,
 
@@ -208,7 +219,7 @@ pub fn setViewport(self: Self, x: u32, y: u32, width: u32, height: u32) void {
     gl.util.checkError();
 }
 
-/// toggle opengl capability
+/// toggle capability
 pub fn toggleCapability(self: Self, cap: Capability, on_off: bool) void {
     _ = self;
     if (on_off) {
@@ -217,6 +228,12 @@ pub fn toggleCapability(self: Self, cap: Capability, on_off: bool) void {
         gl.disable(@enumToInt(cap));
     }
     gl.util.checkError();
+}
+
+/// check capability' s status
+pub fn isCapabilityEnabled(self: Self, cap: Capability) bool {
+    _ = self;
+    return gl.isEnabled(@enumToInt(cap)) == gl.GL_TRUE;
 }
 
 /// set polygon mode
@@ -233,6 +250,7 @@ pub const DepthOption = struct {
 };
 pub fn setDepthOption(self: Self, option: DepthOption) void {
     _ = self;
+    assert(self.isCapabilityEnabled(.depth_test));
     gl.depthFunc(@enumToInt(option.test_func));
     if (option.update_switch) |s| {
         gl.depthMask(gl.util.boolType(s));
@@ -252,6 +270,7 @@ pub const StencilOption = struct {
 };
 pub fn setStencilOption(self: Self, option: StencilOption) void {
     _ = self;
+    assert(self.isCapabilityEnabled(.stencil_test));
     gl.stencilOp(
         @enumToInt(option.action_sfail),
         @enumToInt(option.action_dpfail),
@@ -281,6 +300,7 @@ pub const BlendOption = struct {
 };
 pub fn setBlendOption(self: Self, option: BlendOption) void {
     _ = self;
+    assert(self.isCapabilityEnabled(.stencil_test));
     gl.blendFuncSeparate(
         @enumToInt(option.src_rgb),
         @enumToInt(option.dst_rgb),
@@ -294,4 +314,18 @@ pub fn setBlendOption(self: Self, option: BlendOption) void {
         gl.blendEquation(@enumToInt(eq));
     }
     gl.util.checkError();
+}
+
+/// set face culling options
+pub const CullingOption = struct {
+    face: CullFace = .back,
+    front: ?FrontFace = null,
+};
+pub fn setCullingOption(self: Self, option: CullingOption) void {
+    _ = self;
+    assert(self.isCapabilityEnabled(.cull_face));
+    gl.cullFace(@enumToInt(option.face));
+    if (option.front) |f| {
+        gl.frontFace(@enumToInt(f));
+    }
 }

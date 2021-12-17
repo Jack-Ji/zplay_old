@@ -19,6 +19,7 @@ var girl: Model = undefined;
 var helmet: Model = undefined;
 var total_vertices: u32 = undefined;
 var total_meshes: u32 = undefined;
+var face_culling: bool = false;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(0, 0, 3),
     Vec3.zero(),
@@ -166,6 +167,9 @@ fn loop(ctx: *zp.Context) void {
             }
             if (dig.checkbox("vsync", &vsync_mode)) {
                 ctx.graphics.setVsyncMode(vsync_mode);
+            }
+            if (dig.checkbox("face culling", &face_culling)) {
+                ctx.graphics.toggleCapability(.cull_face, face_culling);
             }
             if (dig.checkbox("merge meshes", &merge_meshes)) {
                 loadScene();
