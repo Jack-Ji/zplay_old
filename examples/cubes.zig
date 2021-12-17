@@ -2,15 +2,15 @@ const std = @import("std");
 const zp = @import("zplay");
 const alg = zp.deps.alg;
 const dig = zp.deps.dig;
-const VertexArray = zp.graphics.common.VertexArray;
 const Texture2D = zp.graphics.texture.Texture2D;
 const Renderer = zp.graphics.@"3d".Renderer;
 const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
+const Mesh = zp.graphics.@"3d".Mesh;
 const Material = zp.graphics.@"3d".Material;
 const Camera = zp.graphics.@"3d".Camera;
 
 var simple_renderer: SimpleRenderer = undefined;
-var vertex_array: VertexArray = undefined;
+var cube: Mesh = undefined;
 var texture_material: Material = undefined;
 var color_material: Material = undefined;
 var wireframe_mode = false;
@@ -20,51 +20,6 @@ var camera = Camera.fromPositionAndTarget(
     alg.Vec3.zero(),
     null,
 );
-
-const vertices = [_]f32{
-    // positions, texture coords
-    -0.5, -0.5, -0.5, 0.0, 0.0,
-    0.5,  -0.5, -0.5, 1.0, 0.0,
-    0.5,  0.5,  -0.5, 1.0, 1.0,
-    0.5,  0.5,  -0.5, 1.0, 1.0,
-    -0.5, 0.5,  -0.5, 0.0, 1.0,
-    -0.5, -0.5, -0.5, 0.0, 0.0,
-
-    -0.5, -0.5, 0.5,  0.0, 0.0,
-    0.5,  -0.5, 0.5,  1.0, 0.0,
-    0.5,  0.5,  0.5,  1.0, 1.0,
-    0.5,  0.5,  0.5,  1.0, 1.0,
-    -0.5, 0.5,  0.5,  0.0, 1.0,
-    -0.5, -0.5, 0.5,  0.0, 0.0,
-
-    -0.5, 0.5,  0.5,  1.0, 0.0,
-    -0.5, 0.5,  -0.5, 1.0, 1.0,
-    -0.5, -0.5, -0.5, 0.0, 1.0,
-    -0.5, -0.5, -0.5, 0.0, 1.0,
-    -0.5, -0.5, 0.5,  0.0, 0.0,
-    -0.5, 0.5,  0.5,  1.0, 0.0,
-
-    0.5,  0.5,  0.5,  1.0, 0.0,
-    0.5,  0.5,  -0.5, 1.0, 1.0,
-    0.5,  -0.5, -0.5, 0.0, 1.0,
-    0.5,  -0.5, -0.5, 0.0, 1.0,
-    0.5,  -0.5, 0.5,  0.0, 0.0,
-    0.5,  0.5,  0.5,  1.0, 0.0,
-
-    -0.5, -0.5, -0.5, 0.0, 1.0,
-    0.5,  -0.5, -0.5, 1.0, 1.0,
-    0.5,  -0.5, 0.5,  1.0, 0.0,
-    0.5,  -0.5, 0.5,  1.0, 0.0,
-    -0.5, -0.5, 0.5,  0.0, 0.0,
-    -0.5, -0.5, -0.5, 0.0, 1.0,
-
-    -0.5, 0.5,  -0.5, 0.0, 1.0,
-    0.5,  0.5,  -0.5, 1.0, 1.0,
-    0.5,  0.5,  0.5,  1.0, 0.0,
-    0.5,  0.5,  0.5,  1.0, 0.0,
-    -0.5, 0.5,  0.5,  0.0, 0.0,
-    -0.5, 0.5,  -0.5, 0.0, 1.0,
-};
 
 const cube_positions = [_]alg.Vec3{
     alg.Vec3.new(0.0, 0.0, 0.0),
@@ -88,17 +43,16 @@ fn init(ctx: *zp.Context) anyerror!void {
     // simple renderer
     simple_renderer = SimpleRenderer.init();
 
-    // vertex array
-    vertex_array = VertexArray.init(5);
-    vertex_array.use();
-    defer vertex_array.disuse();
-    vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 5 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_TEX, 2, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
+    // generate mesh
+    cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1, null);
 
     // load texture
     texture_material = Material.init(.{
-        .single_texture = try Texture2D.fromFilePath(std.testing.allocator, "assets/wall.jpg", false),
+        .single_texture = try Texture2D.fromFilePath(
+            std.testing.allocator,
+            "assets/wall.jpg",
+            false,
+        ),
     });
     _ = texture_material.allocTextureUnit(0);
     color_material = Material.init(.{
@@ -114,6 +68,33 @@ fn loop(ctx: *zp.Context) void {
         var frame: f32 = 0;
     };
     S.frame += 1;
+
+    // camera movement
+    const distance = ctx.delta_tick * camera.move_speed;
+    if (ctx.isKeyPressed(.w)) {
+        camera.move(.forward, distance);
+    }
+    if (ctx.isKeyPressed(.s)) {
+        camera.move(.backward, distance);
+    }
+    if (ctx.isKeyPressed(.a)) {
+        camera.move(.left, distance);
+    }
+    if (ctx.isKeyPressed(.d)) {
+        camera.move(.right, distance);
+    }
+    if (ctx.isKeyPressed(.left)) {
+        camera.rotate(0, -1);
+    }
+    if (ctx.isKeyPressed(.right)) {
+        camera.rotate(0, 1);
+    }
+    if (ctx.isKeyPressed(.up)) {
+        camera.rotate(1, 0);
+    }
+    if (ctx.isKeyPressed(.down)) {
+        camera.rotate(-1, 0);
+    }
 
     while (ctx.pollEvent()) |e| {
         _ = dig.processEvent(e);
@@ -200,12 +181,8 @@ fn render_boxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
             20 * @intToFloat(f32, i) + frame,
             alg.Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
-        simple_renderer.renderer().render(
-            vertex_array,
-            false,
-            .triangles,
-            0,
-            36,
+        simple_renderer.renderer().renderMesh(
+            cube,
             model,
             projection,
             camera,
@@ -226,12 +203,8 @@ fn render_boxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
                 20 * @intToFloat(f32, i) + frame,
                 alg.Vec3.new(1, 0.3, 0.5),
             ).translate(pos);
-            simple_renderer.renderer().render(
-                vertex_array,
-                false,
-                .triangles,
-                0,
-                36,
+            simple_renderer.renderer().renderMesh(
+                cube,
                 model.mult(alg.Mat4.fromScale(alg.Vec3.set(1.01))),
                 projection,
                 camera,
