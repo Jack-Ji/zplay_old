@@ -3,6 +3,8 @@ const zp = @import("zplay");
 const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
 const Mesh = zp.graphics.@"3d".Mesh;
 const Camera = zp.graphics.@"3d".Camera;
+const Material = zp.graphics.@"3d".Material;
+const Texture2D = zp.graphics.texture.Texture2D;
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
@@ -11,8 +13,10 @@ const Vec4 = alg.Vec4;
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = false;
 var perspective_mode = true;
+var use_texture = false;
 var cube1: Mesh = undefined;
 var cube2: Mesh = undefined;
+var cube_material: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
     alg.Vec3.new(0, 0, 6),
     alg.Vec3.zero(),
@@ -31,6 +35,17 @@ fn init(ctx: *zp.Context) anyerror!void {
     // generate meshes
     cube1 = Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5, Vec4.new(0, 1, 0, 1));
     cube2 = Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2, Vec4.new(0, 1, 0, 1));
+
+    // create material
+    var cube_image = Texture2D.fromFilePath(
+        std.testing.allocator,
+        "assets/wall.jpg",
+        false,
+    ) catch unreachable;
+    cube_material = Material.init(.{
+        .single_texture = cube_image,
+    });
+    _ = cube_material.allocTextureUnit(0);
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -108,7 +123,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(-2.0, 1.2, 0)),
             projection,
             camera,
-            null,
+            if (use_texture) cube_material else null,
             null,
         ) catch unreachable;
 
@@ -117,7 +132,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(-0.5, 1.2, 0)),
             projection,
             camera,
-            null,
+            if (use_texture) cube_material else null,
             null,
         ) catch unreachable;
     }
@@ -144,6 +159,7 @@ fn loop(ctx: *zp.Context) void {
                 ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
             }
             _ = dig.checkbox("perspective", &perspective_mode);
+            _ = dig.checkbox("texture", &use_texture);
         }
         dig.end();
     }

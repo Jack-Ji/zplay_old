@@ -43,14 +43,14 @@ pub const PolygonMode = enum(c_uint) {
 };
 
 pub const TestFunc = enum(c_uint) {
-    never = gl.GL_NEVER,
-    less = gl.GL_LESS,
-    less_or_equal = gl.GL_LEQUAL,
-    greater = gl.GL_GREATER,
-    greater_or_equal = gl.GL_GEQUAL,
-    equal = gl.GL_EQUAL,
-    not_equal = gl.GL_NOTEQUAL,
-    always = gl.GL_ALWAYS,
+    always = gl.GL_ALWAYS, // The test always passes.
+    never = gl.GL_NEVER, // The test never passes.
+    less = gl.GL_LESS, // Passes if the fragment's value is less than the stored value.
+    equal = gl.GL_EQUAL, // Passes if the fragment's value is equal to the stored value.
+    less_or_equal = gl.GL_LEQUAL, // Passes if the fragment's value is less than or equal to the stored value.
+    greater = gl.GL_GREATER, // Passes if the fragment's value is greater than the stored value.
+    not_equal = gl.GL_NOTEQUAL, // Passes if the fragment's value is not equal to the stored value.
+    greater_or_equal = gl.GL_GEQUAL, // Passes if the fragment's value is greater than or equal to the stored value.
 };
 
 pub const StencilOp = enum(c_uint) {
@@ -226,32 +226,37 @@ pub fn setPolygonMode(self: Self, mode: PolygonMode) void {
     gl.util.checkError();
 }
 
-/// set depth test function, which determines whether fragment is accepted
-pub fn setDepthTestFunc(self: Self, func: TestFunc) void {
+/// set depth options
+pub const DepthOption = struct {
+    test_func: TestFunc = .less, // test function determines whether fragment is accepted
+    update_switch: ?bool = null, // false means depth buffer won't be updated during rendering
+};
+pub fn setDepthOption(self: Self, option: DepthOption) void {
     _ = self;
-    gl.depthFunc(@enumToInt(func));
-    gl.util.checkError();
-}
-
-/// set depth update mode, false means depth buffer won't be updated during rendering
-pub fn setDepthUpdateMode(self: Self, on_off: bool) void {
-    _ = self;
-    gl.depthMask(gl.util.boolType(on_off));
+    gl.depthFunc(@enumToInt(option.test_func));
+    if (option.update_switch) |s| {
+        gl.depthMask(gl.util.boolType(s));
+    }
     gl.util.checkError();
 }
 
 /// set stencil options
 pub const StencilOption = struct {
-    test_func: ?TestFunc = null, // stencil test function that determines whether a fragment passes or is discarded.
-    test_ref: u8 = 0, // the reference value for the stencil test. The stencil buffer's content is compared to this value.
-    test_mask: ?u8 = null, // ANDed with both the reference value and the stored stencil value before the test compares them.
     action_sfail: StencilOp = .keep, // action to take if the stencil test fails.
     action_dpfail: StencilOp = .keep, // action to take if the stencil test passes, but the depth test fails.
     action_dppass: StencilOp = .keep, // action to take if both the stencil and the depth test pass.
+    test_func: ?TestFunc = null, // stencil test function that determines whether a fragment passes or is discarded.
+    test_ref: u8 = 0, // the reference value for the stencil test. The stencil buffer's content is compared to this value.
+    test_mask: ?u8 = null, // ANDed with both the reference value and the stored stencil value before the test compares them.
     write_mask: ?u8 = null, // bitmask that is ANDed with the stencil value about to be written to the buffer.
 };
 pub fn setStencilOption(self: Self, option: StencilOption) void {
     _ = self;
+    gl.stencilOp(
+        @enumToInt(option.action_sfail),
+        @enumToInt(option.action_dpfail),
+        @enumToInt(option.action_dppass),
+    );
     if (option.test_func) |func| {
         gl.stencilFunc(
             @enumToInt(func),
@@ -262,11 +267,6 @@ pub fn setStencilOption(self: Self, option: StencilOption) void {
     if (option.write_mask) |mask| {
         gl.stencilMask(@intCast(gl.GLuint, mask));
     }
-    gl.stencilOp(
-        @enumToInt(option.action_sfail),
-        @enumToInt(option.action_dpfail),
-        @enumToInt(option.action_dppass),
-    );
     gl.util.checkError();
 }
 
@@ -291,7 +291,7 @@ pub fn setBlendOption(self: Self, option: BlendOption) void {
         gl.blendColor(color[0], color[1], color[2], color[3]);
     }
     if (option.equation) |eq| {
-        gl.blendEquation(eq);
+        gl.blendEquation(@enumToInt(eq));
     }
     gl.util.checkError();
 }

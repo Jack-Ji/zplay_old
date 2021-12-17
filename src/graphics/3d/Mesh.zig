@@ -158,11 +158,11 @@ pub fn genCube(
     };
     const positions: [36]Vec3 = .{
         vs[0], vs[1], vs[2], vs[0], vs[2], vs[3], // top
-        vs[4], vs[6], vs[5], vs[4], vs[7], vs[6], // bottom
-        vs[3], vs[6], vs[7], vs[3], vs[2], vs[6], // left
-        vs[0], vs[5], vs[1], vs[0], vs[4], vs[5], // right
-        vs[0], vs[3], vs[7], vs[0], vs[7], vs[4], // front
-        vs[1], vs[6], vs[2], vs[1], vs[5], vs[6], // back
+        vs[4], vs[7], vs[6], vs[4], vs[6], vs[5], // bottom
+        vs[6], vs[7], vs[3], vs[6], vs[3], vs[2], // left
+        vs[4], vs[5], vs[1], vs[4], vs[1], vs[0], // right
+        vs[7], vs[4], vs[0], vs[7], vs[0], vs[3], // front
+        vs[5], vs[6], vs[2], vs[5], vs[2], vs[1], // back
     };
 
     const up = Vec3.up();
@@ -180,13 +180,28 @@ pub fn genCube(
         back, back, back, back, back, back, // back
     };
 
+    const cs: [4]Vec2 = .{
+        Vec2.new(0, 0),
+        Vec2.new(1, 0),
+        Vec2.new(1, 1),
+        Vec2.new(0, 1),
+    };
+    var texcoords: [36]Vec2 = .{
+        cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // top
+        cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // bottom
+        cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // left
+        cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // right
+        cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // front
+        cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // back
+    };
+
     const mesh = init(
         allocator,
         .triangles,
         &positions,
         null,
         &normals,
-        null,
+        &texcoords,
         if (color) |c|
             &[36]Vec4{
                 c, c, c, c, c, c, c, c, c, c, c, c,

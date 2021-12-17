@@ -231,7 +231,7 @@ pub fn getTextureUnit(self: Self) i32 {
 }
 
 /// set texture wrapping mode
-pub fn setWrapping(self: Self, coord: WrappingCoord, mode: WrappingMode) void {
+pub fn setWrappingMode(self: Self, coord: WrappingCoord, mode: WrappingMode) void {
     std.debug.assert(self.tt == .texture_2d);
     gl.texParameteri(gl.GL_TEXTURE_2D, @enumToInt(coord), @enumToInt(mode));
     gl.util.checkError();
