@@ -33,8 +33,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     simple_renderer = SimpleRenderer.init();
 
     // generate meshes
-    cube1 = Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5, Vec4.new(0, 1, 0, 1));
-    cube2 = Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2, Vec4.new(0, 1, 0, 1));
+    cube1 = try Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5, Vec4.new(0, 1, 0, 1));
+    cube2 = try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2, Vec4.new(0, 1, 0, 1));
 
     // create material
     var cube_image = Texture2D.fromFilePath(

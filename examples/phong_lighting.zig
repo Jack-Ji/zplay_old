@@ -1,8 +1,8 @@
 const std = @import("std");
 const zp = @import("zplay");
-const VertexArray = zp.graphics.common.VertexArray;
 const Camera = zp.graphics.@"3d".Camera;
 const Light = zp.graphics.@"3d".Light;
+const Mesh = zp.graphics.@"3d".Mesh;
 const Material = zp.graphics.@"3d".Material;
 const Texture2D = zp.graphics.texture.Texture2D;
 const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
@@ -15,60 +15,13 @@ const Mat4 = alg.Mat4;
 
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
-var regular_cube_va: VertexArray = undefined;
-var lighting_cube_va: VertexArray = undefined;
-var material_for_simple: Material = undefined;
-var material_for_phong: Material = undefined;
+var cube: Mesh = undefined;
+var phong_material: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(1, 2, 3),
     Vec3.zero(),
     null,
 );
-
-// position, normal, texture coord
-const vertices = [_]f32{
-    -0.5, -0.5, -0.5, 0.0,  0.0,  -1.0, 0.0, 0.0,
-    0.5,  -0.5, -0.5, 0.0,  0.0,  -1.0, 1.0, 0.0,
-    0.5,  0.5,  -0.5, 0.0,  0.0,  -1.0, 1.0, 1.0,
-    0.5,  0.5,  -0.5, 0.0,  0.0,  -1.0, 1.0, 1.0,
-    -0.5, 0.5,  -0.5, 0.0,  0.0,  -1.0, 0.0, 1.0,
-    -0.5, -0.5, -0.5, 0.0,  0.0,  -1.0, 0.0, 0.0,
-
-    -0.5, -0.5, 0.5,  0.0,  0.0,  1.0,  0.0, 0.0,
-    0.5,  -0.5, 0.5,  0.0,  0.0,  1.0,  1.0, 0.0,
-    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0, 1.0,
-    0.5,  0.5,  0.5,  0.0,  0.0,  1.0,  1.0, 1.0,
-    -0.5, 0.5,  0.5,  0.0,  0.0,  1.0,  0.0, 1.0,
-    -0.5, -0.5, 0.5,  0.0,  0.0,  1.0,  0.0, 0.0,
-
-    -0.5, 0.5,  0.5,  -1.0, 0.0,  0.0,  1.0, 0.0,
-    -0.5, 0.5,  -0.5, -1.0, 0.0,  0.0,  1.0, 1.0,
-    -0.5, -0.5, -0.5, -1.0, 0.0,  0.0,  0.0, 1.0,
-    -0.5, -0.5, -0.5, -1.0, 0.0,  0.0,  0.0, 1.0,
-    -0.5, -0.5, 0.5,  -1.0, 0.0,  0.0,  0.0, 0.0,
-    -0.5, 0.5,  0.5,  -1.0, 0.0,  0.0,  1.0, 0.0,
-
-    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0,
-    0.5,  0.5,  -0.5, 1.0,  0.0,  0.0,  1.0, 1.0,
-    0.5,  -0.5, -0.5, 1.0,  0.0,  0.0,  0.0, 1.0,
-    0.5,  -0.5, -0.5, 1.0,  0.0,  0.0,  0.0, 1.0,
-    0.5,  -0.5, 0.5,  1.0,  0.0,  0.0,  0.0, 0.0,
-    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,  1.0, 0.0,
-
-    -0.5, -0.5, -0.5, 0.0,  -1.0, 0.0,  0.0, 1.0,
-    0.5,  -0.5, -0.5, 0.0,  -1.0, 0.0,  1.0, 1.0,
-    0.5,  -0.5, 0.5,  0.0,  -1.0, 0.0,  1.0, 0.0,
-    0.5,  -0.5, 0.5,  0.0,  -1.0, 0.0,  1.0, 0.0,
-    -0.5, -0.5, 0.5,  0.0,  -1.0, 0.0,  0.0, 0.0,
-    -0.5, -0.5, -0.5, 0.0,  -1.0, 0.0,  0.0, 1.0,
-
-    -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,  0.0, 1.0,
-    0.5,  0.5,  -0.5, 0.0,  1.0,  0.0,  1.0, 1.0,
-    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0,
-    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,  1.0, 0.0,
-    -0.5, 0.5,  0.5,  0.0,  1.0,  0.0,  0.0, 0.0,
-    -0.5, 0.5,  -0.5, 0.0,  1.0,  0.0,  0.0, 1.0,
-};
 
 const cube_positions = [_]Vec3{
     Vec3.new(0.0, 0.0, 0.0),
@@ -121,68 +74,20 @@ fn init(ctx: *zp.Context) anyerror!void {
         },
     }));
 
-    // vertex array for regular scene
-    regular_cube_va = VertexArray.init(5);
-    regular_cube_va.use();
-    regular_cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    regular_cube_va.setAttribute(
-        0,
-        SimpleRenderer.ATTRIB_LOCATION_POS,
-        3,
-        f32,
-        false,
-        8 * @sizeOf(f32),
-        0,
-    );
-    regular_cube_va.disuse();
-
-    // vertex array for lighting scene
-    lighting_cube_va = VertexArray.init(5);
-    lighting_cube_va.use();
-    lighting_cube_va.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    lighting_cube_va.setAttribute(
-        0,
-        PhongRenderer.ATTRIB_LOCATION_POS,
-        3,
-        f32,
-        false,
-        8 * @sizeOf(f32),
-        0,
-    );
-    lighting_cube_va.setAttribute(
-        0,
-        PhongRenderer.ATTRIB_LOCATION_NORMAL,
-        3,
-        f32,
-        false,
-        8 * @sizeOf(f32),
-        3 * @sizeOf(f32),
-    );
-    lighting_cube_va.setAttribute(
-        0,
-        PhongRenderer.ATTRIB_LOCATION_TEX,
-        2,
-        f32,
-        false,
-        8 * @sizeOf(f32),
-        6 * @sizeOf(f32),
-    );
-    lighting_cube_va.disuse();
+    // generate a cube
+    cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1, Vec4.one());
 
     // material init
     var diffuse_texture = try Texture2D.fromFilePath(std.testing.allocator, "assets/container2.png", false);
     var specular_texture = try Texture2D.fromFilePath(std.testing.allocator, "assets/container2_specular.png", false);
-    material_for_phong = Material.init(.{
+    phong_material = Material.init(.{
         .phong = .{
             .diffuse_map = diffuse_texture,
             .specular_map = specular_texture,
             .shiness = 32,
         },
     });
-    _ = material_for_phong.allocTextureUnit(0);
-    material_for_simple = Material.init(.{
-        .single_color = Vec4.one(),
-    });
+    _ = phong_material.allocTextureUnit(0);
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -261,16 +166,12 @@ fn loop(ctx: *zp.Context) void {
             20 * @intToFloat(f32, i),
             Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
-        renderer.render(
-            lighting_cube_va,
-            false,
-            .triangles,
-            0,
-            36,
+        renderer.renderMesh(
+            cube,
             model,
             projection,
             camera,
-            material_for_phong,
+            phong_material,
             null,
         ) catch unreachable;
     }
@@ -281,31 +182,23 @@ fn loop(ctx: *zp.Context) void {
     renderer.begin();
     for (phong_renderer.point_lights.items) |light| {
         const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        renderer.render(
-            regular_cube_va,
-            false,
-            .triangles,
-            0,
-            36,
+        renderer.renderMesh(
+            cube,
             model,
             projection,
             camera,
-            material_for_simple,
+            null,
             null,
         ) catch unreachable;
     }
     for (phong_renderer.spot_lights.items) |light| {
         const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        renderer.render(
-            regular_cube_va,
-            false,
-            .triangles,
-            0,
-            36,
+        renderer.renderMesh(
+            cube,
             model,
             projection,
             camera,
-            material_for_simple,
+            null,
             null,
         ) catch unreachable;
     }

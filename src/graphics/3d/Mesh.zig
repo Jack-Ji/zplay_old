@@ -43,32 +43,32 @@ pub fn init(
     texcoords: ?[]const Vec2,
     colors: ?[]const Vec4,
     tangents: ?[]const Vec4,
-) Self {
+) !Self {
     var self: Self = .{
         .primitive_type = primitive_type,
         .vertex_array = VertexArray.init(vbo_num),
-        .positions = std.ArrayList(Vec3).initCapacity(allocator, positions.len) catch unreachable,
+        .positions = try std.ArrayList(Vec3).initCapacity(allocator, positions.len),
         .owns_data = true,
     };
     self.positions.appendSliceAssumeCapacity(positions);
     if (indices) |ids| {
-        self.indices = std.ArrayList(u32).initCapacity(allocator, ids.len) catch unreachable;
+        self.indices = try std.ArrayList(u32).initCapacity(allocator, ids.len);
         self.indices.?.appendSliceAssumeCapacity(ids);
     }
     if (normals) |ns| {
-        self.normals = std.ArrayList(Vec3).initCapacity(allocator, ns.len) catch unreachable;
+        self.normals = try std.ArrayList(Vec3).initCapacity(allocator, ns.len);
         self.normals.?.appendSliceAssumeCapacity(ns);
     }
     if (texcoords) |ts| {
-        self.texcoords = std.ArrayList(Vec2).initCapacity(allocator, ts.len) catch unreachable;
+        self.texcoords = try std.ArrayList(Vec2).initCapacity(allocator, ts.len);
         self.texcoords.?.appendSliceAssumeCapacity(ts);
     }
     if (colors) |cs| {
-        self.colors = std.ArrayList(Vec4).initCapacity(allocator, cs.len) catch unreachable;
+        self.colors = try std.ArrayList(Vec4).initCapacity(allocator, cs.len);
         self.colors.?.appendSliceAssumeCapacity(cs);
     }
     if (tangents) |ts| {
-        self.tangents = std.ArrayList(Vec4).initCapacity(allocator, ts.len) catch unreachable;
+        self.tangents = try std.ArrayList(Vec4).initCapacity(allocator, ts.len);
         self.tangents.?.appendSliceAssumeCapacity(ts);
     }
     return self;
@@ -142,7 +142,7 @@ pub fn genCube(
     d: f32,
     h: f32,
     color: ?Vec4,
-) Self {
+) !Self {
     const w2 = w / 2;
     const d2 = d / 2;
     const h2 = h / 2;
@@ -195,7 +195,7 @@ pub fn genCube(
         cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // back
     };
 
-    const mesh = init(
+    const mesh = try init(
         allocator,
         .triangles,
         &positions,
