@@ -248,8 +248,10 @@ pub fn setBorderColor(self: Self, color: [4]f32) void {
 pub fn setFilteringMode(self: Self, situation: FilteringSituation, mode: FilteringMode) void {
     std.debug.assert(self.tt == .texture_2d);
     if (situation == .magnifying and
-        (mode == .linear_mipmap_nearest or mode == .linear_mipmap_linear or
-        mode == .nearest_mipmap_nearest or mode == .nearest_mipmap_linear))
+        (mode == .linear_mipmap_nearest or
+        mode == .linear_mipmap_linear or
+        mode == .nearest_mipmap_nearest or
+        mode == .nearest_mipmap_linear))
     {
         std.debug.panic("meaningless filtering parameters!", .{});
     }
@@ -268,7 +270,7 @@ pub fn updateImageData(
     depth: ?u32,
     image_format: ImageFormat,
     comptime T: type,
-    data: []const T,
+    data: ?[*]const T,
     gen_mipmap: bool,
 ) void {
     gl.bindTexture(@enumToInt(self.tt), self.id);
@@ -283,7 +285,7 @@ pub fn updateImageData(
                 0,
                 @enumToInt(image_format),
                 gl.util.dataType(T),
-                data.ptr,
+                data,
             );
         },
         .texture_2d => {
@@ -297,7 +299,7 @@ pub fn updateImageData(
                 0,
                 @enumToInt(image_format),
                 gl.util.dataType(T),
-                data.ptr,
+                data,
             );
         },
         .texture_1d_array => {
@@ -311,7 +313,7 @@ pub fn updateImageData(
                 0,
                 @enumToInt(image_format),
                 gl.util.dataType(T),
-                data.ptr,
+                data,
             );
         },
         .texture_rectangle => {
@@ -325,7 +327,7 @@ pub fn updateImageData(
                 0,
                 @enumToInt(image_format),
                 gl.util.dataType(T),
-                data.ptr,
+                data,
             );
         },
         .texture_cube_map => {
@@ -345,7 +347,7 @@ pub fn updateImageData(
                 0,
                 @enumToInt(image_format),
                 gl.util.dataType(T),
-                data.ptr,
+                data,
             );
         },
         .texture_3d => {
@@ -360,7 +362,7 @@ pub fn updateImageData(
                 0,
                 @enumToInt(image_format),
                 gl.util.dataType(T),
-                data.ptr,
+                data,
             );
         },
         .texture_2d_array => {
@@ -375,7 +377,7 @@ pub fn updateImageData(
                 0,
                 @enumToInt(image_format),
                 gl.util.dataType(T),
-                data.ptr,
+                data,
             );
         },
         else => {

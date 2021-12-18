@@ -131,7 +131,7 @@ fn render(
     instance_count: ?u32,
 ) !void {
     if (!self.program.isUsing()) {
-        return error.renderer_not_active;
+        return error.RendererNotActive;
     }
 
     // set uniforms
@@ -168,7 +168,7 @@ fn renderMesh(
     instance_count: ?u32,
 ) !void {
     if (!self.program.isUsing()) {
-        return error.renderer_not_active;
+        return error.RendererNotActive;
     }
 
     mesh.vertex_array.use();

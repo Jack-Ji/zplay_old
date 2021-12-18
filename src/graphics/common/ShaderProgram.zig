@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const gl = zp.deps.gl;
 const alg = zp.deps.alg;
@@ -19,6 +20,9 @@ id: gl.GLuint = undefined,
 ///    the memory is valid as long as shader is living.
 uniform_locs: std.StringHashMap(gl.GLint) = undefined,
 string_cache: std.ArrayList([]u8) = undefined,
+
+/// current active shader
+var current: gl.GLuint = 0;
 
 /// init shader program
 pub fn init(
@@ -100,6 +104,7 @@ pub fn deinit(self: *Self) void {
 
 /// start using shader program
 pub fn use(self: Self) void {
+    current = self.id;
     gl.useProgram(self.id);
     gl.util.checkError();
 }
@@ -107,15 +112,14 @@ pub fn use(self: Self) void {
 /// stop using shader program
 pub fn disuse(self: Self) void {
     _ = self;
+    current = 0;
     gl.useProgram(0);
     gl.util.checkError();
 }
 
-/// check if program is being used
+/// check if shader is being used
 pub fn isUsing(self: Self) bool {
-    var current_program: gl.GLint = undefined;
-    gl.getIntegerv(gl.GL_CURRENT_PROGRAM, &current_program);
-    return current_program == self.id;
+    return self.id == current;
 }
 
 /// get uniform block index
@@ -152,18 +156,14 @@ pub fn getUniformLocation(self: *Self, name: [:0]const u8) gl.GLint {
 
 /// set uniform value with name
 pub fn setUniformByName(self: *Self, name: [:0]const u8, v: anytype) void {
-    if (!self.isUsing()) {
-        std.debug.panic("invalid operation, must use program first!", .{});
-    }
+    assert(self.id == current);
     var loc = self.getUniformLocation(name);
     self.setUniform(loc, v);
 }
 
 /// set uniform value with location
 pub fn setUniformByLocation(self: Self, loc: gl.GLuint, v: anytype) void {
-    if (!self.isUsing()) {
-        std.debug.panic("invalid operation, must use program first!", .{});
-    }
+    assert(self.id == current);
     self.setUniform(@intCast(gl.GLuint, loc), v);
 }
 
@@ -198,9 +198,7 @@ fn setUniform(self: Self, loc: gl.GLint, v: anytype) void {
 
 /// set default value for attribute
 pub fn setAttributeDefaultValue(self: Self, _loc: gl.GLint, v: anytype) void {
-    if (!self.isUsing()) {
-        std.debug.panic("invalid operation, must use program first!", .{});
-    }
+    assert(self.id == current);
     const loc = @intCast(gl.GLuint, _loc);
     switch (@TypeOf(v)) {
         Vec2 => gl.vertexAttrib2f(loc, v.x, v.y),

@@ -40,7 +40,7 @@ pub fn init(
         null,
         format,
         u8,
-        pixel_data,
+        pixel_data.ptr,
         true,
     );
 
