@@ -8,7 +8,7 @@ const string_c = @cImport({
     @cInclude("string.h");
 });
 
-extern fn SDL_free(mem: ?*c_void) void;
+extern fn SDL_free(mem: ?*anyopaque) void;
 var performance_frequency: u64 = undefined;
 
 const BackendData = struct {
@@ -236,7 +236,7 @@ fn getBackendData() ?*BackendData {
 }
 
 // clipboard callback
-fn getClipboardText(_: ?*c_void) callconv(.C) [*c]u8 {
+fn getClipboardText(_: ?*anyopaque) callconv(.C) [*c]u8 {
     const bd = getBackendData().?;
 
     if (bd.clipboard_text_data) |data| {
@@ -247,7 +247,7 @@ fn getClipboardText(_: ?*c_void) callconv(.C) [*c]u8 {
 }
 
 // clipboard callback
-fn setClipboardText(_: ?*c_void, text: [*c]const u8) callconv(.C) void {
+fn setClipboardText(_: ?*anyopaque, text: [*c]const u8) callconv(.C) void {
     _ = sdl.c.SDL_SetClipboardText(text);
 }
 

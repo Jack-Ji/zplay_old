@@ -11,19 +11,19 @@ const Mat4 = alg.Mat4;
 const Renderer = @This();
 
 // The type erased pointer to the renderer implementation
-ptr: *c_void,
+ptr: *anyopaque,
 vtable: *const VTable,
 
 pub const VTable = struct {
     /// begin using renderer
-    beginFn: fn (ptr: *c_void) void,
+    beginFn: fn (ptr: *anyopaque) void,
 
     /// stop using renderer
-    endFn: fn (ptr: *c_void) void,
+    endFn: fn (ptr: *anyopaque) void,
 
     /// generic rendering
     renderFn: fn (
-        ptr: *c_void,
+        ptr: *anyopaque,
         vertex_array: VertexArray,
         use_elements: bool,
         primitive: drawcall.PrimitiveType,
@@ -38,7 +38,7 @@ pub const VTable = struct {
 
     /// mesh rendering
     renderMeshFn: fn (
-        ptr: *c_void,
+        ptr: *anyopaque,
         mesh: Mesh,
         model: Mat4,
         projection: Mat4,
@@ -84,16 +84,16 @@ pub fn init(
     const alignment = ptr_info.Pointer.alignment;
 
     const gen = struct {
-        fn beginImpl(ptr: *c_void) void {
+        fn beginImpl(ptr: *anyopaque) void {
             const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
             return @call(.{ .modifier = .always_inline }, beginFn, .{self});
         }
-        fn endImpl(ptr: *c_void) void {
+        fn endImpl(ptr: *anyopaque) void {
             const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
             return @call(.{ .modifier = .always_inline }, endFn, .{self});
         }
         fn renderImpl(
-            ptr: *c_void,
+            ptr: *anyopaque,
             vertex_array: VertexArray,
             use_elements: bool,
             primitive: drawcall.PrimitiveType,
@@ -122,7 +122,7 @@ pub fn init(
         }
 
         fn renderMeshImpl(
-            ptr: *c_void,
+            ptr: *anyopaque,
             mesh: Mesh,
             model: Mat4,
             projection: Mat4,

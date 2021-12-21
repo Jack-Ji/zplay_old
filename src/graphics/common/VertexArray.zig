@@ -109,7 +109,7 @@ pub fn setAttribute(
         gl.util.dataType(T),
         gl.util.boolType(normalized),
         @intCast(c_int, stride),
-        @intToPtr(*allowzero c_void, offset),
+        @intToPtr(*allowzero anyopaque, offset),
     );
     gl.enableVertexAttribArray(loc);
     gl.util.checkError();

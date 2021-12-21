@@ -21,15 +21,15 @@ pub const cgltf_result_legacy_gltf: c_int = 9;
 pub const enum_cgltf_result = c_uint;
 pub const cgltf_result = enum_cgltf_result;
 pub const struct_cgltf_memory_options = extern struct {
-    alloc: ?fn (?*c_void, cgltf_size) callconv(.C) ?*c_void,
-    free: ?fn (?*c_void, ?*c_void) callconv(.C) void,
-    user_data: ?*c_void,
+    alloc: ?fn (?*anyopaque, cgltf_size) callconv(.C) ?*anyopaque,
+    free: ?fn (?*anyopaque, ?*anyopaque) callconv(.C) void,
+    user_data: ?*anyopaque,
 };
 pub const cgltf_memory_options = struct_cgltf_memory_options;
 pub const struct_cgltf_file_options = extern struct {
-    read: ?fn ([*c]const struct_cgltf_memory_options, [*c]const struct_cgltf_file_options, [*c]const u8, [*c]cgltf_size, [*c]?*c_void) callconv(.C) cgltf_result,
-    release: ?fn ([*c]const struct_cgltf_memory_options, [*c]const struct_cgltf_file_options, ?*c_void) callconv(.C) void,
-    user_data: ?*c_void,
+    read: ?fn ([*c]const struct_cgltf_memory_options, [*c]const struct_cgltf_file_options, [*c]const u8, [*c]cgltf_size, [*c]?*anyopaque) callconv(.C) cgltf_result,
+    release: ?fn ([*c]const struct_cgltf_memory_options, [*c]const struct_cgltf_file_options, ?*anyopaque) callconv(.C) void,
+    user_data: ?*anyopaque,
 };
 pub const cgltf_file_options = struct_cgltf_file_options;
 pub const struct_cgltf_options = extern struct {
@@ -129,7 +129,7 @@ pub const struct_cgltf_buffer = extern struct {
     name: [*c]u8,
     size: cgltf_size,
     uri: [*c]u8,
-    data: ?*c_void,
+    data: ?*anyopaque,
     data_free_method: cgltf_data_free_method,
     extras: cgltf_extras,
     extensions_count: cgltf_size,
@@ -165,7 +165,7 @@ pub const struct_cgltf_buffer_view = extern struct {
     size: cgltf_size,
     stride: cgltf_size,
     type: cgltf_buffer_view_type,
-    data: ?*c_void,
+    data: ?*anyopaque,
     has_meshopt_compression: cgltf_bool,
     meshopt_compression: cgltf_meshopt_compression,
     extras: cgltf_extras,
@@ -534,7 +534,7 @@ pub const struct_cgltf_asset = extern struct {
 pub const cgltf_asset = struct_cgltf_asset;
 pub const struct_cgltf_data = extern struct {
     file_type: cgltf_file_type,
-    file_data: ?*c_void,
+    file_data: ?*anyopaque,
     asset: cgltf_asset,
     meshes: [*c]cgltf_mesh,
     meshes_count: cgltf_size,
@@ -576,17 +576,17 @@ pub const struct_cgltf_data = extern struct {
     extensions_required_count: cgltf_size,
     json: [*c]const u8,
     json_size: cgltf_size,
-    bin: ?*const c_void,
+    bin: ?*const anyopaque,
     bin_size: cgltf_size,
     memory: cgltf_memory_options,
     file: cgltf_file_options,
 };
 pub const cgltf_data = struct_cgltf_data;
-pub extern fn cgltf_parse(options: [*c]const cgltf_options, data: ?*const c_void, size: cgltf_size, out_data: [*c][*c]cgltf_data) cgltf_result;
+pub extern fn cgltf_parse(options: [*c]const cgltf_options, data: ?*const anyopaque, size: cgltf_size, out_data: [*c][*c]cgltf_data) cgltf_result;
 pub extern fn cgltf_parse_file(options: [*c]const cgltf_options, path: [*c]const u8, out_data: [*c][*c]cgltf_data) cgltf_result;
 pub extern fn cgltf_free(data: [*c]cgltf_data) void;
 pub extern fn cgltf_load_buffers(options: [*c]const cgltf_options, data: [*c]cgltf_data, gltf_path: [*c]const u8) cgltf_result;
-pub extern fn cgltf_load_buffer_base64(options: [*c]const cgltf_options, size: cgltf_size, base64: [*c]const u8, out_data: [*c]?*c_void) cgltf_result;
+pub extern fn cgltf_load_buffer_base64(options: [*c]const cgltf_options, size: cgltf_size, base64: [*c]const u8, out_data: [*c]?*anyopaque) cgltf_result;
 pub extern fn cgltf_decode_string(string: [*c]u8) cgltf_size;
 pub extern fn cgltf_decode_uri(uri: [*c]u8) cgltf_size;
 pub extern fn cgltf_validate(data: [*c]cgltf_data) cgltf_result;

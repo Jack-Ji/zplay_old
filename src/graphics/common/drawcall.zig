@@ -56,7 +56,7 @@ pub fn drawElements(
             @enumToInt(primitive),
             @intCast(gl.GLsizei, element_count),
             gl.util.dataType(ElementType),
-            @intToPtr(*allowzero c_void, offset),
+            @intToPtr(*allowzero anyopaque, offset),
             @intCast(gl.GLsizei, count),
         );
     } else {
@@ -64,7 +64,7 @@ pub fn drawElements(
             @enumToInt(primitive),
             @intCast(gl.GLsizei, element_count),
             gl.util.dataType(ElementType),
-            @intToPtr(*allowzero c_void, offset),
+            @intToPtr(*allowzero anyopaque, offset),
         );
     }
     gl.util.checkError();

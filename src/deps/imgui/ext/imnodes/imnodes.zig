@@ -57,7 +57,7 @@ pub fn beginNodeEditor() void {
 pub fn endNodeEditor() void {
     return c.imnodes_EndNodeEditor();
 }
-pub fn miniMap(minimap_size_fraction: f32, location: c.ImNodesMiniMapLocation, node_hovering_callback: c.ImNodesMiniMapNodeHoveringCallback, node_hovering_callback_data: *c_void) void {
+pub fn miniMap(minimap_size_fraction: f32, location: c.ImNodesMiniMapLocation, node_hovering_callback: c.ImNodesMiniMapNodeHoveringCallback, node_hovering_callback_data: *anyopaque) void {
     return c.imnodes_MiniMap(minimap_size_fraction, location, node_hovering_callback, node_hovering_callback_data);
 }
 pub fn pushColorStyle(item: c.ImNodesCol, color: c_uint) void {

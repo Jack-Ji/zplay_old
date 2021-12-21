@@ -14,7 +14,7 @@ A simple framework intended for game/tool creation.
 * NanoVG/NanoSVG integration
 
 # Install
-1. Download and install latest zig 0.9.* main branch
+1. Download and install zig 0.9.x version
 2. Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
 
 # Examples

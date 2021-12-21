@@ -774,7 +774,7 @@ pub extern fn ImPlot_PlotStairs_S32PtrS32Ptr(label_id: [*c]const u8, xs: [*c]con
 pub extern fn ImPlot_PlotStairs_U32PtrU32Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU32, ys: [*c]const imgui.ImU32, count: c_int, offset: c_int, stride: c_int) void;
 pub extern fn ImPlot_PlotStairs_S64PtrS64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImS64, ys: [*c]const imgui.ImS64, count: c_int, offset: c_int, stride: c_int) void;
 pub extern fn ImPlot_PlotStairs_U64PtrU64Ptr(label_id: [*c]const u8, xs: [*c]const imgui.ImU64, ys: [*c]const imgui.ImU64, count: c_int, offset: c_int, stride: c_int) void;
-pub extern fn ImPlot_PlotStairsG(label_id: [*c]const u8, getter: ?fn (?*c_void, c_int) callconv(.C) ImPlotPoint, data: ?*c_void, count: c_int) void;
+pub extern fn ImPlot_PlotStairsG(label_id: [*c]const u8, getter: ?fn (?*anyopaque, c_int) callconv(.C) ImPlotPoint, data: ?*anyopaque, count: c_int) void;
 pub extern fn ImPlot_PlotShaded_FloatPtrInt(label_id: [*c]const u8, values: [*c]const f32, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void;
 pub extern fn ImPlot_PlotShaded_doublePtrInt(label_id: [*c]const u8, values: [*c]const f64, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void;
 pub extern fn ImPlot_PlotShaded_S8PtrInt(label_id: [*c]const u8, values: [*c]const imgui.ImS8, count: c_int, y_ref: f64, xscale: f64, x0: f64, offset: c_int, stride: c_int) void;
@@ -1378,10 +1378,10 @@ pub extern fn ImPlot_FormatDate(t: ImPlotTime, buffer: [*c]u8, size: c_int, fmt:
 pub extern fn ImPlot_FormatDateTime(t: ImPlotTime, buffer: [*c]u8, size: c_int, fmt: ImPlotDateTimeFmt) c_int;
 pub extern fn ImPlot_ShowDatePicker(id: [*c]const u8, level: [*c]c_int, t: [*c]ImPlotTime, t1: [*c]const ImPlotTime, t2: [*c]const ImPlotTime) bool;
 pub extern fn ImPlot_ShowTimePicker(id: [*c]const u8, t: [*c]ImPlotTime) bool;
-pub const ImPlotPoint_getter = ?fn (?*c_void, c_int, [*c]ImPlotPoint) callconv(.C) ?*c_void;
-pub extern fn ImPlot_PlotLineG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*c_void, count: c_int) void;
-pub extern fn ImPlot_PlotScatterG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*c_void, count: c_int) void;
-pub extern fn ImPlot_PlotShadedG(label_id: [*c]const u8, getter1: ImPlotPoint_getter, data1: ?*c_void, getter2: ImPlotPoint_getter, data2: ?*c_void, count: c_int) void;
-pub extern fn ImPlot_PlotBarsG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*c_void, count: c_int, width: f64) void;
-pub extern fn ImPlot_PlotBarsHG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*c_void, count: c_int, height: f64) void;
-pub extern fn ImPlot_PlotDigitalG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*c_void, count: c_int) void;
+pub const ImPlotPoint_getter = ?fn (?*anyopaque, c_int, [*c]ImPlotPoint) callconv(.C) ?*anyopaque;
+pub extern fn ImPlot_PlotLineG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void;
+pub extern fn ImPlot_PlotScatterG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void;
+pub extern fn ImPlot_PlotShadedG(label_id: [*c]const u8, getter1: ImPlotPoint_getter, data1: ?*anyopaque, getter2: ImPlotPoint_getter, data2: ?*anyopaque, count: c_int) void;
+pub extern fn ImPlot_PlotBarsG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*anyopaque, count: c_int, width: f64) void;
+pub extern fn ImPlot_PlotBarsHG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*anyopaque, count: c_int, height: f64) void;
+pub extern fn ImPlot_PlotDigitalG(label_id: [*c]const u8, getter: ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void;

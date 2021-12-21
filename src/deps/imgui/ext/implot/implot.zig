@@ -668,7 +668,7 @@ pub fn plotLine_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T
         option.stride orelse @sizeOf(T) * 2,
     );
 }
-pub fn plotLineG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*c_void, count: c_int) void {
+pub fn plotLineG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void {
     return c.ImPlot_PlotLineG(label_id, getter, data, count);
 }
 
@@ -726,7 +726,7 @@ pub fn plotScatter_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]cons
         option.stride orelse @sizeOf(T) * 2,
     );
 }
-pub fn plotScatterG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*c_void, count: c_int) void {
+pub fn plotScatterG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void {
     return c.ImPlot_PlotScatterG(label_id, getter, data, count);
 }
 
@@ -784,7 +784,7 @@ pub fn plotStairs_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const
         option.stride orelse @sizeOf(T) * 2,
     );
 }
-pub fn plotStairsG(label_id: [:0]const u8, getter: ?fn (?*c_void, c_int) callconv(.C) c.ImPlotPoint, data: ?*c_void, count: c_int) void {
+pub fn plotStairsG(label_id: [:0]const u8, getter: ?fn (?*anyopaque, c_int) callconv(.C) c.ImPlotPoint, data: ?*anyopaque, count: c_int) void {
     return c.ImPlot_PlotStairsG(label_id, getter, data, count);
 }
 
@@ -869,7 +869,7 @@ pub fn plotShaded_PtrPtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]co
         option.stride orelse @sizeOf(T) * 3,
     );
 }
-pub fn plotShadedG(label_id: [:0]const u8, getter1: c.ImPlotPoint_getter, data1: ?*c_void, getter2: c.ImPlotPoint_getter, data2: ?*c_void, count: c_int) void {
+pub fn plotShadedG(label_id: [:0]const u8, getter1: c.ImPlotPoint_getter, data1: ?*anyopaque, getter2: c.ImPlotPoint_getter, data2: ?*anyopaque, count: c_int) void {
     return c.ImPlot_PlotShadedG(label_id, getter1, data1, getter2, data2, count);
 }
 
@@ -928,7 +928,7 @@ pub fn plotBars_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const T
         option.stride orelse @sizeOf(T) * 2,
     );
 }
-pub fn plotBarsG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*c_void, count: c_int, width: f64) void {
+pub fn plotBarsG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int, width: f64) void {
     return c.ImPlot_PlotBarsG(label_id, getter, data, count, width);
 }
 
@@ -987,7 +987,7 @@ pub fn plotBarsH_PtrPtr(label_id: [:0]const u8, comptime T: type, xs: [*c]const 
         option.stride orelse @sizeOf(T) * 2,
     );
 }
-pub fn plotBarsHG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*c_void, count: c_int, height: f64) void {
+pub fn plotBarsHG(label_id: [:0]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int, height: f64) void {
     return c.ImPlot_PlotBarsHG(label_id, getter, data, count, height);
 }
 
@@ -1386,7 +1386,7 @@ pub fn plotDigital(label_id: [:0]const u8, comptime T: type, xs: [*c]const T, ys
         option.stride orelse @sizeOf(T) * 2,
     );
 }
-pub fn plotDigitalG(label_id: [*c]const u8, getter: c.ImPlotPoint_getter, data: ?*c_void, count: c_int) void {
+pub fn plotDigitalG(label_id: [*c]const u8, getter: c.ImPlotPoint_getter, data: ?*anyopaque, count: c_int) void {
     return c.ImPlot_PlotDigitalG(label_id, getter, data, count);
 }
 

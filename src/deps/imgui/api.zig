@@ -100,7 +100,7 @@ pub fn setNextWindowSize(size: c.ImVec2, cond: c.ImGuiCond) void {
 }
 pub const SetNextWindowSizeConstraintsOption = struct {
     custom_callback: c.ImGuiSizeCallback = null,
-    custom_callback_data: ?*c_void = null,
+    custom_callback_data: ?*anyopaque = null,
 };
 pub fn setNextWindowSizeConstraints(size_min: c.ImVec2, size_max: c.ImVec2, option: SetNextWindowSizeConstraintsOption) void {
     return c.igSetNextWindowSizeConstraints(size_min, size_max, option.custom_callback, option.custom_callback_data);
@@ -318,7 +318,7 @@ pub const getFrameHeightWithSpacing = c.igGetFrameHeightWithSpacing;
 pub fn pushID_Str(str_id: [:0]const u8) void {
     return c.igPushID_Str(str_id);
 }
-pub fn pushID_Ptr(ptr_id: *const c_void) void {
+pub fn pushID_Ptr(ptr_id: *const anyopaque) void {
     return c.igPushID_Ptr(ptr_id);
 }
 pub fn pushID_Int(int_id: c_int) void {
@@ -328,7 +328,7 @@ pub const popID = c.igPopID;
 pub fn getID_Str(str_id: [:0]const u8) c.ImGuiID {
     return c.igGetID_Str(str_id);
 }
-pub fn getID_Ptr(ptr_id: *const c_void) c.ImGuiID {
+pub fn getID_Ptr(ptr_id: *const anyopaque) c.ImGuiID {
     return c.igGetID_Ptr(ptr_id);
 }
 
@@ -414,7 +414,7 @@ pub fn combo_Str_arr(label: [:0]const u8, current_item: *c_int, items: []const [
 pub fn combo_Str(label: [:0]const u8, current_item: *c_int, items_separated_by_zeros: []const u8, popup_max_height_in_items: ?c_int) bool {
     return c.igCombo_Str(label, current_item, items_separated_by_zeros, popup_max_height_in_items orelse -1);
 }
-pub fn combo_FnBoolPtr(label: [:0]const u8, current_item: *c_int, items_getter: fn (?*c_void, c_int, [*c][*c]const u8) callconv(.C) bool, data: ?*c_void, items_count: c_int, popup_max_height_in_items: ?c_int) bool {
+pub fn combo_FnBoolPtr(label: [:0]const u8, current_item: *c_int, items_getter: fn (?*anyopaque, c_int, [*c][*c]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: c_int, popup_max_height_in_items: ?c_int) bool {
     return c.igCombo_FnBoolPtr(label, current_item, items_getter, data, items_count, popup_max_height_in_items orelse -1);
 }
 
@@ -491,15 +491,15 @@ pub fn dragIntRange2(label: [:0]const u8, v_current_min: *c_int, v_current_max: 
 }
 pub const DragScalarOption = struct {
     v_speed: f32 = 1,
-    p_min: ?*const c_void = null,
-    p_max: ?*const c_void = null,
+    p_min: ?*const anyopaque = null,
+    p_max: ?*const anyopaque = null,
     format: ?[:0]const u8 = null,
     flags: c.ImGuiSliderFlags = 0,
 };
-pub fn dragScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *c_void, option: DragScalarOption) bool {
+pub fn dragScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, option: DragScalarOption) bool {
     return c.igDragScalar(label, data_type, p_data, option.v_speed, option.p_min, option.p_max, option.format, option.flags);
 }
-pub fn dragScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *c_void, components: c_int, option: DragScalarOption) bool {
+pub fn dragScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, components: c_int, option: DragScalarOption) bool {
     return c.igDragScalarN(label, data_type, p_data, components, option.v_speed, option.p_min, option.p_max, option.format, option.flags);
 }
 
@@ -554,10 +554,10 @@ pub const SliderScalarOption = struct {
     format: ?[:0]const u8 = null,
     flags: c.ImGuiSliderFlags = 0,
 };
-pub fn sliderScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *c_void, p_min: *const c_void, p_max: *const c_void, option: SliderScalarOption) bool {
+pub fn sliderScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, p_min: *const anyopaque, p_max: *const anyopaque, option: SliderScalarOption) bool {
     return c.igSliderScalar(label, data_type, p_data, p_min, p_max, option.format, option.flags);
 }
-pub fn sliderScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *c_void, components: c_int, p_min: *const c_void, p_max: *const c_void, option: SliderScalarOption) bool {
+pub fn sliderScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, components: c_int, p_min: *const anyopaque, p_max: *const anyopaque, option: SliderScalarOption) bool {
     return c.igSliderScalarN(label, data_type, p_data, components, p_min, p_max, option.format, option.flags);
 }
 pub const VSliderFloatOption = struct {
@@ -578,7 +578,7 @@ pub const VSliderScalarOption = struct {
     format: ?[:0]const u8 = null,
     flags: c.ImGuiSliderFlags = 0,
 };
-pub fn vSliderScalar(label: [:0]const u8, size: c.ImVec2, data_type: c.ImGuiDataType, p_data: *c_void, p_min: *const c_void, p_max: *const c_void, option: VSliderScalarOption) bool {
+pub fn vSliderScalar(label: [:0]const u8, size: c.ImVec2, data_type: c.ImGuiDataType, p_data: *anyopaque, p_min: *const anyopaque, p_max: *const anyopaque, option: VSliderScalarOption) bool {
     return c.igVSliderScalar(label, size, data_type, p_data, p_min, p_max, option.format, option.flags);
 }
 
@@ -588,7 +588,7 @@ pub fn vSliderScalar(label: [:0]const u8, size: c.ImVec2, data_type: c.ImGuiData
 pub const InputTextOption = struct {
     flags: c.ImGuiInputTextFlags = 0,
     callback: c.ImGuiInputTextCallback = null,
-    user_data: ?*c_void = null,
+    user_data: ?*anyopaque = null,
 };
 pub fn inputText(label: [:0]const u8, buf: []u8, option: InputTextOption) bool {
     return c.igInputText(label, buf.ptr, buf.len, option.flags, option.callback, option.user_data);
@@ -597,7 +597,7 @@ pub const InputTextMultilineOption = struct {
     size: c.ImVec2 = vec2_zero,
     flags: c.ImGuiInputTextFlags = 0,
     callback: c.ImGuiInputTextCallback = null,
-    user_data: ?*c_void = null,
+    user_data: ?*anyopaque = null,
 };
 pub fn inputTextMultiline(label: [:0]const u8, buf: []u8, option: InputTextMultilineOption) bool {
     return c.igInputTextMultiline(label, buf.ptr, buf.len, option.size, option.flags, option.callback, option.user_data);
@@ -654,15 +654,15 @@ pub fn inputDouble(label: [:0]const u8, v: *f64, option: InputDoubleOption) bool
     return c.igInputDouble(label, v, option.step, option.step_fast, option.format, option.flags);
 }
 pub const InputScalarOption = struct {
-    p_step: ?*const c_void = null,
-    p_step_fast: ?*const c_void = null,
+    p_step: ?*const anyopaque = null,
+    p_step_fast: ?*const anyopaque = null,
     format: ?[:0]const u8 = null,
     flags: c.ImGuiInputTextFlags = 0,
 };
-pub fn inputScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *c_void, option: InputScalarOption) bool {
+pub fn inputScalar(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, option: InputScalarOption) bool {
     return c.igInputScalar(label, data_type, p_data, option.p_step, option.p_step_fast, option.format, option.flags);
 }
-pub fn inputScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *c_void, components: c_int, option: InputScalarOption) bool {
+pub fn inputScalarN(label: [:0]const u8, data_type: c.ImGuiDataType, p_data: *anyopaque, components: c_int, option: InputScalarOption) bool {
     return c.igInputScalarN(label, data_type, p_data, components, option.p_step, option.p_step_fast, option.format, option.flags);
 }
 
@@ -705,7 +705,7 @@ pub const treeNodeEx_Ptr = c.igTreeNodeEx_Ptr;
 pub fn treePush_Str(str_id: [:0]const u8) void {
     return c.igTreePush_Str(str_id);
 }
-pub fn treePush_Ptr(ptr_id: *const c_void) void {
+pub fn treePush_Ptr(ptr_id: *const anyopaque) void {
     return c.igTreePush_Ptr(ptr_id);
 }
 pub const treePop = c.igTreePop;
@@ -752,7 +752,7 @@ pub const endListBox = c.igEndListBox;
 pub fn listBox_Str_arr(label: [:0]const u8, current_item: *c_int, items: []const [*c]const u8, height_in_items: ?c_int) bool {
     return c.igListBox_Str_arr(label, current_item, items.ptr, @intCast(c_int, items.len), height_in_items orelse -1);
 }
-pub fn listBox_FnBoolPtr(label: [:0]const u8, current_item: *c_int, items_getter: fn (?*c_void, c_int, [*c][*c]const u8) callconv(.C) bool, data: ?*c_void, items_count: c_int, height_in_items: ?c_int) bool {
+pub fn listBox_FnBoolPtr(label: [:0]const u8, current_item: *c_int, items_getter: fn (?*anyopaque, c_int, [*c][*c]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: c_int, height_in_items: ?c_int) bool {
     return c.igListBox_FnBoolPtr(label, current_item, items_getter, data, items_count, height_in_items orelse -1);
 }
 
@@ -769,13 +769,13 @@ var PlotOption = struct {
 pub fn plotLines_FloatPtr(label: [:0]const u8, values: []const f32, option: PlotOption) void {
     return c.igPlotLines_FloatPtr(label, values.ptr, @intCast(c_int, values.len), option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size, option.stride);
 }
-pub fn plotLines_FnFloatPtr(label: [:0]const u8, values_getter: fn (?*c_void, c_int) callconv(.C) f32, data: ?*c_void, values_count: c_int, option: PlotOption) void {
+pub fn plotLines_FnFloatPtr(label: [:0]const u8, values_getter: fn (?*anyopaque, c_int) callconv(.C) f32, data: ?*anyopaque, values_count: c_int, option: PlotOption) void {
     return c.igPlotLines_FnFloatPtr(label, values_getter, data, values_count, option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size);
 }
 pub fn plotHistogram_FloatPtr(label: [:0]const u8, values: []const f32, option: PlotOption) void {
     return c.igPlotHistogram_FloatPtr(label, values.ptr, @intCast(c_int, values.len), option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size, option.stride);
 }
-pub fn plotHistogram_FnFloatPtr(label: [:0]const u8, values_getter: fn (?*c_void, c_int) callconv(.C) f32, data: ?*c_void, values_count: c_int, option: PlotOption) void {
+pub fn plotHistogram_FnFloatPtr(label: [:0]const u8, values_getter: fn (?*anyopaque, c_int) callconv(.C) f32, data: ?*anyopaque, values_count: c_int, option: PlotOption) void {
     return c.igPlotHistogram_FnFloatPtr(label, values_getter, data, values_count, option.values_offset, option.overlay_text, option.scale_min, option.scale_max, option.graph_size);
 }
 
@@ -1038,7 +1038,7 @@ pub const logText = c.igLogText;
 pub fn beginDragDropSource(flags: ?c.ImGuiDragDropFlags) bool {
     return c.igBeginDragDropSource(flags orelse 0);
 }
-pub fn setDragDropPayload(@"type": [:0]const u8, data: *const c_void, sz: usize, cond: ?c.ImGuiCond) bool {
+pub fn setDragDropPayload(@"type": [:0]const u8, data: *const anyopaque, sz: usize, cond: ?c.ImGuiCond) bool {
     return c.igSetDragDropPayload(@"type", data, sz, cond orelse 0);
 }
 pub const endDragDropSource = c.igEndDragDropSource;
@@ -1262,23 +1262,23 @@ pub fn debugCheckVersionAndDataLayout(version_str: [:0]const u8, sz_io: usize, s
 // - Those functions are not reliant on the current context.
 // - DLL users: heaps and globals are not shared across DLL boundaries! You will need to call SetCurrentContext() + SetAllocatorFunctions()
 //   for each static/DLL boundary you are calling from. Read "Context and Memory Allocators" section of imgui.cpp for more details.
-pub fn setAllocatorFunctions(alloc_func: c.ImGuiMemAllocFunc, free_func: c.ImGuiMemFreeFunc, user_data: ?*c_void) void {
+pub fn setAllocatorFunctions(alloc_func: c.ImGuiMemAllocFunc, free_func: c.ImGuiMemFreeFunc, user_data: ?*anyopaque) void {
     return c.igSetAllocatorFunctions(alloc_func, free_func, user_data);
 }
-pub fn getAllocatorFunctions(p_alloc_func: [*c]c.ImGuiMemAllocFunc, p_free_func: [*c]c.ImGuiMemFreeFunc, p_user_data: **c_void) void {
+pub fn getAllocatorFunctions(p_alloc_func: [*c]c.ImGuiMemAllocFunc, p_free_func: [*c]c.ImGuiMemFreeFunc, p_user_data: **anyopaque) void {
     return c.igGetAllocatorFunctions(p_alloc_func, p_free_func, p_user_data);
 }
-pub fn memAlloc(size: usize) ?*c_void {
+pub fn memAlloc(size: usize) ?*anyopaque {
     return c.igMemAlloc(size);
 }
-pub fn memFree(ptr: ?*c_void) void {
+pub fn memFree(ptr: ?*anyopaque) void {
     return c.igMemFree(ptr);
 }
 
 /// ImGui Helpers
 pub const helpers = struct {
     // Helpers: Hashing
-    pub fn hashData(data: [*]const c_void, data_size: usize, seed: c.ImU32) c.ImGuiID {
+    pub fn hashData(data: [*]const anyopaque, data_size: usize, seed: c.ImU32) c.ImGuiID {
         return c.igImHashData(data, data_size, seed);
     }
     pub fn hashStr(data: []const u8, seed: c.ImU32) c.ImGuiID {
@@ -1391,13 +1391,13 @@ pub const helpers = struct {
     pub fn fileGetSize(file: c.ImFileHandle) c.ImU64 {
         return c.igImFileGetSize(file);
     }
-    pub fn fileRead(data: ?*c_void, size: c.ImU64, count: c.ImU64, file: c.ImFileHandle) c.ImU64 {
+    pub fn fileRead(data: ?*anyopaque, size: c.ImU64, count: c.ImU64, file: c.ImFileHandle) c.ImU64 {
         return c.igImFileRead(data, size, count, file);
     }
-    pub fn fileWrite(data: ?*const c_void, size: c.ImU64, count: c.ImU64, file: c.ImFileHandle) c.ImU64 {
+    pub fn fileWrite(data: ?*const anyopaque, size: c.ImU64, count: c.ImU64, file: c.ImFileHandle) c.ImU64 {
         return c.igImFileWrite(data, size, count, file);
     }
-    pub fn fileLoadToMemory(filename: [*c]const u8, mode: [*c]const u8, out_file_size: [*c]usize, padding_bytes: c_int) ?*c_void {
+    pub fn fileLoadToMemory(filename: [*c]const u8, mode: [*c]const u8, out_file_size: [*c]usize, padding_bytes: c_int) ?*anyopaque {
         return c.igImFileLoadToMemory(filename, mode, out_file_size, padding_bytes);
     }
 
@@ -2207,10 +2207,10 @@ pub const internal = struct {
     pub fn buttonBehavior(bb: c.ImRect, id: c.ImGuiID, out_hovered: *bool, out_held: *bool, flags: c.ImGuiButtonFlags) bool {
         return c.igButtonBehavior(bb, id, out_hovered, out_held, flags);
     }
-    pub fn dragBehavior(id: c.ImGuiID, data_type: c.ImGuiDataType, p_v: ?*c_void, v_speed: f32, p_min: ?*const c_void, p_max: ?*const c_void, format: [:0]const u8, flags: c.ImGuiSliderFlags) bool {
+    pub fn dragBehavior(id: c.ImGuiID, data_type: c.ImGuiDataType, p_v: ?*anyopaque, v_speed: f32, p_min: ?*const anyopaque, p_max: ?*const anyopaque, format: [:0]const u8, flags: c.ImGuiSliderFlags) bool {
         return c.igDragBehavior(id, data_type, p_v, v_speed, p_min, p_max, format, flags);
     }
-    pub fn sliderBehavior(bb: c.ImRect, id: c.ImGuiID, data_type: c.ImGuiDataType, p_v: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void, format: [:0]const u8, flags: c.ImGuiSliderFlags, out_grab_bb: [*c]c.ImRect) bool {
+    pub fn sliderBehavior(bb: c.ImRect, id: c.ImGuiID, data_type: c.ImGuiDataType, p_v: ?*anyopaque, p_min: ?*const anyopaque, p_max: ?*const anyopaque, format: [:0]const u8, flags: c.ImGuiSliderFlags, out_grab_bb: [*c]c.ImRect) bool {
         return c.igSliderBehavior(bb, id, data_type, p_v, p_min, p_max, format, flags, out_grab_bb);
     }
     pub fn splitterBehavior(bb: c.ImRect, id: c.ImGuiID, axis: c.ImGuiAxis, size1: *f32, size2: *f32, min_size1: f32, min_size2: f32, hover_extend: f32, hover_visibility_delay: f32) bool {
@@ -2230,30 +2230,30 @@ pub const internal = struct {
     pub fn dataTypeGetInfo(data_type: c.ImGuiDataType) [*c]const c.ImGuiDataTypeInfo {
         return c.igDataTypeGetInfo(data_type);
     }
-    pub fn dataTypeFormatString(buf: [*c]u8, buf_size: c_int, data_type: c.ImGuiDataType, p_data: ?*const c_void, format: [:0]const u8) c_int {
+    pub fn dataTypeFormatString(buf: [*c]u8, buf_size: c_int, data_type: c.ImGuiDataType, p_data: ?*const anyopaque, format: [:0]const u8) c_int {
         return c.igDataTypeFormatString(buf, buf_size, data_type, p_data, format);
     }
-    pub fn dataTypeApplyOp(data_type: c.ImGuiDataType, op: c_int, output: ?*c_void, arg_1: ?*const c_void, arg_2: ?*const c_void) void {
+    pub fn dataTypeApplyOp(data_type: c.ImGuiDataType, op: c_int, output: ?*anyopaque, arg_1: ?*const anyopaque, arg_2: ?*const anyopaque) void {
         return c.igDataTypeApplyOp(data_type, op, output, arg_1, arg_2);
     }
-    pub fn dataTypeApplyOpFromText(buf: [*c]const u8, initial_value_buf: [*c]const u8, data_type: c.ImGuiDataType, p_data: ?*c_void, format: [:0]const u8) bool {
+    pub fn dataTypeApplyOpFromText(buf: [*c]const u8, initial_value_buf: [*c]const u8, data_type: c.ImGuiDataType, p_data: ?*anyopaque, format: [:0]const u8) bool {
         return c.igDataTypeApplyOpFromText(buf, initial_value_buf, data_type, p_data, format);
     }
-    pub fn dataTypeCompare(data_type: c.ImGuiDataType, arg_1: ?*const c_void, arg_2: ?*const c_void) c_int {
+    pub fn dataTypeCompare(data_type: c.ImGuiDataType, arg_1: ?*const anyopaque, arg_2: ?*const anyopaque) c_int {
         return c.igDataTypeCompare(data_type, arg_1, arg_2);
     }
-    pub fn dataTypeClamp(data_type: c.ImGuiDataType, p_data: ?*c_void, p_min: ?*const c_void, p_max: ?*const c_void) bool {
+    pub fn dataTypeClamp(data_type: c.ImGuiDataType, p_data: ?*anyopaque, p_min: ?*const anyopaque, p_max: ?*const anyopaque) bool {
         return c.igDataTypeClamp(data_type, p_data, p_min, p_max);
     }
 
     // InputText
-    pub fn inputTextEx(label: [:0]const u8, hint: [*c]const u8, buf: [*c]u8, buf_size: c_int, size_arg: c.ImVec2, flags: c.ImGuiInputTextFlags, callback: c.ImGuiInputTextCallback, user_data: ?*c_void) bool {
+    pub fn inputTextEx(label: [:0]const u8, hint: [*c]const u8, buf: [*c]u8, buf_size: c_int, size_arg: c.ImVec2, flags: c.ImGuiInputTextFlags, callback: c.ImGuiInputTextCallback, user_data: ?*anyopaque) bool {
         return c.igInputTextEx(label, hint, buf, buf_size, size_arg, flags, callback, user_data);
     }
     pub fn tempInputText(bb: c.ImRect, id: c.ImGuiID, label: [:0]const u8, buf: [*c]u8, buf_size: c_int, flags: c.ImGuiInputTextFlags) bool {
         return c.igTempInputText(bb, id, label, buf, buf_size, flags);
     }
-    pub fn tempInputScalar(bb: c.ImRect, id: c.ImGuiID, label: [:0]const u8, data_type: c.ImGuiDataType, p_data: ?*c_void, format: [:0]const u8, p_clamp_min: ?*const c_void, p_clamp_max: ?*const c_void) bool {
+    pub fn tempInputScalar(bb: c.ImRect, id: c.ImGuiID, label: [:0]const u8, data_type: c.ImGuiDataType, p_data: ?*anyopaque, format: [:0]const u8, p_clamp_min: ?*const anyopaque, p_clamp_max: ?*const anyopaque) bool {
         return c.igTempInputScalar(bb, id, label, data_type, p_data, format, p_clamp_min, p_clamp_max);
     }
     pub fn tempInputIsActive(id: c.ImGuiID) bool {
@@ -2275,7 +2275,7 @@ pub const internal = struct {
     }
 
     // Plot
-    pub fn plotEx(plot_type: c.ImGuiPlotType, label: [:0]const u8, values_getter: fn (?*c_void, c_int) callconv(.C) f32, data: ?*c_void, values_count: c_int, values_offset: c_int, overlay_text: [*c]const u8, scale_min: f32, scale_max: f32, frame_size: c.ImVec2) c_int {
+    pub fn plotEx(plot_type: c.ImGuiPlotType, label: [:0]const u8, values_getter: fn (?*anyopaque, c_int) callconv(.C) f32, data: ?*anyopaque, values_count: c_int, values_offset: c_int, overlay_text: [*c]const u8, scale_min: f32, scale_max: f32, frame_size: c.ImVec2) c_int {
         return c.igPlotEx(plot_type, label, values_getter, data, values_count, values_offset, overlay_text, scale_min, scale_max, frame_size);
     }
 
@@ -2297,10 +2297,10 @@ pub const internal = struct {
     }
 
     // Debug Tools
-    pub fn errorCheckEndFrameRecover(log_callback: c.ImGuiErrorLogCallback, user_data: ?*c_void) void {
+    pub fn errorCheckEndFrameRecover(log_callback: c.ImGuiErrorLogCallback, user_data: ?*anyopaque) void {
         return c.igErrorCheckEndFrameRecover(log_callback, user_data);
     }
-    pub fn errorCheckEndWindowRecover(log_callback: c.ImGuiErrorLogCallback, user_data: ?*c_void) void {
+    pub fn errorCheckEndWindowRecover(log_callback: c.ImGuiErrorLogCallback, user_data: ?*anyopaque) void {
         return c.igErrorCheckEndWindowRecover(log_callback, user_data);
     }
     pub fn debugDrawItemRect(col: c.ImU32) void {
@@ -2364,7 +2364,7 @@ pub const fontatlas = struct {
     pub fn buildSetupFont(atlas: *c.ImFontAtlas, font: *c.ImFont, font_config: *c.ImFontConfig, ascent: f32, descent: f32) void {
         return c.igImFontAtlasBuildSetupFont(atlas, font, font_config, ascent, descent);
     }
-    pub fn buildPackCustomRects(atlas: *c.ImFontAtlas, stbrp_context_opaque: ?*c_void) void {
+    pub fn buildPackCustomRects(atlas: *c.ImFontAtlas, stbrp_context_opaque: ?*anyopaque) void {
         return c.igImFontAtlasBuildPackCustomRects(atlas, stbrp_context_opaque);
     }
     pub fn buildFinish(atlas: *c.ImFontAtlas) void {
