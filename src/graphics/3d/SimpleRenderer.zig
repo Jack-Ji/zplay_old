@@ -8,7 +8,6 @@ const zp = @import("../../zplay.zig");
 const drawcall = zp.graphics.common.drawcall;
 const ShaderProgram = zp.graphics.common.ShaderProgram;
 const VertexArray = zp.graphics.common.VertexArray;
-const Texture2D = zp.graphics.texture.Texture2D;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;

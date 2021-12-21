@@ -14,12 +14,13 @@ var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = false;
 var perspective_mode = true;
 var use_texture = false;
+var quad: Mesh = undefined;
 var cube1: Mesh = undefined;
 var cube2: Mesh = undefined;
 var cube_material: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
-    alg.Vec3.new(0, 0, 6),
-    alg.Vec3.zero(),
+    Vec3.new(0, 0, 6),
+    Vec3.zero(),
     null,
 );
 
@@ -33,14 +34,17 @@ fn init(ctx: *zp.Context) anyerror!void {
     simple_renderer = SimpleRenderer.init();
 
     // generate meshes
-    cube1 = try Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5, Vec4.new(0, 1, 0, 1));
-    cube2 = try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2, Vec4.new(0, 1, 0, 1));
+    var default_color = Vec4.new(0, 1, 0, 1);
+    quad = try Mesh.genQuad(std.testing.allocator, 1, 1, default_color);
+    cube1 = try Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5, default_color);
+    cube2 = try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2, default_color);
 
     // create material
     var cube_image = Texture2D.fromFilePath(
         std.testing.allocator,
         "assets/wall.jpg",
         false,
+        .{},
     ) catch unreachable;
     cube_material = Material.init(.{
         .single_texture = cube_image,
@@ -54,7 +58,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 fn loop(ctx: *zp.Context) void {
     const S = struct {
         var frame: f32 = 0;
-        var axis = alg.Vec4.new(1, 1, 1, 0);
+        var axis = Vec4.new(1, 1, 1, 0);
         var last_tick: ?f32 = null;
     };
     S.frame += 1;
@@ -109,17 +113,17 @@ fn loop(ctx: *zp.Context) void {
             100,
         );
     }
-    S.axis = alg.Mat4.fromRotation(1, alg.Vec3.new(-1, 1, -1)).multByVec4(S.axis);
+    S.axis = alg.Mat4.fromRotation(1, Vec3.new(-1, 1, -1)).multByVec4(S.axis);
     const model = alg.Mat4.fromRotation(
         S.frame,
-        alg.Vec3.new(S.axis.x, S.axis.y, S.axis.z),
+        Vec3.new(S.axis.x, S.axis.y, S.axis.z),
     );
 
     var renderer = simple_renderer.renderer();
     renderer.begin();
     {
         renderer.renderMesh(
-            cube1,
+            quad,
             model.translate(Vec3.new(-2.0, 1.2, 0)),
             projection,
             camera,
@@ -128,8 +132,17 @@ fn loop(ctx: *zp.Context) void {
         ) catch unreachable;
 
         renderer.renderMesh(
-            cube2,
+            cube1,
             model.translate(Vec3.new(-0.5, 1.2, 0)),
+            projection,
+            camera,
+            if (use_texture) cube_material else null,
+            null,
+        ) catch unreachable;
+
+        renderer.renderMesh(
+            cube2,
+            model.translate(Vec3.new(1.0, 1.2, 0)),
             projection,
             camera,
             if (use_texture) cube_material else null,
@@ -144,19 +157,20 @@ fn loop(ctx: *zp.Context) void {
         dig.setNextWindowPos(
             .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
             .{
-                .cond = dig.c.ImGuiCond_Always,
+                .cond = dig.c.ImGuiCond_Once,
                 .pivot = .{ .x = 1, .y = 0 },
             },
         );
         if (dig.begin(
             "settings",
             null,
-            dig.c.ImGuiWindowFlags_NoMove |
-                dig.c.ImGuiWindowFlags_NoResize |
+            dig.c.ImGuiWindowFlags_NoResize |
                 dig.c.ImGuiWindowFlags_AlwaysAutoResize,
         )) {
             if (dig.checkbox("wireframe", &wireframe_mode)) {
-                ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
+                ctx.graphics.setPolygonMode(
+                    if (wireframe_mode) .line else .fill,
+                );
             }
             _ = dig.checkbox("perspective", &perspective_mode);
             _ = dig.checkbox("texture", &use_texture);

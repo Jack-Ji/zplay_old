@@ -1,7 +1,11 @@
 const std = @import("std");
 const zp = @import("zplay");
-const alg = zp.deps.alg;
 const dig = zp.deps.dig;
+const alg = zp.deps.alg;
+const Vec3 = alg.Vec3;
+const Vec4 = alg.Vec4;
+const Mat4 = alg.Mat4;
+const Framebuffer = zp.graphics.common.Framebuffer;
 const Texture2D = zp.graphics.texture.Texture2D;
 const Renderer = zp.graphics.@"3d".Renderer;
 const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
@@ -10,28 +14,33 @@ const Material = zp.graphics.@"3d".Material;
 const Camera = zp.graphics.@"3d".Camera;
 
 var simple_renderer: SimpleRenderer = undefined;
+var fb: Framebuffer = undefined;
+var fb_texture: Texture2D = undefined;
+var fb_material: Material = undefined;
+var quad: Mesh = undefined;
 var cube: Mesh = undefined;
-var texture_material: Material = undefined;
+var cube_material: Material = undefined;
 var color_material: Material = undefined;
 var wireframe_mode = false;
 var outlined = false;
+var rotate_scene_fb = false;
 var camera = Camera.fromPositionAndTarget(
-    alg.Vec3.new(0, 0, 3),
-    alg.Vec3.zero(),
+    Vec3.new(0, 0, 3),
+    Vec3.zero(),
     null,
 );
 
-const cube_positions = [_]alg.Vec3{
-    alg.Vec3.new(0.0, 0.0, 0.0),
-    alg.Vec3.new(2.0, 5.0, -15.0),
-    alg.Vec3.new(-1.5, -2.2, -2.5),
-    alg.Vec3.new(-3.8, -2.0, -12.3),
-    alg.Vec3.new(2.4, -0.4, -3.5),
-    alg.Vec3.new(-1.7, 3.0, -7.5),
-    alg.Vec3.new(1.3, -2.0, -2.5),
-    alg.Vec3.new(1.5, 2.0, -2.5),
-    alg.Vec3.new(1.5, 0.2, -1.5),
-    alg.Vec3.new(-1.3, 1.0, -1.5),
+const cube_positions = [_]Vec3{
+    Vec3.new(0.0, 0.0, 0.0),
+    Vec3.new(2.0, 5.0, -15.0),
+    Vec3.new(-1.5, -2.2, -2.5),
+    Vec3.new(-3.8, -2.0, -12.3),
+    Vec3.new(2.4, -0.4, -3.5),
+    Vec3.new(-1.7, 3.0, -7.5),
+    Vec3.new(1.3, -2.0, -2.5),
+    Vec3.new(1.5, 2.0, -2.5),
+    Vec3.new(1.5, 0.2, -1.5),
+    Vec3.new(-1.3, 1.0, -1.5),
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -40,27 +49,46 @@ fn init(ctx: *zp.Context) anyerror!void {
     // init imgui
     try dig.init(ctx.window);
 
+    // allocate framebuffer
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    fb_texture = try Texture2D.init(
+        std.testing.allocator,
+        null,
+        .rgba,
+        width,
+        height,
+        .{},
+    );
+    fb = try Framebuffer.fromTexture(fb_texture.tex, .{});
+    fb_material = Material.init(.{
+        .single_texture = fb_texture,
+    });
+
     // simple renderer
     simple_renderer = SimpleRenderer.init();
 
     // generate mesh
+    quad = try Mesh.genQuad(std.testing.allocator, 2, 2, null);
     cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1, null);
 
     // load texture
-    texture_material = Material.init(.{
+    cube_material = Material.init(.{
         .single_texture = try Texture2D.fromFilePath(
             std.testing.allocator,
             "assets/wall.jpg",
             false,
+            .{},
         ),
     });
-    _ = texture_material.allocTextureUnit(0);
     color_material = Material.init(.{
         .single_color = alg.Vec4.new(0, 1, 0, 1),
     });
 
-    // enable depth test
-    ctx.graphics.toggleCapability(.depth_test, true);
+    // alloc texture unit
+    var unit = fb_material.allocTextureUnit(0);
+    _ = cube_material.allocTextureUnit(unit);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -123,17 +151,40 @@ fn loop(ctx: *zp.Context) void {
 
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.getWindowSize(&width, &height);
+    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
 
+    // render to custom framebuffer
+    ctx.graphics.useFramebuffer(fb);
+    ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
+    ctx.graphics.toggleCapability(.depth_test, true);
     ctx.graphics.clear(true, true, true, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
-
     const projection = alg.Mat4.perspective(
         45,
         @intToFloat(f32, width) / @intToFloat(f32, height),
         0.1,
         100,
     );
-    render_boxes(ctx, projection, S.frame);
+    renderBoxes(ctx, projection, S.frame);
+
+    // draw framebuffer's color texture
+    ctx.graphics.useFramebuffer(null);
+    ctx.graphics.setPolygonMode(.fill);
+    ctx.graphics.toggleCapability(.depth_test, false);
+    ctx.graphics.clear(true, false, false, [4]f32{ 0.3, 0.2, 0.3, 1.0 });
+    var model = Mat4.identity();
+    if (rotate_scene_fb) {
+        model = Mat4.fromRotation(S.frame, Vec3.up());
+    }
+    simple_renderer.renderer().begin();
+    simple_renderer.renderer().renderMesh(
+        quad,
+        model,
+        Mat4.identity(),
+        null,
+        fb_material,
+        null,
+    ) catch unreachable;
+    simple_renderer.renderer().end();
 
     // settings
     dig.beginFrame();
@@ -152,11 +203,12 @@ fn loop(ctx: *zp.Context) void {
                 dig.c.ImGuiWindowFlags_NoResize |
                 dig.c.ImGuiWindowFlags_AlwaysAutoResize,
         )) {
-            if (dig.checkbox("wireframe", &wireframe_mode)) {
-                ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
-            }
+            _ = dig.checkbox("wireframe", &wireframe_mode);
             if (dig.checkbox("outlined", &outlined)) {
                 ctx.graphics.toggleCapability(.stencil_test, outlined);
+            }
+            if (dig.checkbox("rotate scene", &rotate_scene_fb)) {
+                if (rotate_scene_fb) S.frame = 0;
             }
         }
         dig.end();
@@ -164,7 +216,7 @@ fn loop(ctx: *zp.Context) void {
     dig.endFrame();
 }
 
-fn render_boxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
+fn renderBoxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
     simple_renderer.renderer().begin();
     defer simple_renderer.renderer().end();
 
@@ -179,14 +231,14 @@ fn render_boxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
     for (cube_positions) |pos, i| {
         var model = alg.Mat4.fromRotation(
             20 * @intToFloat(f32, i) + frame,
-            alg.Vec3.new(1, 0.3, 0.5),
+            Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
         simple_renderer.renderer().renderMesh(
             cube,
             model,
             projection,
             camera,
-            texture_material,
+            cube_material,
             null,
         ) catch unreachable;
     }
@@ -201,11 +253,11 @@ fn render_boxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
         for (cube_positions) |pos, i| {
             var model = alg.Mat4.fromRotation(
                 20 * @intToFloat(f32, i) + frame,
-                alg.Vec3.new(1, 0.3, 0.5),
+                Vec3.new(1, 0.3, 0.5),
             ).translate(pos);
             simple_renderer.renderer().renderMesh(
                 cube,
-                model.mult(alg.Mat4.fromScale(alg.Vec3.set(1.01))),
+                model.mult(alg.Mat4.fromScale(Vec3.set(1.01))),
                 projection,
                 camera,
                 color_material,
@@ -225,6 +277,5 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
-        .enable_resizable = true,
     });
 }

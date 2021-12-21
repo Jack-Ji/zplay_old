@@ -1,5 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const Framebuffer = @import("Framebuffer.zig");
 const zp = @import("../../zplay.zig");
 const sdl = zp.deps.sdl;
 const gl = zp.deps.gl;
@@ -328,4 +329,14 @@ pub fn setCullingOption(self: Self, option: CullingOption) void {
     if (option.front) |f| {
         gl.frontFace(@enumToInt(f));
     }
+}
+
+/// enable a framebuffer, use system-allocated by default 
+pub fn useFramebuffer(self: Self, framebuffer: ?Framebuffer) void {
+    _ = self;
+    gl.bindFramebuffer(
+        gl.GL_FRAMEBUFFER,
+        if (framebuffer) |fb| fb.id else 0,
+    );
+    gl.util.checkError();
 }

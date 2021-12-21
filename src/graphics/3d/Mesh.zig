@@ -135,6 +135,54 @@ pub fn deinit(self: Self) void {
     }
 }
 
+// generate a quad
+pub fn genQuad(
+    allocator: std.mem.Allocator,
+    w: f32,
+    h: f32,
+    color: ?Vec4,
+) !Self {
+    const w2 = w / 2;
+    const h2 = h / 2;
+    const positions: [4]Vec3 = .{
+        Vec3.new(-w2, -h2, 0),
+        Vec3.new(w2, -h2, 0),
+        Vec3.new(w2, h2, 0),
+        Vec3.new(-w2, h2, 0),
+    };
+    const normals: [4]Vec3 = .{
+        Vec3.forward(),
+        Vec3.forward(),
+        Vec3.forward(),
+        Vec3.forward(),
+    };
+    const texcoords: [4]Vec2 = .{
+        Vec2.new(0, 0),
+        Vec2.new(1, 0),
+        Vec2.new(1, 1),
+        Vec2.new(0, 1),
+    };
+    const indices: [6]u32 = .{
+        0, 1, 2, 0, 2, 3,
+    };
+
+    const mesh = try init(
+        allocator,
+        .triangles,
+        &positions,
+        &indices,
+        &normals,
+        &texcoords,
+        if (color) |c|
+            &[4]Vec4{ c, c, c, c }
+        else
+            null,
+        null,
+    );
+    mesh.setup();
+    return mesh;
+}
+
 // generate a cube
 pub fn genCube(
     allocator: std.mem.Allocator,

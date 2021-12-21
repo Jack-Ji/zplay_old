@@ -80,6 +80,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
                 allocator,
                 image_data[0..image.buffer_view.*.size],
                 false,
+                .{},
             )) catch unreachable;
         } else {
             var buf: [64]u8 = undefined;
@@ -93,6 +94,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
                 allocator,
                 image_path,
                 false,
+                .{},
             )) catch unreachable;
         }
     }
@@ -138,9 +140,6 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
 
 /// deallocate resources
 pub fn deinit(self: Self) void {
-    for (self.materials.items) |m| {
-        m.deinit();
-    }
     self.materials.deinit();
     for (self.meshes.items) |m| {
         m.deinit();

@@ -5,7 +5,6 @@ const Mesh = @import("Mesh.zig");
 const zp = @import("../../zplay.zig");
 const drawcall = zp.graphics.common.drawcall;
 const VertexArray = zp.graphics.common.VertexArray;
-const Texture2D = zp.graphics.texture.Texture2D;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;

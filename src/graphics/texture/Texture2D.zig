@@ -11,22 +11,36 @@ pub const Error = error{
 /// gpu texture
 tex: *Texture,
 
-/// size of texture
-width: u32 = undefined,
-height: u32 = undefined,
-
-/// format of texture
+/// format of image
 format: Texture.ImageFormat = undefined,
+
+/// advanced texture creation options
+pub const Option = struct {
+    s_wrap: Texture.WrappingMode = .repeat,
+    t_wrap: Texture.WrappingMode = .repeat,
+    mag_filer: Texture.FilteringMode = .linear,
+    min_filer: Texture.FilteringMode = .linear,
+    gen_mipmap: bool = false,
+    border_color: ?[4]f32 = null,
+};
 
 /// init 2d texture from pixel data
 pub fn init(
     allocator: std.mem.Allocator,
-    pixel_data: []const u8,
+    pixel_data: ?[]const u8,
     format: Texture.ImageFormat,
     width: u32,
     height: u32,
+    option: Option,
 ) !Self {
     var tex = try Texture.init(allocator, .texture_2d);
+    tex.setWrappingMode(.s, option.s_wrap);
+    tex.setWrappingMode(.t, option.t_wrap);
+    tex.setFilteringMode(.minifying, option.min_filer);
+    tex.setFilteringMode(.magnifying, option.mag_filer);
+    if (option.border_color) |c| {
+        tex.setBorderColor(c);
+    }
     tex.updateImageData(
         .texture_2d,
         0,
@@ -40,14 +54,12 @@ pub fn init(
         null,
         format,
         u8,
-        pixel_data.ptr,
-        true,
+        if (pixel_data) |data| data.ptr else null,
+        option.gen_mipmap,
     );
 
     return Self{
         .tex = tex,
-        .width = @intCast(u32, width),
-        .height = @intCast(u32, height),
         .format = format,
     };
 }
@@ -57,7 +69,12 @@ pub fn deinit(self: Self) void {
 }
 
 /// create 2d texture with path to image file
-pub fn fromFilePath(allocator: std.mem.Allocator, file_path: []const u8, flip: bool) !Self {
+pub fn fromFilePath(
+    allocator: std.mem.Allocator,
+    file_path: []const u8,
+    flip: bool,
+    option: Option,
+) !Self {
     var width: c_int = undefined;
     var height: c_int = undefined;
     var channels: c_int = undefined;
@@ -88,11 +105,12 @@ pub fn fromFilePath(allocator: std.mem.Allocator, file_path: []const u8, flip: b
         },
         @intCast(u32, width),
         @intCast(u32, height),
+        option,
     );
 }
 
 /// create 2d texture with given file's data buffer
-pub fn fromFileData(allocator: std.mem.Allocator, data: []const u8, flip: bool) !Self {
+pub fn fromFileData(allocator: std.mem.Allocator, data: []const u8, flip: bool, option: Option) !Self {
     var width: c_int = undefined;
     var height: c_int = undefined;
     var channels: c_int = undefined;
@@ -124,5 +142,6 @@ pub fn fromFileData(allocator: std.mem.Allocator, data: []const u8, flip: bool) 
         },
         @intCast(u32, width),
         @intCast(u32, height),
+        option,
     );
 }

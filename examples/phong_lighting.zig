@@ -78,8 +78,18 @@ fn init(ctx: *zp.Context) anyerror!void {
     cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1, Vec4.one());
 
     // material init
-    var diffuse_texture = try Texture2D.fromFilePath(std.testing.allocator, "assets/container2.png", false);
-    var specular_texture = try Texture2D.fromFilePath(std.testing.allocator, "assets/container2_specular.png", false);
+    var diffuse_texture = try Texture2D.fromFilePath(
+        std.testing.allocator,
+        "assets/container2.png",
+        false,
+        .{},
+    );
+    var specular_texture = try Texture2D.fromFilePath(
+        std.testing.allocator,
+        "assets/container2_specular.png",
+        false,
+        .{},
+    );
     phong_material = Material.init(.{
         .phong = .{
             .diffuse_map = diffuse_texture,

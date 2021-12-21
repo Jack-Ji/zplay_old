@@ -39,21 +39,6 @@ pub fn init(data: MaterialData) Self {
     };
 }
 
-/// remove material
-pub fn deinit(self: Self) void {
-    switch (self.data) {
-        .phong => |mr| {
-            mr.diffuse_map.deinit();
-            mr.specular_map.deinit();
-        },
-        .pbr => {},
-        .single_texture => |t| {
-            t.deinit();
-        },
-        .single_color => {},
-    }
-}
-
 /// alloc texture unit, return next unused unit
 pub fn allocTextureUnit(self: Self, start_unit: i32) i32 {
     var unit = start_unit;

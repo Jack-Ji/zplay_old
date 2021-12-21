@@ -1,4 +1,6 @@
 const std = @import("std");
+const assert = std.debug.assert;
+const panic = std.debug.panic;
 const zp = @import("../../zplay.zig");
 const gl = zp.deps.gl;
 const Self = @This();
@@ -91,7 +93,7 @@ pub const ImageFormat = enum(c_uint) {
             .rgba => 4,
             .bgra => 4,
             else => {
-                std.debug.panic("not image format!", .{});
+                panic("not image format!", .{});
             },
         };
     }
@@ -198,6 +200,14 @@ tt: TextureType,
 /// texture unit
 tu: ?TextureUnit = null,
 
+/// internal format
+format: TextureFormat = undefined,
+
+/// size of texture
+width: u32 = undefined,
+height: ?u32 = null,
+depth: ?u32 = null,
+
 pub fn init(allocator: std.mem.Allocator, tt: TextureType) !*Self {
     const self = try allocator.create(Self);
     self.tt = tt;
@@ -221,6 +231,7 @@ pub fn deinit(self: *Self) void {
 pub fn bindToTextureUnit(self: *Self, unit: TextureUnit) void {
     TextureUnit.alloc(unit, self);
     gl.activeTexture(@enumToInt(self.tu.?));
+    defer gl.activeTexture(gl.GL_TEXTURE0);
     gl.bindTexture(@enumToInt(self.tt), self.id);
     gl.util.checkError();
 }
@@ -232,36 +243,42 @@ pub fn getTextureUnit(self: Self) i32 {
 
 /// set texture wrapping mode
 pub fn setWrappingMode(self: Self, coord: WrappingCoord, mode: WrappingMode) void {
-    std.debug.assert(self.tt == .texture_2d);
-    gl.texParameteri(gl.GL_TEXTURE_2D, @enumToInt(coord), @enumToInt(mode));
+    assert(self.tt == .texture_2d);
+    gl.bindTexture(@enumToInt(self.tt), self.id);
+    defer gl.bindTexture(@enumToInt(self.tt), 0);
+    gl.texParameteri(@enumToInt(self.tt), @enumToInt(coord), @enumToInt(mode));
     gl.util.checkError();
 }
 
 /// set border color, useful when using `WrappingMode.clamp_to_border`
 pub fn setBorderColor(self: Self, color: [4]f32) void {
-    std.debug.assert(self.tt == .texture_2d);
-    gl.texParameterfv(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_BORDER_COLOR, &color);
-    gl.checkError();
+    assert(self.tt == .texture_2d);
+    gl.bindTexture(@enumToInt(self.tt), self.id);
+    defer gl.bindTexture(@enumToInt(self.tt), 0);
+    gl.texParameterfv(@enumToInt(self.tt), gl.GL_TEXTURE_BORDER_COLOR, &color);
+    gl.util.checkError();
 }
 
 /// set filtering mode
 pub fn setFilteringMode(self: Self, situation: FilteringSituation, mode: FilteringMode) void {
-    std.debug.assert(self.tt == .texture_2d);
+    assert(self.tt == .texture_2d);
     if (situation == .magnifying and
         (mode == .linear_mipmap_nearest or
         mode == .linear_mipmap_linear or
         mode == .nearest_mipmap_nearest or
         mode == .nearest_mipmap_linear))
     {
-        std.debug.panic("meaningless filtering parameters!", .{});
+        panic("meaningless filtering parameters!", .{});
     }
-    gl.texParameteri(gl.GL_TEXTURE_2D, @enumToInt(situation), @enumToInt(mode));
-    gl.checkError();
+    gl.bindTexture(@enumToInt(self.tt), self.id);
+    defer gl.bindTexture(@enumToInt(self.tt), 0);
+    gl.texParameteri(@enumToInt(self.tt), @enumToInt(situation), @enumToInt(mode));
+    gl.util.checkError();
 }
 
 /// update image data
 pub fn updateImageData(
-    self: Self,
+    self: *Self,
     target: UpdateTarget,
     mipmap_level: i32,
     texture_format: TextureFormat,
@@ -274,9 +291,10 @@ pub fn updateImageData(
     gen_mipmap: bool,
 ) void {
     gl.bindTexture(@enumToInt(self.tt), self.id);
+    defer gl.bindTexture(@enumToInt(self.tt), 0);
     switch (self.tt) {
         .texture_1d => {
-            std.debug.assert(target == .texture_1d or target == .proxy_texture_1d);
+            assert(target == .texture_1d or target == .proxy_texture_1d);
             gl.texImage1D(
                 @enumToInt(target),
                 mipmap_level,
@@ -289,7 +307,7 @@ pub fn updateImageData(
             );
         },
         .texture_2d => {
-            std.debug.assert(target == .texture_2d or target == .proxy_texture_2d);
+            assert(target == .texture_2d or target == .proxy_texture_2d);
             gl.texImage2D(
                 @enumToInt(target),
                 mipmap_level,
@@ -303,7 +321,7 @@ pub fn updateImageData(
             );
         },
         .texture_1d_array => {
-            std.debug.assert(target == .texture_1d or target == .proxy_texture_1d);
+            assert(target == .texture_1d or target == .proxy_texture_1d);
             gl.texImage2D(
                 @enumToInt(target),
                 mipmap_level,
@@ -317,7 +335,7 @@ pub fn updateImageData(
             );
         },
         .texture_rectangle => {
-            std.debug.assert(target == .texture_rectangle or target == .proxy_texture_rectangle);
+            assert(target == .texture_rectangle or target == .proxy_texture_rectangle);
             gl.texImage2D(
                 @enumToInt(target),
                 mipmap_level,
@@ -331,7 +349,7 @@ pub fn updateImageData(
             );
         },
         .texture_cube_map => {
-            std.debug.assert(target == .texture_cube_map_positive_x or
+            assert(target == .texture_cube_map_positive_x or
                 target == .texture_cube_map_negative_x or
                 target == .texture_cube_map_positive_y or
                 target == .texture_cube_map_negative_y or
@@ -351,7 +369,7 @@ pub fn updateImageData(
             );
         },
         .texture_3d => {
-            std.debug.assert(target == .texture_3d or target == .proxy_texture_3d);
+            assert(target == .texture_3d or target == .proxy_texture_3d);
             gl.texImage3D(
                 @enumToInt(target),
                 mipmap_level,
@@ -366,7 +384,7 @@ pub fn updateImageData(
             );
         },
         .texture_2d_array => {
-            std.debug.assert(target == .texture_2d_array or target == .proxy_texture_2d_array);
+            assert(target == .texture_2d_array or target == .proxy_texture_2d_array);
             gl.texImage3D(
                 @enumToInt(target),
                 mipmap_level,
@@ -381,7 +399,7 @@ pub fn updateImageData(
             );
         },
         else => {
-            std.debug.panic("invalid operation!", .{});
+            panic("invalid operation!", .{});
         },
     }
     gl.util.checkError();
@@ -390,6 +408,11 @@ pub fn updateImageData(
         gl.generateMipmap(@enumToInt(self.tt));
         gl.util.checkError();
     }
+
+    self.format = texture_format;
+    self.width = width;
+    self.height = height;
+    self.depth = depth;
 }
 
 /// update multisample data
@@ -405,7 +428,7 @@ pub fn updateMultisampleData(
 ) void {
     switch (self.tt) {
         .texture_2d_multisample => {
-            std.debug.assert(target == .texture_2d_multisample or target == .proxy_texture_2d_multisample);
+            assert(target == .texture_2d_multisample or target == .proxy_texture_2d_multisample);
             gl.texImage2DMultisample(
                 @enumToInt(target),
                 samples,
@@ -416,7 +439,7 @@ pub fn updateMultisampleData(
             );
         },
         .texture_2d_multisample_array => {
-            std.debug.assert(target == .texture_2d_multisample_array or target == .proxy_texture_2d_multisample_array);
+            assert(target == .texture_2d_multisample_array or target == .proxy_texture_2d_multisample_array);
             gl.texImage3DMultisample(
                 @enumToInt(target),
                 samples,
@@ -428,7 +451,7 @@ pub fn updateMultisampleData(
             );
         },
         else => {
-            std.debug.panic("invalid operation!", .{});
+            panic("invalid operation!", .{});
         },
     }
     gl.util.checkError();
@@ -440,7 +463,7 @@ pub fn updateBufferTexture(
     texture_format: TextureFormat,
     vbo: gl.Uint,
 ) void {
-    std.debug.assert(self.tt == .texture_buffer);
-    gl.texBuffer(gl.GL_TEXTURE_BUFFER, @enumToInt(texture_format), vbo);
+    assert(self.tt == .texture_buffer);
+    gl.texBuffer(@enumToInt(self.tt), @enumToInt(texture_format), vbo);
     gl.util.checkError();
 }
