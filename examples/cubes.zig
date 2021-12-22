@@ -6,13 +6,18 @@ const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const Framebuffer = zp.graphics.common.Framebuffer;
+const TextureUnit = zp.graphics.common.Texture.TextureUnit;
 const Texture2D = zp.graphics.texture.Texture2D;
+const TextureCube = zp.graphics.texture.TextureCube;
+const Skybox = zp.graphics.@"3d".Skybox;
 const Renderer = zp.graphics.@"3d".Renderer;
 const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
 const Mesh = zp.graphics.@"3d".Mesh;
 const Material = zp.graphics.@"3d".Material;
 const Camera = zp.graphics.@"3d".Camera;
 
+var skybox: Skybox = undefined;
+var cubemap: TextureCube = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var fb: Framebuffer = undefined;
 var fb_texture: Texture2D = undefined;
@@ -49,6 +54,9 @@ fn init(ctx: *zp.Context) anyerror!void {
     // init imgui
     try dig.init(ctx.window);
 
+    // allocate skybox
+    skybox = Skybox.init();
+
     // allocate framebuffer
     var width: u32 = undefined;
     var height: u32 = undefined;
@@ -74,6 +82,15 @@ fn init(ctx: *zp.Context) anyerror!void {
     cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1, null);
 
     // load texture
+    cubemap = try TextureCube.fromFilePath(
+        std.testing.allocator,
+        "assets/skybox/right.jpg",
+        "assets/skybox/left.jpg",
+        "assets/skybox/top.jpg",
+        "assets/skybox/bottom.jpg",
+        "assets/skybox/front.jpg",
+        "assets/skybox/back.jpg",
+    );
     cube_material = Material.init(.{
         .single_texture = try Texture2D.fromFilePath(
             std.testing.allocator,
@@ -88,7 +105,8 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // alloc texture unit
     var unit = fb_material.allocTextureUnit(0);
-    _ = cube_material.allocTextureUnit(unit);
+    unit = cube_material.allocTextureUnit(unit);
+    cubemap.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -155,40 +173,51 @@ fn loop(ctx: *zp.Context) void {
 
     // render to custom framebuffer
     ctx.graphics.useFramebuffer(fb);
-    ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
-    ctx.graphics.toggleCapability(.depth_test, true);
-    ctx.graphics.clear(true, true, true, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
-    const projection = alg.Mat4.perspective(
-        45,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
-    );
-    renderBoxes(ctx, projection, S.frame);
+    {
+        ctx.graphics.toggleCapability(.depth_test, true);
+        ctx.graphics.clear(true, true, true, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
+        const projection = alg.Mat4.perspective(
+            45,
+            @intToFloat(f32, width) / @intToFloat(f32, height),
+            0.1,
+            100,
+        );
+
+        // draw boxes
+        ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
+        renderBoxes(ctx, projection, S.frame);
+
+        // draw skybox
+        skybox.draw(&ctx.graphics, projection, cubemap, camera);
+    }
 
     // draw framebuffer's color texture
     ctx.graphics.useFramebuffer(null);
-    ctx.graphics.setPolygonMode(.fill);
-    ctx.graphics.toggleCapability(.depth_test, false);
-    ctx.graphics.clear(true, false, false, [4]f32{ 0.3, 0.2, 0.3, 1.0 });
-    var model = Mat4.identity();
-    if (rotate_scene_fb) {
-        model = Mat4.fromRotation(S.frame, Vec3.up());
+    {
+        ctx.graphics.setPolygonMode(.fill);
+        ctx.graphics.toggleCapability(.depth_test, false);
+        ctx.graphics.clear(true, false, false, [4]f32{ 0.3, 0.2, 0.3, 1.0 });
+        var model = Mat4.identity();
+        if (rotate_scene_fb) {
+            model = Mat4.fromRotation(S.frame, Vec3.up());
+        }
+        simple_renderer.renderer().begin();
+        simple_renderer.renderer().renderMesh(
+            quad,
+            model,
+            Mat4.identity(),
+            null,
+            fb_material,
+            null,
+        ) catch unreachable;
+        simple_renderer.renderer().end();
     }
-    simple_renderer.renderer().begin();
-    simple_renderer.renderer().renderMesh(
-        quad,
-        model,
-        Mat4.identity(),
-        null,
-        fb_material,
-        null,
-    ) catch unreachable;
-    simple_renderer.renderer().end();
 
     // settings
     dig.beginFrame();
     {
+        defer dig.endFrame();
+
         dig.setNextWindowPos(
             .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
             .{
@@ -213,7 +242,6 @@ fn loop(ctx: *zp.Context) void {
         }
         dig.end();
     }
-    dig.endFrame();
 }
 
 fn renderBoxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {

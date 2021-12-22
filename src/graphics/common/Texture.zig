@@ -243,7 +243,7 @@ pub fn getTextureUnit(self: Self) i32 {
 
 /// set texture wrapping mode
 pub fn setWrappingMode(self: Self, coord: WrappingCoord, mode: WrappingMode) void {
-    assert(self.tt == .texture_2d);
+    assert(self.tt == .texture_2d or self.tt == .texture_cube_map);
     gl.bindTexture(@enumToInt(self.tt), self.id);
     defer gl.bindTexture(@enumToInt(self.tt), 0);
     gl.texParameteri(@enumToInt(self.tt), @enumToInt(coord), @enumToInt(mode));
@@ -261,7 +261,7 @@ pub fn setBorderColor(self: Self, color: [4]f32) void {
 
 /// set filtering mode
 pub fn setFilteringMode(self: Self, situation: FilteringSituation, mode: FilteringMode) void {
-    assert(self.tt == .texture_2d);
+    assert(self.tt == .texture_2d or self.tt == .texture_cube_map);
     if (situation == .magnifying and
         (mode == .linear_mipmap_nearest or
         mode == .linear_mipmap_linear or

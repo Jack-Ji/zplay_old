@@ -1,8 +1,11 @@
 const std = @import("std");
 const zp = @import("zplay");
+const TextureUnit = zp.graphics.common.Texture.TextureUnit;
 const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
 const Camera = zp.graphics.@"3d".Camera;
 const Model = zp.graphics.@"3d".Model;
+const TextureCube = zp.graphics.texture.TextureCube;
+const Skybox = zp.graphics.@"3d".Skybox;
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
@@ -10,6 +13,8 @@ const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 
+var skybox: Skybox = undefined;
+var cubemap: TextureCube = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = false;
 var merge_meshes = true;
@@ -139,6 +144,9 @@ fn loop(ctx: *zp.Context) void {
     ) catch unreachable;
     renderer.end();
 
+    // skybox
+    skybox.draw(&ctx.graphics, projection, cubemap, camera);
+
     // settings
     dig.beginFrame();
     {
@@ -232,6 +240,18 @@ fn loadScene() void {
         helmet.deinit();
     }
 
+    // allocate skybox
+    skybox = Skybox.init();
+    cubemap = TextureCube.fromFilePath(
+        std.testing.allocator,
+        "assets/skybox/right.jpg",
+        "assets/skybox/left.jpg",
+        "assets/skybox/top.jpg",
+        "assets/skybox/bottom.jpg",
+        "assets/skybox/front.jpg",
+        "assets/skybox/back.jpg",
+    ) catch unreachable;
+
     // load models
     total_vertices = 0;
     total_meshes = 0;
@@ -262,6 +282,7 @@ fn loadScene() void {
     for (helmet.materials.items) |m| {
         unit = m.allocTextureUnit(unit);
     }
+    cubemap.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
     S.loaded = true;
 }
 

@@ -104,6 +104,27 @@ pub const FrontFace = enum(c_uint) {
 /// opengl context
 gl_ctx: sdl.gl.Context,
 
+/// vsync switch
+vsync: bool = undefined,
+
+/// current color
+color: [4]f32 = .{ 0, 0, 0, 1 },
+
+/// current polygon mode
+polygon_mode: PolygonMode = undefined,
+
+/// current depth option
+depth_option: DepthOption = undefined,
+
+/// current stencil option
+stencil_option: StencilOption = undefined,
+
+/// current blend option
+blend_option: BlendOption = undefined,
+
+/// current culling option
+culling_option: CullingOption = undefined,
+
 /// prepare graphics api
 pub fn prepare(g: zp.Game) !void {
     assert(g.graphics_api == .opengl); // only opengl for now
@@ -143,9 +164,15 @@ pub fn init(window: sdl.Window, api: Api) !Self {
     if (gl.gladLoadGL() == 0) {
         @panic("load opengl functions failed!");
     }
-    return Self{
+    var self = Self{
         .gl_ctx = gl_ctx,
     };
+    self.setPolygonMode(.fill);
+    self.setDepthOption(.{});
+    self.setStencilOption(.{});
+    self.setBlendOption(.{});
+    self.setCullingOption(.{});
+    return self;
 }
 
 /// delete graphics context
@@ -170,7 +197,7 @@ pub fn getDrawableSize(self: Self, window: sdl.Window, w: *u32, h: *u32) void {
 }
 
 ///  set vsync mode 
-pub fn setVsyncMode(self: Self, on_off: bool) void {
+pub fn setVsyncMode(self: *Self, on_off: bool) void {
     _ = self;
     sdl.gl.setSwapInterval(
         if (on_off) .vsync else .immediate,
@@ -180,11 +207,12 @@ pub fn setVsyncMode(self: Self, on_off: bool) void {
             if (sdl.c.SDL_GL_GetSwapInterval() == 1) "immediate" else "vsync    ",
         });
     };
+    self.vsync = on_off;
 }
 
 /// clear buffers
 pub fn clear(
-    self: Self,
+    self: *Self,
     clear_color: bool,
     clear_depth: bool,
     clear_stencil: bool,
@@ -203,6 +231,7 @@ pub fn clear(
     }
     if (color) |rgba| {
         gl.clearColor(rgba[0], rgba[1], rgba[2], rgba[3]);
+        self.color = rgba;
     }
     gl.clear(clear_flags);
     gl.util.checkError();
@@ -238,9 +267,10 @@ pub fn isCapabilityEnabled(self: Self, cap: Capability) bool {
 }
 
 /// set polygon mode
-pub fn setPolygonMode(self: Self, mode: PolygonMode) void {
+pub fn setPolygonMode(self: *Self, mode: PolygonMode) void {
     _ = self;
     gl.polygonMode(gl.GL_FRONT_AND_BACK, @enumToInt(mode));
+    self.polygon_mode = mode;
     gl.util.checkError();
 }
 
@@ -249,13 +279,13 @@ pub const DepthOption = struct {
     test_func: TestFunc = .less, // test function determines whether fragment is accepted
     update_switch: ?bool = null, // false means depth buffer won't be updated during rendering
 };
-pub fn setDepthOption(self: Self, option: DepthOption) void {
+pub fn setDepthOption(self: *Self, option: DepthOption) void {
     _ = self;
-    assert(self.isCapabilityEnabled(.depth_test));
     gl.depthFunc(@enumToInt(option.test_func));
     if (option.update_switch) |s| {
         gl.depthMask(gl.util.boolType(s));
     }
+    self.depth_option = option;
     gl.util.checkError();
 }
 
@@ -269,9 +299,8 @@ pub const StencilOption = struct {
     test_mask: ?u8 = null, // ANDed with both the reference value and the stored stencil value before the test compares them.
     write_mask: ?u8 = null, // bitmask that is ANDed with the stencil value about to be written to the buffer.
 };
-pub fn setStencilOption(self: Self, option: StencilOption) void {
+pub fn setStencilOption(self: *Self, option: StencilOption) void {
     _ = self;
-    assert(self.isCapabilityEnabled(.stencil_test));
     gl.stencilOp(
         @enumToInt(option.action_sfail),
         @enumToInt(option.action_dpfail),
@@ -287,21 +316,21 @@ pub fn setStencilOption(self: Self, option: StencilOption) void {
     if (option.write_mask) |mask| {
         gl.stencilMask(@intCast(gl.GLuint, mask));
     }
+    self.stencil_option = option;
     gl.util.checkError();
 }
 
 /// set color blending options
 pub const BlendOption = struct {
-    src_rgb: BlendFactor, // blend factors for rgb
-    dst_rgb: BlendFactor = .zero,
+    src_rgb: BlendFactor = .src_alpha, // blend factors for rgb
+    dst_rgb: BlendFactor = .one_minus_src_alpha,
     src_alpha: BlendFactor = .one, // blend factors for alpha
     dst_alpha: BlendFactor = .zero,
     constant_color: ?[4]f32 = null, // constant blend color
     equation: ?BlendEquation = null, // blend equation
 };
-pub fn setBlendOption(self: Self, option: BlendOption) void {
+pub fn setBlendOption(self: *Self, option: BlendOption) void {
     _ = self;
-    assert(self.isCapabilityEnabled(.stencil_test));
     gl.blendFuncSeparate(
         @enumToInt(option.src_rgb),
         @enumToInt(option.dst_rgb),
@@ -314,6 +343,7 @@ pub fn setBlendOption(self: Self, option: BlendOption) void {
     if (option.equation) |eq| {
         gl.blendEquation(@enumToInt(eq));
     }
+    self.blend_option = option;
     gl.util.checkError();
 }
 
@@ -322,13 +352,14 @@ pub const CullingOption = struct {
     face: CullFace = .back,
     front: ?FrontFace = null,
 };
-pub fn setCullingOption(self: Self, option: CullingOption) void {
+pub fn setCullingOption(self: *Self, option: CullingOption) void {
     _ = self;
-    assert(self.isCapabilityEnabled(.cull_face));
     gl.cullFace(@enumToInt(option.face));
     if (option.front) |f| {
         gl.frontFace(@enumToInt(f));
     }
+    self.culling_option = option;
+    gl.util.checkError();
 }
 
 /// enable a framebuffer, use system-allocated by default 

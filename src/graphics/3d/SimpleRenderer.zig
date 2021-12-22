@@ -74,7 +74,7 @@ pub fn init() Self {
     };
 }
 
-/// create a simple renderer
+/// free resources
 pub fn deinit(self: *Self) void {
     self.program.deinit();
 }

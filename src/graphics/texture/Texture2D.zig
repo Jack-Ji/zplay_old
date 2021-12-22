@@ -71,7 +71,7 @@ pub fn deinit(self: Self) void {
 /// create 2d texture with path to image file
 pub fn fromFilePath(
     allocator: std.mem.Allocator,
-    file_path: []const u8,
+    file_path: [:0]const u8,
     flip: bool,
     option: Option,
 ) !Self {

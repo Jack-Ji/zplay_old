@@ -13,6 +13,9 @@ pub const Model = @import("3d/Model.zig");
 /// 3d mesh
 pub const Mesh = @import("3d/Mesh.zig");
 
+/// skybox
+pub const Skybox = @import("3d/Skybox.zig");
+
 /// generic renderer
 pub const Renderer = @import("3d/Renderer.zig");
 

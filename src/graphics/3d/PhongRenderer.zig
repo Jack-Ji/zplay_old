@@ -227,7 +227,7 @@ pub fn init(allocator: std.mem.Allocator) Self {
     };
 }
 
-/// create a Phong lighting renderer
+/// free resources
 pub fn deinit(self: *Self) void {
     self.program.deinit();
     self.point_lights.deinit();
