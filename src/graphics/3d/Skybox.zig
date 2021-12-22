@@ -154,11 +154,9 @@ pub fn draw(
 
     // set uniforms
     var view = camera.getViewMatrix();
-    //view.data[3][0] = 0;
-    //view.data[3][1] = 0;
-    //view.data[3][2] = 0;
-    var trs = view.decompose();
-    view = Mat4.recompose(Vec3.zero(), trs.r, trs.s);
+    view.data[3][0] = 0;
+    view.data[3][1] = 0;
+    view.data[3][2] = 0;
     self.program.setUniformByName("u_view", view);
     self.program.setUniformByName("u_project", projection);
     self.program.setUniformByName("u_texture", cubemap.tex.getTextureUnit());
