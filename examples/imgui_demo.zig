@@ -44,6 +44,16 @@ fn loop(ctx: *zp.Context) void {
         dig.beginFrame();
         defer dig.endFrame();
 
+        var mouse_state = ctx.getMouseState();
+        dig.setNextWindowPos(.{
+            .x = @intToFloat(f32, mouse_state.x + 10),
+            .y = @intToFloat(f32, mouse_state.y + 10),
+        }, .{});
+        if (dig.begin("mouse context", null, dig.c.ImGuiWindowFlags_NoTitleBar)) {
+            dig.text("You're here!");
+        }
+        dig.end();
+
         if (dig.begin("Hello, world!", null, null)) {
             dig.text("This is some useful text");
             dig.textUnformatted("some useful text");
