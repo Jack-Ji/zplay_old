@@ -3684,10 +3684,6 @@ CIMGUI_API bool igItemHoverable(const ImRect bb,ImGuiID id)
 {
     return ImGui::ItemHoverable(bb,id);
 }
-CIMGUI_API void igItemInputable(ImGuiWindow* window,ImGuiID id)
-{
-    return ImGui::ItemInputable(window,id);
-}
 CIMGUI_API bool igIsClippedEx(const ImRect bb,ImGuiID id)
 {
     return ImGui::IsClippedEx(bb,id);
@@ -3832,9 +3828,9 @@ CIMGUI_API void igNavMoveRequestForward(ImGuiDir move_dir,ImGuiDir clip_dir,ImGu
 {
     return ImGui::NavMoveRequestForward(move_dir,clip_dir,move_flags,scroll_flags);
 }
-CIMGUI_API void igNavMoveRequestResolveWithLastItem()
+CIMGUI_API void igNavMoveRequestResolveWithLastItem(ImGuiNavItemData *result)
 {
-    return ImGui::NavMoveRequestResolveWithLastItem();
+    return ImGui::NavMoveRequestResolveWithLastItem(result);
 }
 CIMGUI_API void igNavMoveRequestCancel()
 {
@@ -4292,7 +4288,7 @@ CIMGUI_API void igScrollbar(ImGuiAxis axis)
 {
     return ImGui::Scrollbar(axis);
 }
-CIMGUI_API bool igScrollbarEx(const ImRect bb,ImGuiID id,ImGuiAxis axis,float* p_scroll_v,float avail_v,float contents_v,ImDrawFlags flags)
+CIMGUI_API bool igScrollbarEx(const ImRect bb,ImGuiID id,ImGuiAxis axis,ImS64* p_scroll_v,ImS64 avail_v,ImS64 contents_v,ImDrawFlags flags)
 {
     return ImGui::ScrollbarEx(bb,id,axis,p_scroll_v,avail_v,contents_v,flags);
 }

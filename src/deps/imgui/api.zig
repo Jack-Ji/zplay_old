@@ -1736,9 +1736,6 @@ pub const internal = struct {
     pub fn itemHoverable(bb: c.ImRect, id: c.ImGuiID) bool {
         return c.igItemHoverable(bb, id);
     }
-    pub fn itemInputable(window: ?*c.ImGuiWindow, id: c.ImGuiID) void {
-        return c.igItemInputable(window, id);
-    }
     pub fn isClippedEx(bb: c.ImRect, id: c.ImGuiID) bool {
         return c.igIsClippedEx(bb, id);
     }
@@ -2175,7 +2172,7 @@ pub const internal = struct {
     pub fn scrollbar(axis: c.ImGuiAxis) void {
         return c.igScrollbar(axis);
     }
-    pub fn scrollbarEx(bb: c.ImRect, id: c.ImGuiID, axis: c.ImGuiAxis, p_scroll_v: *f32, avail_v: f32, contents_v: f32, flags: c.ImDrawFlags) bool {
+    pub fn scrollbarEx(bb: c.ImRect, id: c.ImGuiID, axis: c.ImGuiAxis, p_scroll_v: *i64, avail_v: i64, contents_v: i64, flags: c.ImDrawFlags) bool {
         return c.igScrollbarEx(bb, id, axis, p_scroll_v, avail_v, contents_v, flags);
     }
     pub fn imageButtonEx(id: c.ImGuiID, texture_id: c.ImTextureID, size: c.ImVec2, uv0: c.ImVec2, uv1: c.ImVec2, padding: c.ImVec2, bg_col: c.ImVec4, tint_col: c.ImVec4) bool {
