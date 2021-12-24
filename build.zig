@@ -68,6 +68,7 @@ pub fn link(
         @import("build/gltf.zig"),
         @import("build/nanovg.zig"),
         @import("build/nanosvg.zig"),
+        @import("build/bullet.zig"),
     };
     inline for (deps) |d| {
         d.link(b, exe, target, root_path);

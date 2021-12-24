@@ -5,6 +5,7 @@ const vec2_zero = c.ImVec2{ .x = 0, .y = 0 };
 const vec2_one = c.ImVec2{ .x = 1, .y = 1 };
 const vec4_zero = c.ImVec4{ .x = 0, .y = 0, .z = 0, .w = 0 };
 const vec4_one = c.ImVec4{ .x = 1, .y = 1, .z = 1, .w = 1 };
+pub const Font = c.ImFont;
 pub const getIO = c.igGetIO;
 pub const getStyle = c.igGetStyle;
 pub const getDrawData = c.igGetDrawData;

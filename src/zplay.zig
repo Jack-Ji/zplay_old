@@ -18,4 +18,5 @@ pub const deps = struct {
     pub const nsvg = @import("deps/nanosvg/nanosvg.zig"); // nanosvg
     pub const gltf = @import("deps/gltf/gltf.zig"); // gltf
     pub const kf = @import("deps/known_folders/known-folders.zig"); // known sys dir
+    pub const bt = @import("deps/bullet/bullet.zig"); // real-time collision detection and multi-physics simulation
 };
