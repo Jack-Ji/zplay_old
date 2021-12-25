@@ -2070,29 +2070,25 @@ fn loop(ctx: *zp.Context) void {
     }
 
     ctx.graphics.clear(true, false, false, [4]f32{ 0.45, 0.55, 0.6, 1.0 });
+    dig.beginFrame();
+    defer dig.endFrame();
 
-    {
-        const column_size = 5;
-
-        dig.beginFrame();
-        defer dig.endFrame();
-
-        if (dig.begin("font-awesome-regular", null, 0)) {
-            dig.pushFont(regular_font);
-            printIcons(column_size);
-            dig.popFont();
-        }
-        dig.end();
-
-        if (dig.begin("font-awesome-solid", null, 0)) {
-            dig.pushFont(solid_font);
-            printIcons(column_size);
-            dig.popFont();
-        }
-        dig.end();
-
-        //dig.showMetricsWindow(null);
+    const column_size = 5;
+    if (dig.begin("font-awesome-regular", null, 0)) {
+        dig.pushFont(regular_font);
+        printIcons(column_size);
+        dig.popFont();
     }
+    dig.end();
+
+    if (dig.begin("font-awesome-solid", null, 0)) {
+        dig.pushFont(solid_font);
+        printIcons(column_size);
+        dig.popFont();
+    }
+    dig.end();
+
+    //dig.showMetricsWindow(null);
 }
 
 fn quit(ctx: *zp.Context) void {
