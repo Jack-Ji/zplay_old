@@ -191,6 +191,7 @@ fn loop(ctx: *zp.Context) void {
 
     // rendering settings
     dig.beginFrame();
+    defer dig.endFrame();
     {
         dig.setNextWindowPos(
             .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
@@ -209,7 +210,7 @@ fn loop(ctx: *zp.Context) void {
             _ = dig.combo_Str(
                 "environment mapping",
                 &S.current_mapping,
-                "reflect\x00refract\x00",
+                "reflect\x00refract",
                 null,
             );
             if (S.current_mapping == 1) {
@@ -220,14 +221,14 @@ fn loop(ctx: *zp.Context) void {
                     "air\x00water\x00ice\x00glass\x00diamond",
                     null,
                 );
-                switch (S.refract_material) {
-                    0 => current_material = refract_air_material,
-                    1 => current_material = refract_water_material,
-                    2 => current_material = refract_ice_material,
-                    3 => current_material = refract_glass_material,
-                    4 => current_material = refract_diamond_material,
+                current_material = switch (S.refract_material) {
+                    0 => refract_air_material,
+                    1 => refract_water_material,
+                    2 => refract_ice_material,
+                    3 => refract_glass_material,
+                    4 => refract_diamond_material,
                     else => unreachable,
-                }
+                };
             } else {
                 current_renderer = reflect_renderer.renderer();
                 current_material = skybox_material; // reflect material is same as skybox
@@ -235,7 +236,6 @@ fn loop(ctx: *zp.Context) void {
         }
         dig.end();
     }
-    dig.endFrame();
 }
 
 fn quit(ctx: *zp.Context) void {
