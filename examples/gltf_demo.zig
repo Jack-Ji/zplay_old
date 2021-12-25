@@ -296,7 +296,8 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
-        .enable_maximized = true,
+        .width = 1600,
+        .height = 900,
         .enable_vsync = false,
     });
 }
