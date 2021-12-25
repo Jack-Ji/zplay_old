@@ -280,6 +280,7 @@ pub fn render(
     model: Mat4,
     projection: Mat4,
     camera: ?Camera,
+    material: ?Material,
     instance_count: ?u32,
 ) !void {
     for (self.meshes.items) |m, i| {
@@ -288,7 +289,7 @@ pub fn render(
             model.mult(self.transforms.items[i]),
             projection,
             camera,
-            self.materials.items[self.material_indices.items[i]],
+            if (material) |mr| mr else self.materials.items[self.material_indices.items[i]],
             instance_count,
         );
     }

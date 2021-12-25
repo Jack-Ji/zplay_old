@@ -407,9 +407,9 @@ pub fn beginCombo(label: [:0]const u8, preview_value: [:0]const u8, flags: ?c.Im
 }
 pub const endCombo = c.igEndCombo;
 pub fn combo_Str_arr(label: [:0]const u8, current_item: *c_int, items: []const [*c]const u8, popup_max_height_in_items: ?c_int) bool {
-    return c.igCombo_Str_arr(label, current_item, items, items.len, popup_max_height_in_items orelse -1);
+    return c.igCombo_Str_arr(label, current_item, items.ptr, items.len, popup_max_height_in_items orelse -1);
 }
-pub fn combo_Str(label: [:0]const u8, current_item: *c_int, items_separated_by_zeros: []const u8, popup_max_height_in_items: ?c_int) bool {
+pub fn combo_Str(label: [:0]const u8, current_item: *c_int, items_separated_by_zeros: [:0]const u8, popup_max_height_in_items: ?c_int) bool {
     return c.igCombo_Str(label, current_item, items_separated_by_zeros, popup_max_height_in_items orelse -1);
 }
 pub fn combo_FnBoolPtr(label: [:0]const u8, current_item: *c_int, items_getter: fn (?*anyopaque, c_int, [*c][*c]const u8) callconv(.C) bool, data: ?*anyopaque, items_count: c_int, popup_max_height_in_items: ?c_int) bool {

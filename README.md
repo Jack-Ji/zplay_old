@@ -21,6 +21,9 @@ A simple framework intended for game/tool creation.
 * glTF 2.0 model
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/gltf_demo.png)
 
+* environment mapping
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/environment_mapping.png)
+
 * imgui demo
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/imgui_demo.png)
 

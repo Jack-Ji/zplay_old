@@ -307,11 +307,7 @@ fn end(self: *Self) void {
 
 /// use material data
 fn applyMaterial(self: *Self, material: Material) void {
-    const mt = @as(Material.MaterialType, material.data);
-    if (mt != .phong) {
-        std.debug.panic("material type doesn't match renderer!", .{});
-    }
-
+    assert(material.data == .phong);
     var buf: [64]u8 = undefined;
     self.program.setUniformByName(
         std.fmt.bufPrintZ(&buf, "u_material.diffuse", .{}) catch unreachable,

@@ -1,11 +1,12 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const Camera = @import("Camera.zig");
+const Material = @import("Material.zig");
 const zp = @import("../../zplay.zig");
 const drawcall = zp.graphics.common.drawcall;
 const Context = zp.graphics.common.Context;
 const ShaderProgram = zp.graphics.common.ShaderProgram;
 const VertexArray = zp.graphics.common.VertexArray;
-const TextureCube = zp.graphics.texture.TextureCube;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
@@ -135,8 +136,8 @@ pub fn draw(
     self: *Self,
     graphics_context: *Context,
     projection: Mat4,
-    cubemap: TextureCube,
     camera: Camera,
+    material: Material,
 ) void {
     const old_polygon_mode = graphics_context.polygon_mode;
     graphics_context.setPolygonMode(.fill);
@@ -159,7 +160,11 @@ pub fn draw(
     view.data[3][2] = 0;
     self.program.setUniformByName("u_view", view);
     self.program.setUniformByName("u_project", projection);
-    self.program.setUniformByName("u_texture", cubemap.tex.getTextureUnit());
+    assert(material.data == .single_cubemap);
+    self.program.setUniformByName(
+        "u_texture",
+        material.data.single_cubemap.tex.getTextureUnit(),
+    );
 
     // issue draw call
     drawcall.drawBuffer(

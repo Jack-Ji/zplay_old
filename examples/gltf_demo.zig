@@ -6,6 +6,7 @@ const Camera = zp.graphics.@"3d".Camera;
 const Model = zp.graphics.@"3d".Model;
 const TextureCube = zp.graphics.texture.TextureCube;
 const Skybox = zp.graphics.@"3d".Skybox;
+const Material = zp.graphics.@"3d".Material;
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
@@ -15,6 +16,7 @@ const Mat4 = alg.Mat4;
 
 var skybox: Skybox = undefined;
 var cubemap: TextureCube = undefined;
+var skybox_material: Material = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = false;
 var merge_meshes = true;
@@ -123,6 +125,7 @@ fn loop(ctx: *zp.Context) void {
         projection,
         camera,
         null,
+        null,
     ) catch unreachable;
     girl.render(
         renderer,
@@ -131,6 +134,7 @@ fn loop(ctx: *zp.Context) void {
             .mult(Mat4.fromRotation(ctx.tick * 100, Vec3.up())),
         projection,
         camera,
+        null,
         null,
     ) catch unreachable;
     helmet.render(
@@ -141,11 +145,12 @@ fn loop(ctx: *zp.Context) void {
         projection,
         camera,
         null,
+        null,
     ) catch unreachable;
     renderer.end();
 
     // skybox
-    skybox.draw(&ctx.graphics, projection, cubemap, camera);
+    skybox.draw(&ctx.graphics, projection, camera, skybox_material);
 
     // settings
     dig.beginFrame();
@@ -251,6 +256,7 @@ fn loadScene() void {
         "assets/skybox/front.jpg",
         "assets/skybox/back.jpg",
     ) catch unreachable;
+    skybox_material = Material.init(.{ .single_cubemap = cubemap });
 
     // load models
     total_vertices = 0;
@@ -282,7 +288,7 @@ fn loadScene() void {
     for (helmet.materials.items) |m| {
         unit = m.allocTextureUnit(unit);
     }
-    cubemap.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
+    _ = skybox_material.allocTextureUnit(unit);
     S.loaded = true;
 }
 
