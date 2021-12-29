@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const math = std.math;
 const zp = @import("../../zplay.zig");
 const drawcall = zp.graphics.common.drawcall;
@@ -191,6 +192,7 @@ pub fn genCube(
     h: f32,
     color: ?Vec4,
 ) !Self {
+    assert(w > 0 and d > 0 and h > 0);
     const w2 = w / 2;
     const d2 = d / 2;
     const h2 = h / 2;
@@ -259,6 +261,117 @@ pub fn genCube(
         else
             null,
         null,
+    );
+    mesh.setup();
+    return mesh;
+}
+
+// generate a sphere
+pub fn genSphere(
+    allocator: std.mem.Allocator,
+    sector_count: u32,
+    stack_count: u32,
+    radius: f32,
+    color: ?Vec4,
+) !Self {
+    assert(sector_count > 0 and stack_count > 0 and radius > 0);
+    const attrib_count = (stack_count + 1) * (sector_count + 1);
+    var positions = try std.ArrayList(Vec3).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var normals = try std.ArrayList(Vec3).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var texcoords = try std.ArrayList(Vec2).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var colors = try std.ArrayList(Vec4).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var indices = try std.ArrayList(u32).initCapacity(
+        allocator,
+        (stack_count - 1) * sector_count * 6,
+    );
+    var sector_step = math.pi * 2.0 / @intToFloat(f32, sector_count);
+    var stack_step = math.pi / @intToFloat(f32, stack_count);
+    var radius_inv = 1.0 / radius;
+
+    // generate vertex attributes
+    var i: u32 = 0;
+    while (i <= stack_count) : (i += 1) {
+        // starting from pi/2 to -pi/2
+        var stack_angle = math.pi / 2.0 - @intToFloat(f32, i) * stack_step;
+        var xy = radius * math.cos(stack_angle);
+        var z = radius * math.sin(stack_angle);
+
+        var j: u32 = 0;
+        while (j <= sector_count) : (j += 1) {
+            // starting from 0 to 2pi
+            var sector_angle = @intToFloat(f32, j) * sector_step;
+
+            // postion
+            var x = xy * math.cos(sector_angle);
+            var y = xy * math.sin(sector_angle);
+            positions.appendAssumeCapacity(Vec3.new(x, y, z));
+
+            // normal
+            normals.appendAssumeCapacity(Vec3.new(
+                x * radius_inv,
+                y * radius_inv,
+                z * radius_inv,
+            ));
+
+            // tex coords
+            var s = @intToFloat(f32, j) / @intToFloat(f32, sector_count);
+            var t = @intToFloat(f32, i) / @intToFloat(f32, stack_count);
+            texcoords.appendAssumeCapacity(Vec2.new(s, t));
+        }
+    }
+    if (color) |c| {
+        colors.appendNTimesAssumeCapacity(c, attrib_count);
+    }
+
+    // generate vertex indices
+    // k1--k1+1
+    // |  / |
+    // | /  |
+    // k2--k2+1
+    i = 0;
+    while (i < stack_count) : (i += 1) {
+        var k1 = i * (sector_count + 1); // beginning of current stack
+        var k2 = k1 + sector_count + 1; // beginning of next stack
+        var j: u32 = 0;
+        while (j < sector_count) : ({
+            j += 1;
+            k1 += 1;
+            k2 += 1;
+        }) {
+            // 2 triangles per sector excluding first and last stacks
+            // k1 => k2 => k1+1
+            if (i != 0) {
+                indices.appendSliceAssumeCapacity(&.{ k1, k2, k1 + 1 });
+            }
+
+            // k1+1 => k2 => k2+1
+            if (i != (stack_count - 1)) {
+                indices.appendSliceAssumeCapacity(&.{ k1 + 1, k2, k2 + 1 });
+            }
+        }
+    }
+
+    var mesh = fromArrayLists(
+        .triangles,
+        positions,
+        indices,
+        normals,
+        texcoords,
+        if (color == null) null else colors,
+        null,
+        true,
     );
     mesh.setup();
     return mesh;

@@ -17,6 +17,7 @@ var use_texture = false;
 var quad: Mesh = undefined;
 var cube1: Mesh = undefined;
 var cube2: Mesh = undefined;
+var sphere: Mesh = undefined;
 var cube_material: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(0, 0, 6),
@@ -38,6 +39,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     quad = try Mesh.genQuad(std.testing.allocator, 1, 1, default_color);
     cube1 = try Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5, default_color);
     cube2 = try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2, default_color);
+    sphere = try Mesh.genSphere(std.testing.allocator, 36, 18, 0.7, default_color);
 
     // create material
     var cube_image = Texture2D.fromFilePath(
@@ -143,6 +145,15 @@ fn loop(ctx: *zp.Context) void {
         renderer.renderMesh(
             cube2,
             model.translate(Vec3.new(1.0, 1.2, 0)),
+            projection,
+            camera,
+            if (use_texture) cube_material else null,
+            null,
+        ) catch unreachable;
+
+        renderer.renderMesh(
+            sphere,
+            model.translate(Vec3.new(-1.8, -1.2, 0)),
             projection,
             camera,
             if (use_texture) cube_material else null,

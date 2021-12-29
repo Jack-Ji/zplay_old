@@ -52,12 +52,16 @@ const fs =
     \\in vec4 v_color;
     \\
     \\uniform bool u_use_texture;
+    \\uniform bool u_use_color;
+    \\uniform vec4 u_color;
     \\uniform sampler2D u_texture;
     \\
     \\void main()
     \\{
     \\    if (u_use_texture) {
     \\        frag_color = texture(u_texture, v_tex);
+    \\    } else if (u_use_color) {
+    \\        frag_color = u_color;
     \\    } else {
     \\        frag_color = v_color;
     \\    }
@@ -99,15 +103,18 @@ fn applyMaterial(self: *Self, material: Material) void {
     switch (material.data) {
         .phong => |m| {
             self.program.setUniformByName("u_use_texture", true);
+            self.program.setUniformByName("u_use_color", false);
             self.program.setUniformByName("u_texture", m.diffuse_map.tex.getTextureUnit());
         },
         .single_texture => |t| {
             self.program.setUniformByName("u_use_texture", true);
+            self.program.setUniformByName("u_use_color", false);
             self.program.setUniformByName("u_texture", t.tex.getTextureUnit());
         },
         .single_color => |c| {
             self.program.setUniformByName("u_use_texture", false);
-            self.program.setAttributeDefaultValue(ATTRIB_LOCATION_COLOR, c);
+            self.program.setUniformByName("u_use_color", true);
+            self.program.setUniformByName("u_color", c);
         },
         else => {
             std.debug.panic("unsupported material type", .{});
@@ -145,6 +152,7 @@ fn render(
         self.applyMaterial(m);
     } else {
         self.program.setUniformByName("u_use_texture", false);
+        self.program.setUniformByName("u_use_color", false);
     }
 
     // issue draw call
@@ -194,6 +202,7 @@ fn renderMesh(
         self.applyMaterial(m);
     } else {
         self.program.setUniformByName("u_use_texture", false);
+        self.program.setUniformByName("u_use_color", false);
     }
 
     // issue draw call
