@@ -269,12 +269,12 @@ pub fn genCube(
 // generate a sphere
 pub fn genSphere(
     allocator: std.mem.Allocator,
+    radius: f32,
     sector_count: u32,
     stack_count: u32,
-    radius: f32,
     color: ?Vec4,
 ) !Self {
-    assert(sector_count > 0 and stack_count > 0 and radius > 0);
+    assert(radius > 0 and sector_count > 0 and stack_count > 0);
     const attrib_count = (stack_count + 1) * (sector_count + 1);
     var positions = try std.ArrayList(Vec3).initCapacity(
         allocator,
@@ -361,6 +361,175 @@ pub fn genSphere(
                 indices.appendSliceAssumeCapacity(&.{ k1 + 1, k2, k2 + 1 });
             }
         }
+    }
+
+    var mesh = fromArrayLists(
+        .triangles,
+        positions,
+        indices,
+        normals,
+        texcoords,
+        if (color == null) null else colors,
+        null,
+        true,
+    );
+    mesh.setup();
+    return mesh;
+}
+
+// generate a cylinder
+pub fn genCylinder(
+    allocator: std.mem.Allocator,
+    height: f32,
+    bottom_radius: f32,
+    top_radius: f32,
+    stack_count: u32,
+    sector_count: u32,
+    color: ?Vec4,
+) !Self {
+    assert(height > 0 and
+        (bottom_radius > 0 or top_radius > 0) and
+        sector_count > 0 and stack_count > 0);
+    const attrib_count = (stack_count + 3) * (sector_count + 1) + 2;
+    var positions = try std.ArrayList(Vec3).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var normals = try std.ArrayList(Vec3).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var texcoords = try std.ArrayList(Vec2).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var colors = try std.ArrayList(Vec4).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var indices = try std.ArrayList(u32).initCapacity(
+        allocator,
+        (stack_count + 1) * sector_count * 6,
+    );
+    var sector_step = math.pi * 2.0 / @intToFloat(f32, sector_count);
+
+    // add colors
+    if (color) |c| {
+        colors.appendNTimesAssumeCapacity(c, attrib_count);
+    }
+
+    // unit circle positions
+    var unit_circle = try std.ArrayList(Vec2).initCapacity(
+        allocator,
+        sector_count + 1,
+    );
+    defer unit_circle.deinit();
+    var i: u32 = 0;
+    while (i <= sector_count) : (i += 1) {
+        var sector_angle = @intToFloat(f32, i) * sector_step;
+        unit_circle.appendAssumeCapacity(Vec2.new(
+            math.cos(sector_angle),
+            math.sin(sector_angle),
+        ));
+    }
+
+    // compute normals of side
+    var side_normals = try std.ArrayList(Vec3).initCapacity(
+        allocator,
+        sector_count + 1,
+    );
+    defer side_normals.deinit();
+    var zangle = math.atan2(f32, bottom_radius - top_radius, height);
+    i = 0;
+    while (i <= sector_count) : (i += 1) {
+        var sector_angle = @intToFloat(f32, i) * sector_step;
+        side_normals.appendAssumeCapacity(Vec3.new(
+            math.cos(zangle) * math.cos(sector_angle),
+            math.cos(zangle) * math.sin(sector_angle),
+            math.sin(zangle),
+        ));
+    }
+
+    // sides
+    i = 0;
+    while (i <= stack_count) : (i += 1) {
+        var step = @intToFloat(f32, i) / @intToFloat(f32, stack_count);
+        var z = -(height * 0.5) + step * height;
+        var radius = bottom_radius + step * (top_radius - bottom_radius);
+        var t = 1.0 - step;
+
+        var j: u32 = 0;
+        while (j <= sector_count) : (j += 1) {
+            positions.appendAssumeCapacity(Vec3.new(
+                unit_circle.items[j].x * radius,
+                unit_circle.items[j].y * radius,
+                z,
+            ));
+            normals.appendAssumeCapacity(side_normals.items[j]);
+            texcoords.appendAssumeCapacity(Vec2.new(
+                @intToFloat(f32, j) / @intToFloat(f32, sector_count),
+                t,
+            ));
+        }
+    }
+
+    // bottom
+    var bottom_index_offset = @intCast(u32, positions.items.len);
+    var z = -height * 0.5;
+    positions.appendAssumeCapacity(Vec3.new(0, 0, z));
+    normals.appendAssumeCapacity(Vec3.new(0, 0, -1));
+    texcoords.appendAssumeCapacity(Vec2.new(0.5, 0.5));
+    i = 0;
+    while (i <= sector_count) : (i += 1) {
+        var x = unit_circle.items[i].x;
+        var y = unit_circle.items[i].y;
+        positions.appendAssumeCapacity(Vec3.new(x * bottom_radius, y * bottom_radius, z));
+        normals.appendAssumeCapacity(Vec3.new(0, 0, -1));
+        texcoords.appendAssumeCapacity(Vec2.new(-x * 0.5 + 0.5, -y * 0.5 + 0.5));
+    }
+
+    // top
+    var top_index_offset = @intCast(u32, positions.items.len);
+    z = height * 0.5;
+    positions.appendAssumeCapacity(Vec3.new(0, 0, z));
+    normals.appendAssumeCapacity(Vec3.new(0, 0, 1));
+    texcoords.appendAssumeCapacity(Vec2.new(0.5, 0.5));
+    i = 0;
+    while (i <= sector_count) : (i += 1) {
+        var x = unit_circle.items[i].x;
+        var y = unit_circle.items[i].y;
+        positions.appendAssumeCapacity(Vec3.new(x * top_radius, y * top_radius, z));
+        normals.appendAssumeCapacity(Vec3.new(0, 0, 1));
+        texcoords.appendAssumeCapacity(Vec2.new(x * 0.5 + 0.5, y * 0.5 + 0.5));
+    }
+
+    // indices
+    i = 0;
+    while (i < stack_count) : (i += 1) {
+        var k1 = i * (sector_count + 1);
+        var k2 = k1 + sector_count + 1;
+        var j: u32 = 0;
+        while (j < sector_count) : ({
+            j += 1;
+            k1 += 1;
+            k2 += 1;
+        }) {
+            indices.appendSliceAssumeCapacity(&.{ k1, k1 + 1, k2 });
+            indices.appendSliceAssumeCapacity(&.{ k2, k1 + 1, k2 + 1 });
+        }
+    }
+    i = 0;
+    while (i < sector_count) : (i += 1) {
+        indices.appendSliceAssumeCapacity(&.{
+            bottom_index_offset,
+            bottom_index_offset + i + 2,
+            bottom_index_offset + i + 1,
+        });
+        indices.appendSliceAssumeCapacity(&.{
+            top_index_offset,
+            top_index_offset + i + 1,
+            top_index_offset + i + 2,
+        });
     }
 
     var mesh = fromArrayLists(

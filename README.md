@@ -24,6 +24,9 @@ A simple framework intended for game/tool creation.
 * environment mapping
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/environment_mapping.png)
 
+* mesh generation
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/mesh_generation.png)
+
 * imgui demo
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/imgui_demo.png)
 

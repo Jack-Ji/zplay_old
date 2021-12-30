@@ -11,14 +11,17 @@ const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 
 var simple_renderer: SimpleRenderer = undefined;
-var wireframe_mode = false;
+var wireframe_mode = true;
 var perspective_mode = true;
 var use_texture = false;
 var quad: Mesh = undefined;
 var cube1: Mesh = undefined;
 var cube2: Mesh = undefined;
 var sphere: Mesh = undefined;
-var cube_material: Material = undefined;
+var cylinder: Mesh = undefined;
+var prim: Mesh = undefined;
+var cone: Mesh = undefined;
+var material: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(0, 0, 6),
     Vec3.zero(),
@@ -39,7 +42,10 @@ fn init(ctx: *zp.Context) anyerror!void {
     quad = try Mesh.genQuad(std.testing.allocator, 1, 1, default_color);
     cube1 = try Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5, default_color);
     cube2 = try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2, default_color);
-    sphere = try Mesh.genSphere(std.testing.allocator, 36, 18, 0.7, default_color);
+    sphere = try Mesh.genSphere(std.testing.allocator, 0.7, 36, 18, default_color);
+    cylinder = try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0.5, 2, 36, default_color);
+    prim = try Mesh.genCylinder(std.testing.allocator, 1, 0.3, 0.3, 1, 3, default_color);
+    cone = try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0, 1, 36, default_color);
 
     // create material
     var cube_image = Texture2D.fromFilePath(
@@ -48,10 +54,10 @@ fn init(ctx: *zp.Context) anyerror!void {
         false,
         .{},
     ) catch unreachable;
-    cube_material = Material.init(.{
+    material = Material.init(.{
         .single_texture = cube_image,
     });
-    _ = cube_material.allocTextureUnit(0);
+    _ = material.allocTextureUnit(0);
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -129,7 +135,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(-2.0, 1.2, 0)),
             projection,
             camera,
-            if (use_texture) cube_material else null,
+            if (use_texture) material else null,
             null,
         ) catch unreachable;
 
@@ -138,7 +144,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(-0.5, 1.2, 0)),
             projection,
             camera,
-            if (use_texture) cube_material else null,
+            if (use_texture) material else null,
             null,
         ) catch unreachable;
 
@@ -147,16 +153,43 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(1.0, 1.2, 0)),
             projection,
             camera,
-            if (use_texture) cube_material else null,
+            if (use_texture) material else null,
             null,
         ) catch unreachable;
 
         renderer.renderMesh(
             sphere,
-            model.translate(Vec3.new(-1.8, -1.2, 0)),
+            model.translate(Vec3.new(-2.2, -1.2, 0)),
             projection,
             camera,
-            if (use_texture) cube_material else null,
+            if (use_texture) material else null,
+            null,
+        ) catch unreachable;
+
+        renderer.renderMesh(
+            cylinder,
+            model.translate(Vec3.new(-0.4, -1.2, 0)),
+            projection,
+            camera,
+            if (use_texture) material else null,
+            null,
+        ) catch unreachable;
+
+        renderer.renderMesh(
+            prim,
+            model.translate(Vec3.new(1.1, -1.2, 0)),
+            projection,
+            camera,
+            if (use_texture) material else null,
+            null,
+        ) catch unreachable;
+
+        renderer.renderMesh(
+            cone,
+            model.translate(Vec3.new(2.3, -1.2, 0)),
+            projection,
+            camera,
+            if (use_texture) material else null,
             null,
         ) catch unreachable;
     }
@@ -178,13 +211,13 @@ fn loop(ctx: *zp.Context) void {
             dig.c.ImGuiWindowFlags_NoResize |
                 dig.c.ImGuiWindowFlags_AlwaysAutoResize,
         )) {
-            if (dig.checkbox("wireframe", &wireframe_mode)) {
-                ctx.graphics.setPolygonMode(
-                    if (wireframe_mode) .line else .fill,
-                );
-            }
+            _ = dig.checkbox("wireframe", &wireframe_mode);
             _ = dig.checkbox("perspective", &perspective_mode);
             _ = dig.checkbox("texture", &use_texture);
+
+            ctx.graphics.setPolygonMode(
+                if (wireframe_mode) .line else .fill,
+            );
         }
         dig.end();
     }
