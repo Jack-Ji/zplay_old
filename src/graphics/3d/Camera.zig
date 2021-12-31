@@ -1,4 +1,5 @@
 const std = @import("std");
+const math = std.math;
 const zp = @import("../../zplay.zig");
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
@@ -31,6 +32,7 @@ right: Vec3 = undefined,
 
 /// euler angle of camera
 euler: Vec3 = undefined,
+temp_angle: f32 = undefined,
 
 /// i/o state
 move_speed: f32 = 2.5,
@@ -45,8 +47,21 @@ pub fn fromPositionAndTarget(pos: Vec3, target: Vec3, world_up: ?Vec3) Self {
     camera.dir = target.sub(pos).norm();
     camera.right = camera.dir.cross(camera.world_up).norm();
     camera.up = camera.right.cross(camera.dir).norm();
-    camera.euler = camera.getViewMatrix().extractRotation();
-    camera.euler.y -= 90;
+
+    // calculate euler angles
+    var crossdir = Vec3.cross(camera.world_up, camera.up);
+    if (Vec3.dot(crossdir, camera.right) < 0) {
+        camera.euler.x = -Vec3.getAngle(camera.world_up, camera.up);
+    } else {
+        camera.euler.x = Vec3.getAngle(camera.world_up, camera.up);
+    }
+    crossdir = Vec3.cross(camera.right, Vec3.right());
+    if (Vec3.dot(crossdir, camera.world_up) < 0) {
+        camera.euler.y = -Vec3.getAngle(camera.right, Vec3.right()) - 90;
+    } else {
+        camera.euler.y = Vec3.getAngle(camera.right, Vec3.right()) - 90;
+    }
+    camera.euler.z = 0;
     return camera;
 }
 
@@ -87,11 +102,11 @@ pub fn rotate(self: *Self, pitch: f32, yaw: f32) void {
 
 /// update vectors: direction/right/up
 fn updateVectors(self: *Self) void {
-    self.euler.x = std.math.clamp(self.euler.x, -89, 89);
-    const sin_pitch = std.math.sin(alg.toRadians(self.euler.x));
-    const cos_pitch = std.math.cos(alg.toRadians(self.euler.x));
-    const sin_yaw = std.math.sin(alg.toRadians(self.euler.y));
-    const cos_yaw = std.math.cos(alg.toRadians(self.euler.y));
+    self.euler.x = math.clamp(self.euler.x, -89, 89);
+    const sin_pitch = math.sin(alg.toRadians(self.euler.x));
+    const cos_pitch = math.cos(alg.toRadians(self.euler.x));
+    const sin_yaw = math.sin(alg.toRadians(self.euler.y));
+    const cos_yaw = math.cos(alg.toRadians(self.euler.y));
     self.dir.x = cos_yaw * cos_pitch;
     self.dir.y = sin_pitch;
     self.dir.z = sin_yaw * cos_pitch;

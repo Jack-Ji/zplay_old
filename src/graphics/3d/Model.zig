@@ -100,6 +100,9 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
     }
 
     // load materials
+    self.materials.append(Material.init(.{
+        .single_color = Vec4.new(0, 0.5, 0, 1),
+    })) catch unreachable;
     i = 0;
     MATERIAL_LOOP: while (i < data.materials_count) : (i += 1) {
         var material = &data.materials[i];
@@ -197,7 +200,7 @@ fn parseNode(
                 while (index < data.materials_count) : (index += 1) {
                     const material = @ptrCast([*c]gltf.Material, &data.materials[index]);
                     if (material == primitive.material) {
-                        break :blk index;
+                        break :blk index + 1;
                     }
                 }
                 break :blk 0;

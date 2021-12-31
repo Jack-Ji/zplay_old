@@ -28,6 +28,7 @@ pub fn build(b: *std.build.Builder) void {
         "mesh_generation",
         "gltf_demo",
         "environment_mapping",
+        "bullet_test",
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |name| {
