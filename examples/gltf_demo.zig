@@ -261,9 +261,9 @@ fn loadScene() void {
     // load models
     total_vertices = 0;
     total_meshes = 0;
-    dog = Model.fromGLTF(std.testing.allocator, "assets/dog.gltf", merge_meshes) catch unreachable;
-    girl = Model.fromGLTF(std.testing.allocator, "assets/girl.glb", merge_meshes) catch unreachable;
-    helmet = Model.fromGLTF(std.testing.allocator, "assets/SciFiHelmet/SciFiHelmet.gltf", merge_meshes) catch unreachable;
+    dog = Model.fromGLTF(std.testing.allocator, "assets/dog.gltf", merge_meshes, null) catch unreachable;
+    girl = Model.fromGLTF(std.testing.allocator, "assets/girl.glb", merge_meshes, null) catch unreachable;
+    helmet = Model.fromGLTF(std.testing.allocator, "assets/SciFiHelmet/SciFiHelmet.gltf", merge_meshes, null) catch unreachable;
     for (dog.meshes.items) |m| {
         total_vertices += @intCast(u32, m.positions.items.len);
         total_meshes += 1;

@@ -79,8 +79,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     simple_renderer = SimpleRenderer.init();
 
     // generate mesh
-    quad = try Mesh.genQuad(std.testing.allocator, 2, 2, null);
-    cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1, null);
+    quad = try Mesh.genQuad(std.testing.allocator, 2, 2);
+    cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1);
 
     // load texture
     cubemap = try TextureCube.fromFilePath(
@@ -104,13 +104,20 @@ fn init(ctx: *zp.Context) anyerror!void {
         ),
     });
     color_material = Material.init(.{
-        .single_color = alg.Vec4.new(0, 1, 0, 1),
+        .single_texture = try Texture2D.fromPixelData(
+            std.testing.allocator,
+            &.{ 0, 255, 0, 255 },
+            1,
+            1,
+            .{},
+        ),
     });
 
     // alloc texture unit
     var unit = fb_material.allocTextureUnit(0);
     unit = cube_material.allocTextureUnit(unit);
-    _ = skybox_material.allocTextureUnit(unit);
+    unit = skybox_material.allocTextureUnit(unit);
+    _ = color_material.allocTextureUnit(unit);
 }
 
 fn loop(ctx: *zp.Context) void {

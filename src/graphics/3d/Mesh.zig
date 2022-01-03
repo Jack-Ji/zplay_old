@@ -141,7 +141,6 @@ pub fn genQuad(
     allocator: std.mem.Allocator,
     w: f32,
     h: f32,
-    color: ?Vec4,
 ) !Self {
     const w2 = w / 2;
     const h2 = h / 2;
@@ -174,10 +173,7 @@ pub fn genQuad(
         &indices,
         &normals,
         &texcoords,
-        if (color) |c|
-            &[4]Vec4{ c, c, c, c }
-        else
-            null,
+        null,
         null,
     );
     mesh.setup();
@@ -190,7 +186,6 @@ pub fn genCube(
     w: f32,
     d: f32,
     h: f32,
-    color: ?Vec4,
 ) !Self {
     assert(w > 0 and d > 0 and h > 0);
     const w2 = w / 2;
@@ -252,14 +247,7 @@ pub fn genCube(
         null,
         &normals,
         &texcoords,
-        if (color) |c|
-            &[36]Vec4{
-                c, c, c, c, c, c, c, c, c, c, c, c,
-                c, c, c, c, c, c, c, c, c, c, c, c,
-                c, c, c, c, c, c, c, c, c, c, c, c,
-            }
-        else
-            null,
+        null,
         null,
     );
     mesh.setup();
@@ -272,7 +260,6 @@ pub fn genSphere(
     radius: f32,
     sector_count: u32,
     stack_count: u32,
-    color: ?Vec4,
 ) !Self {
     assert(radius > 0 and sector_count > 0 and stack_count > 0);
     const attrib_count = (stack_count + 1) * (sector_count + 1);
@@ -285,10 +272,6 @@ pub fn genSphere(
         attrib_count,
     );
     var texcoords = try std.ArrayList(Vec2).initCapacity(
-        allocator,
-        attrib_count,
-    );
-    var colors = try std.ArrayList(Vec4).initCapacity(
         allocator,
         attrib_count,
     );
@@ -331,9 +314,6 @@ pub fn genSphere(
             texcoords.appendAssumeCapacity(Vec2.new(s, t));
         }
     }
-    if (color) |c| {
-        colors.appendNTimesAssumeCapacity(c, attrib_count);
-    }
 
     // generate vertex indices
     // k1--k1+1
@@ -369,7 +349,7 @@ pub fn genSphere(
         indices,
         normals,
         texcoords,
-        if (color == null) null else colors,
+        null,
         null,
         true,
     );
@@ -385,7 +365,6 @@ pub fn genCylinder(
     top_radius: f32,
     stack_count: u32,
     sector_count: u32,
-    color: ?Vec4,
 ) !Self {
     assert(height > 0 and
         (bottom_radius > 0 or top_radius > 0) and
@@ -403,20 +382,11 @@ pub fn genCylinder(
         allocator,
         attrib_count,
     );
-    var colors = try std.ArrayList(Vec4).initCapacity(
-        allocator,
-        attrib_count,
-    );
     var indices = try std.ArrayList(u32).initCapacity(
         allocator,
         (stack_count + 1) * sector_count * 6,
     );
     var sector_step = math.pi * 2.0 / @intToFloat(f32, sector_count);
-
-    // add colors
-    if (color) |c| {
-        colors.appendNTimesAssumeCapacity(c, attrib_count);
-    }
 
     // unit circle positions
     var unit_circle = try std.ArrayList(Vec2).initCapacity(
@@ -538,7 +508,7 @@ pub fn genCylinder(
         indices,
         normals,
         texcoords,
-        if (color == null) null else colors,
+        null,
         null,
         true,
     );

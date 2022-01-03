@@ -16,7 +16,6 @@ pub const Type = enum {
     pbr,
     refract_mapping,
     single_texture,
-    single_color,
     single_cubemap,
 };
 
@@ -33,7 +32,6 @@ pub const Data = union(Type) {
         ratio: f32,
     },
     single_texture: Texture2D,
-    single_color: Vec4,
     single_cubemap: TextureCube,
 };
 
@@ -66,7 +64,6 @@ pub fn allocTextureUnit(self: Self, start_unit: i32) i32 {
             t.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
             unit += 1;
         },
-        .single_color => {},
         .single_cubemap => |t| {
             t.tex.bindToTextureUnit(TextureUnit.fromInt(unit));
             unit += 1;

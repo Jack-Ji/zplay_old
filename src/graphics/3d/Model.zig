@@ -27,11 +27,14 @@ meshes: std.ArrayList(Mesh) = undefined,
 transforms: std.ArrayList(Mat4) = undefined,
 material_indices: std.ArrayList(u32) = undefined,
 
-/// textures
-textures: std.ArrayList(Texture2D) = undefined,
+/// generated textures
+generated_textures: std.ArrayList(Texture2D) = undefined,
+
+/// loaded textures
+loaded_textures: std.ArrayList(Texture2D) = undefined,
 
 /// load gltf model file 
-pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_meshes: bool) !Self {
+pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_meshes: bool, default_textre: ?Texture2D) !Self {
     var data: *gltf.Data = try gltf.loadFile(filename, null);
     defer gltf.free(data);
 
@@ -40,7 +43,8 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
         .meshes = std.ArrayList(Mesh).initCapacity(allocator, 1) catch unreachable,
         .transforms = std.ArrayList(Mat4).initCapacity(allocator, 1) catch unreachable,
         .material_indices = std.ArrayList(u32).initCapacity(allocator, 1) catch unreachable,
-        .textures = std.ArrayList(Texture2D).initCapacity(allocator, 1) catch unreachable,
+        .generated_textures = std.ArrayList(Texture2D).initCapacity(allocator, 1) catch unreachable,
+        .loaded_textures = std.ArrayList(Texture2D).initCapacity(allocator, 1) catch unreachable,
     };
 
     // load vertex attributes
@@ -76,7 +80,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
         if (image.buffer_view != null) {
             var buffer_data = @ptrCast([*]const u8, image.buffer_view.*.buffer.*.data.?);
             var image_data = buffer_data + image.buffer_view.*.offset;
-            self.textures.append(try Texture2D.fromFileData(
+            self.loaded_textures.append(try Texture2D.fromFileData(
                 allocator,
                 image_data[0..image.buffer_view.*.size],
                 false,
@@ -90,7 +94,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
                 "{s}{s}{s}",
                 .{ dirname, std.fs.path.sep_str, image.uri },
             ) catch unreachable;
-            self.textures.append(try Texture2D.fromFilePath(
+            self.loaded_textures.append(try Texture2D.fromFilePath(
                 allocator,
                 image_path,
                 false,
@@ -99,9 +103,25 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
         }
     }
 
+    // default pixel data
+    if (default_textre == null) {
+        self.generated_textures.append(try Texture2D.fromPixelData(
+            allocator,
+            &.{ 255, 255, 255, 255 },
+            1,
+            1,
+            .{},
+        )) catch unreachable;
+    }
+
     // load materials
+    var default_tex = if (default_textre) |tex| tex else self.generated_textures.items[0];
     self.materials.append(Material.init(.{
-        .single_color = Vec4.new(0, 0.5, 0, 1),
+        .phong = .{
+            .diffuse_map = default_tex,
+            .specular_map = default_tex,
+            .shiness = 32,
+        },
     })) catch unreachable;
     i = 0;
     MATERIAL_LOOP: while (i < data.materials_count) : (i += 1) {
@@ -119,15 +139,27 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
                 base_color_texture.texture.*.image.*.uri == image.uri)
             {
                 self.materials.append(Material.init(.{
-                    .single_texture = self.textures.items[image_idx],
+                    .single_texture = self.loaded_textures.items[image_idx],
                 })) catch unreachable;
                 continue :MATERIAL_LOOP;
             }
         }
 
         const base_color = pbrm.base_color_factor;
+        self.generated_textures.append(try Texture2D.fromPixelData(
+            allocator,
+            &.{
+                @floatToInt(u8, base_color[0] * 255),
+                @floatToInt(u8, base_color[1] * 255),
+                @floatToInt(u8, base_color[2] * 255),
+                @floatToInt(u8, base_color[3] * 255),
+            },
+            1,
+            1,
+            .{},
+        )) catch unreachable;
         self.materials.append(Material.init(.{
-            .single_color = Vec4.fromSlice(&base_color),
+            .single_texture = self.generated_textures.items[self.generated_textures.items.len - 1],
         })) catch unreachable;
     }
 
@@ -150,10 +182,14 @@ pub fn deinit(self: Self) void {
     self.meshes.deinit();
     self.transforms.deinit();
     self.material_indices.deinit();
-    for (self.textures.items) |t| {
+    for (self.generated_textures.items) |t| {
         t.deinit();
     }
-    self.textures.deinit();
+    self.generated_textures.deinit();
+    for (self.loaded_textures.items) |t| {
+        t.deinit();
+    }
+    self.loaded_textures.deinit();
 }
 
 fn parseNode(

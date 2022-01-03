@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const stb_image = zp.deps.stb.image;
 const Texture = zp.graphics.common.Texture;
@@ -142,6 +143,19 @@ pub fn fromFileData(allocator: std.mem.Allocator, data: []const u8, flip: bool, 
         },
         @intCast(u32, width),
         @intCast(u32, height),
+        option,
+    );
+}
+
+/// create 2d texture with pixel data (r8g8b8a8)
+pub fn fromPixelData(allocator: std.mem.Allocator, data: []const u8, width: u32, height: u32, option: Option) !Self {
+    assert(data.len == width * height * 4);
+    return Self.init(
+        allocator,
+        data,
+        .rgba,
+        width,
+        height,
         option,
     );
 }

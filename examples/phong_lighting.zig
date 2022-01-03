@@ -16,6 +16,7 @@ const Mat4 = alg.Mat4;
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
 var cube: Mesh = undefined;
+var light_material: Material = undefined;
 var phong_material: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(1, 2, 3),
@@ -75,7 +76,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     }));
 
     // generate a cube
-    cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1, Vec4.one());
+    cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1);
 
     // material init
     var diffuse_texture = try Texture2D.fromFilePath(
@@ -90,6 +91,15 @@ fn init(ctx: *zp.Context) anyerror!void {
         false,
         .{},
     );
+    light_material = Material.init(.{
+        .single_texture = try Texture2D.fromPixelData(
+            std.testing.allocator,
+            &.{ 255, 255, 255, 255 },
+            1,
+            1,
+            .{},
+        ),
+    });
     phong_material = Material.init(.{
         .phong = .{
             .diffuse_map = diffuse_texture,
@@ -97,7 +107,8 @@ fn init(ctx: *zp.Context) anyerror!void {
             .shiness = 32,
         },
     });
-    _ = phong_material.allocTextureUnit(0);
+    var unit = phong_material.allocTextureUnit(0);
+    _ = light_material.allocTextureUnit(unit);
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -197,7 +208,7 @@ fn loop(ctx: *zp.Context) void {
             model,
             projection,
             camera,
-            null,
+            light_material,
             null,
         ) catch unreachable;
     }
@@ -208,7 +219,7 @@ fn loop(ctx: *zp.Context) void {
             model,
             projection,
             camera,
-            null,
+            light_material,
             null,
         ) catch unreachable;
     }

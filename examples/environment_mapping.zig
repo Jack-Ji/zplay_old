@@ -92,7 +92,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     current_renderer = reflect_renderer.renderer();
 
     // load model
-    model = try Model.fromGLTF(std.testing.allocator, "assets/SciFiHelmet/SciFiHelmet.gltf", false);
+    model = try Model.fromGLTF(std.testing.allocator, "assets/SciFiHelmet/SciFiHelmet.gltf", false, null);
 
     // alloc texture unit
     _ = skybox_material.allocTextureUnit(0);

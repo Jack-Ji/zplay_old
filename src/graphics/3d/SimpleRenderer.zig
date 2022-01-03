@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const Camera = @import("Camera.zig");
 const Light = @import("Light.zig");
 const Material = @import("Material.zig");
@@ -18,13 +19,11 @@ const Self = @This();
 /// vertex attribute locations
 pub const ATTRIB_LOCATION_POS = 0;
 pub const ATTRIB_LOCATION_TEX = 1;
-pub const ATTRIB_LOCATION_COLOR = 2;
 
 const vs =
     \\#version 330 core
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 1) in vec2 a_tex;
-    \\layout (location = 2) in vec4 a_color;
     \\
     \\uniform mat4 u_model;
     \\uniform mat4 u_view;
@@ -32,14 +31,12 @@ const vs =
     \\
     \\out vec3 v_pos;
     \\out vec2 v_tex;
-    \\out vec4 v_color;
     \\
     \\void main()
     \\{
     \\    gl_Position = u_project * u_view * u_model * vec4(a_pos, 1.0);
     \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
     \\    v_tex = a_tex;
-    \\    v_color = a_color;
     \\}
 ;
 
@@ -49,22 +46,12 @@ const fs =
     \\
     \\in vec3 v_pos;
     \\in vec2 v_tex;
-    \\in vec4 v_color;
     \\
-    \\uniform bool u_use_texture;
-    \\uniform bool u_use_color;
-    \\uniform vec4 u_color;
     \\uniform sampler2D u_texture;
     \\
     \\void main()
     \\{
-    \\    if (u_use_texture) {
-    \\        frag_color = texture(u_texture, v_tex);
-    \\    } else if (u_use_color) {
-    \\        frag_color = u_color;
-    \\    } else {
-    \\        frag_color = v_color;
-    \\    }
+    \\    frag_color = texture(u_texture, v_tex);
     \\}
 ;
 
@@ -102,19 +89,10 @@ fn end(self: *Self) void {
 fn applyMaterial(self: *Self, material: Material) void {
     switch (material.data) {
         .phong => |m| {
-            self.program.setUniformByName("u_use_texture", true);
-            self.program.setUniformByName("u_use_color", false);
             self.program.setUniformByName("u_texture", m.diffuse_map.tex.getTextureUnit());
         },
         .single_texture => |t| {
-            self.program.setUniformByName("u_use_texture", true);
-            self.program.setUniformByName("u_use_color", false);
             self.program.setUniformByName("u_texture", t.tex.getTextureUnit());
-        },
-        .single_color => |c| {
-            self.program.setUniformByName("u_use_texture", false);
-            self.program.setUniformByName("u_use_color", true);
-            self.program.setUniformByName("u_color", c);
         },
         else => {
             std.debug.panic("unsupported material type", .{});
@@ -148,12 +126,7 @@ fn render(
     } else {
         self.program.setUniformByName("u_view", Mat4.identity());
     }
-    if (material) |m| {
-        self.applyMaterial(m);
-    } else {
-        self.program.setUniformByName("u_use_texture", false);
-        self.program.setUniformByName("u_use_color", false);
-    }
+    self.applyMaterial(material.?);
 
     // issue draw call
     vertex_array.use();
@@ -183,12 +156,8 @@ fn renderMesh(
 
     // attribute settings
     mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_POS, 3, f32, false, 0, 0);
-    if (mesh.texcoords != null) {
-        mesh.vertex_array.setAttribute(Mesh.vbo_texcoords, ATTRIB_LOCATION_TEX, 2, f32, false, 0, 0);
-    }
-    if (mesh.colors != null) {
-        mesh.vertex_array.setAttribute(Mesh.vbo_colors, ATTRIB_LOCATION_COLOR, 4, f32, false, 0, 0);
-    }
+    assert(mesh.texcoords != null);
+    mesh.vertex_array.setAttribute(Mesh.vbo_texcoords, ATTRIB_LOCATION_TEX, 2, f32, false, 0, 0);
 
     // set uniforms
     self.program.setUniformByName("u_model", model);
@@ -198,12 +167,7 @@ fn renderMesh(
     } else {
         self.program.setUniformByName("u_view", Mat4.identity());
     }
-    if (material) |m| {
-        self.applyMaterial(m);
-    } else {
-        self.program.setUniformByName("u_use_texture", false);
-        self.program.setUniformByName("u_use_color", false);
-    }
+    self.applyMaterial(material.?);
 
     // issue draw call
     if (mesh.indices) |ids| {

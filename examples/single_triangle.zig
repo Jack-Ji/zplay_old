@@ -1,6 +1,7 @@
 const std = @import("std");
 const zp = @import("zplay");
 const VertexArray = zp.graphics.common.VertexArray;
+const Texture2D = zp.graphics.texture.Texture2D;
 const Camera = zp.graphics.@"3d".Camera;
 const Material = zp.graphics.@"3d".Material;
 const Renderer = zp.graphics.@"3d".Renderer;
@@ -11,11 +12,12 @@ const Mat4 = alg.Mat4;
 
 var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: VertexArray = undefined;
+var material: Material = undefined;
 
 const vertices = [_]f32{
-    -0.5, -0.5, 0.0, 1.0, 0.0, 0.0,
-    0.5,  -0.5, 0.0, 0.0, 1.0, 0.0,
-    0.0,  0.5,  0.0, 0.0, 0.0, 1.0,
+    -0.5, -0.5, 0.0, 1.0, 0.0,
+    0.5,  -0.5, 0.0, 0.0, 1.0,
+    0.0,  0.5,  0.0, 1.0, 1.0,
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -30,8 +32,23 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 6 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_COLOR, 3, f32, false, 6 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 5 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_TEX, 3, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
+
+    // create material
+    material = Material.init(.{ .single_texture = try Texture2D.fromPixelData(
+        std.testing.allocator,
+        &.{
+            0,   0,   0,   255,
+            0,   255, 0,   255,
+            0,   0,   255, 255,
+            255, 255, 255, 255,
+        },
+        2,
+        2,
+        .{},
+    ) });
+    _ = material.allocTextureUnit(0);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -72,7 +89,7 @@ fn loop(ctx: *zp.Context) void {
         Mat4.identity(),
         Mat4.identity(),
         null,
-        null,
+        material,
         null,
     ) catch unreachable;
     simple_renderer.renderer().end();

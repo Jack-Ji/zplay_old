@@ -21,7 +21,8 @@ var sphere: Mesh = undefined;
 var cylinder: Mesh = undefined;
 var prim: Mesh = undefined;
 var cone: Mesh = undefined;
-var material: Material = undefined;
+var default_material: Material = undefined;
+var picture_material: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(0, 0, 6),
     Vec3.zero(),
@@ -38,26 +39,34 @@ fn init(ctx: *zp.Context) anyerror!void {
     simple_renderer = SimpleRenderer.init();
 
     // generate meshes
-    var default_color = Vec4.new(0, 1, 0, 1);
-    quad = try Mesh.genQuad(std.testing.allocator, 1, 1, default_color);
-    cube1 = try Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5, default_color);
-    cube2 = try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2, default_color);
-    sphere = try Mesh.genSphere(std.testing.allocator, 0.7, 36, 18, default_color);
-    cylinder = try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0.5, 2, 36, default_color);
-    prim = try Mesh.genCylinder(std.testing.allocator, 1, 0.3, 0.3, 1, 3, default_color);
-    cone = try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0, 1, 36, default_color);
+    quad = try Mesh.genQuad(std.testing.allocator, 1, 1);
+    cube1 = try Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5);
+    cube2 = try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2);
+    sphere = try Mesh.genSphere(std.testing.allocator, 0.7, 36, 18);
+    cylinder = try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0.5, 2, 36);
+    prim = try Mesh.genCylinder(std.testing.allocator, 1, 0.3, 0.3, 1, 3);
+    cone = try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0, 1, 36);
 
-    // create material
-    var cube_image = Texture2D.fromFilePath(
-        std.testing.allocator,
-        "assets/wall.jpg",
-        false,
-        .{},
-    ) catch unreachable;
-    material = Material.init(.{
-        .single_texture = cube_image,
+    // create picture_material
+    default_material = Material.init(.{
+        .single_texture = Texture2D.fromPixelData(
+            std.testing.allocator,
+            &.{ 0, 255, 0, 255 },
+            1,
+            1,
+            .{},
+        ) catch unreachable,
     });
-    _ = material.allocTextureUnit(0);
+    picture_material = Material.init(.{
+        .single_texture = Texture2D.fromFilePath(
+            std.testing.allocator,
+            "assets/wall.jpg",
+            false,
+            .{},
+        ) catch unreachable,
+    });
+    var unit = default_material.allocTextureUnit(0);
+    _ = picture_material.allocTextureUnit(unit);
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -135,7 +144,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(-2.0, 1.2, 0)),
             projection,
             camera,
-            if (use_texture) material else null,
+            if (use_texture) picture_material else default_material,
             null,
         ) catch unreachable;
 
@@ -144,7 +153,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(-0.5, 1.2, 0)),
             projection,
             camera,
-            if (use_texture) material else null,
+            if (use_texture) picture_material else default_material,
             null,
         ) catch unreachable;
 
@@ -153,7 +162,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(1.0, 1.2, 0)),
             projection,
             camera,
-            if (use_texture) material else null,
+            if (use_texture) picture_material else default_material,
             null,
         ) catch unreachable;
 
@@ -162,7 +171,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(-2.2, -1.2, 0)),
             projection,
             camera,
-            if (use_texture) material else null,
+            if (use_texture) picture_material else default_material,
             null,
         ) catch unreachable;
 
@@ -171,7 +180,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(-0.4, -1.2, 0)),
             projection,
             camera,
-            if (use_texture) material else null,
+            if (use_texture) picture_material else default_material,
             null,
         ) catch unreachable;
 
@@ -180,7 +189,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(1.1, -1.2, 0)),
             projection,
             camera,
-            if (use_texture) material else null,
+            if (use_texture) picture_material else default_material,
             null,
         ) catch unreachable;
 
@@ -189,7 +198,7 @@ fn loop(ctx: *zp.Context) void {
             model.translate(Vec3.new(2.3, -1.2, 0)),
             projection,
             camera,
-            if (use_texture) material else null,
+            if (use_texture) picture_material else default_material,
             null,
         ) catch unreachable;
     }
