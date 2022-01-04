@@ -2,6 +2,7 @@ const std = @import("std");
 const zp = @import("zplay");
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
+const bt = zp.deps.bt;
 const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
@@ -18,11 +19,8 @@ var phong_renderer: PhongRenderer = undefined;
 var wireframe_mode = false;
 var room_texture: Texture2D = undefined;
 var room: Model = undefined;
-var capsule: Model = undefined;
-var cylinder: Model = undefined;
-var cone: Model = undefined;
-var cube: Model = undefined;
-var sphere: Model = undefined;
+var scene1: Scene = undefined;
+var frame_mt: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(5, 10, 25),
     Vec3.new(-4, 8, 0),
@@ -39,7 +37,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     phong_renderer = PhongRenderer.init(std.testing.allocator);
     phong_renderer.setDirLight(Light.init(.{
         .directional = .{
-            .ambient = Vec3.new(0.1, 0.1, 0.1),
+            .ambient = Vec3.new(0.8, 0.8, 0.8),
             .diffuse = Vec3.new(0.5, 0.5, 0.3),
             .specular = Vec3.new(0.1, 0.1, 0.1),
             .direction = Vec3.new(-1, -1, 0),
@@ -55,34 +53,29 @@ fn init(ctx: *zp.Context) anyerror!void {
         1,
         .{},
     ) catch unreachable;
-    room = try Model.fromGLTF(std.testing.allocator, "assets/world.gltf", false, room_texture);
-    capsule = try Model.fromGLTF(std.testing.allocator, "assets/capsule.gltf", false, null);
-    cylinder = try Model.fromGLTF(std.testing.allocator, "assets/cylinder.gltf", false, null);
-    cube = try Model.fromGLTF(std.testing.allocator, "assets/cube.gltf", false, null);
-    cone = try Model.fromGLTF(std.testing.allocator, "assets/cone.gltf", false, null);
-    sphere = try Model.fromGLTF(std.testing.allocator, "assets/sphere.gltf", false, null);
+    room = try Model.fromGLTF(
+        std.testing.allocator,
+        "assets/world.gltf",
+        false,
+        room_texture,
+    );
+    var frame_texture = Texture2D.fromPixelData(
+        std.testing.allocator,
+        &.{ 0, 0, 0, 255 },
+        1,
+        1,
+        .{},
+    ) catch unreachable;
+    frame_mt = Material.init(.{
+        .phong = .{
+            .diffuse_map = frame_texture,
+            .specular_map = frame_texture,
+            .shiness = 0,
+        },
+    });
+    scene1 = try loadScene();
 
-    // allocate texture units
-    var unit: i32 = 0;
-    for (room.materials.items) |m| {
-        unit = m.allocTextureUnit(unit);
-    }
-    for (capsule.materials.items) |m| {
-        unit = m.allocTextureUnit(unit);
-    }
-    for (cylinder.materials.items) |m| {
-        unit = m.allocTextureUnit(unit);
-    }
-    for (cube.materials.items) |m| {
-        unit = m.allocTextureUnit(unit);
-    }
-    for (cone.materials.items) |m| {
-        unit = m.allocTextureUnit(unit);
-    }
-    for (sphere.materials.items) |m| {
-        unit = m.allocTextureUnit(unit);
-    }
-
+    // toggle depth test
     ctx.graphics.toggleCapability(.depth_test, true);
 }
 
@@ -159,46 +152,32 @@ fn loop(ctx: *zp.Context) void {
         null,
         null,
     ) catch unreachable;
-    capsule.render(
-        rd,
-        Mat4.fromTranslate(Vec3.new(-20, 5, -2)),
-        projection,
-        camera,
-        null,
-        null,
-    ) catch unreachable;
-    cylinder.render(
-        rd,
-        Mat4.fromTranslate(Vec3.new(-15, 5, -2)),
-        projection,
-        camera,
-        null,
-        null,
-    ) catch unreachable;
-    cube.render(
-        rd,
-        Mat4.fromTranslate(Vec3.new(-10, 5, -2)),
-        projection,
-        camera,
-        null,
-        null,
-    ) catch unreachable;
-    cone.render(
-        rd,
-        Mat4.fromTranslate(Vec3.new(-5, 5, -2)),
-        projection,
-        camera,
-        null,
-        null,
-    ) catch unreachable;
-    sphere.render(
-        rd,
-        Mat4.fromTranslate(Vec3.new(5, 5, -2)),
-        projection,
-        camera,
-        null,
-        null,
-    ) catch unreachable;
+    {
+        ctx.graphics.setPolygonMode(.line);
+        defer ctx.graphics.setPolygonMode(.fill);
+        for (scene1.items) |obj| {
+            obj.model.render(
+                rd,
+                Mat4.fromScale(Vec3.set(1.001)).translate(obj.position),
+                projection,
+                camera,
+                frame_mt,
+                null,
+            ) catch unreachable;
+        }
+    }
+    if (!wireframe_mode) {
+        for (scene1.items) |obj| {
+            obj.model.render(
+                rd,
+                Mat4.fromTranslate(obj.position),
+                projection,
+                camera,
+                null,
+                null,
+            ) catch unreachable;
+        }
+    }
     rd.end();
 
     // settings
@@ -218,13 +197,56 @@ fn loop(ctx: *zp.Context) void {
                 dig.c.ImGuiWindowFlags_AlwaysAutoResize,
         )) {
             _ = dig.checkbox("wireframe", &wireframe_mode);
-            ctx.graphics.setPolygonMode(
-                if (wireframe_mode) .line else .fill,
-            );
         }
         dig.end();
     }
     dig.endFrame();
+}
+
+const Object = struct {
+    model: Model,
+    position: Vec3,
+    //rigid_body: bt.Body,
+};
+const Scene = std.ArrayList(Object);
+
+fn loadScene() !Scene {
+    var scene = Scene.init(std.testing.allocator);
+
+    try scene.append(.{
+        .model = try Model.fromGLTF(std.testing.allocator, "assets/capsule.gltf", false, null),
+        .position = Vec3.new(-20, 5, -2),
+    });
+    try scene.append(.{
+        .model = try Model.fromGLTF(std.testing.allocator, "assets/cylinder.gltf", false, null),
+        .position = Vec3.new(-15, 5, -2),
+    });
+    try scene.append(.{
+        .model = try Model.fromGLTF(std.testing.allocator, "assets/cube.gltf", false, null),
+        .position = Vec3.new(-10, 5, -2),
+    });
+    try scene.append(.{
+        .model = try Model.fromGLTF(std.testing.allocator, "assets/cone.gltf", false, null),
+        .position = Vec3.new(-5, 5, -2),
+    });
+    try scene.append(.{
+        .model = try Model.fromGLTF(std.testing.allocator, "assets/sphere.gltf", false, null),
+        .position = Vec3.new(5, 5, -2),
+    });
+
+    // allocate texture units
+    var unit: i32 = 0;
+    for (room.materials.items) |m| {
+        unit = m.allocTextureUnit(unit);
+    }
+    unit = frame_mt.allocTextureUnit(unit);
+    for (scene.items) |obj| {
+        for (obj.model.materials.items) |m| {
+            unit = m.allocTextureUnit(unit);
+        }
+    }
+
+    return scene;
 }
 
 fn quit(ctx: *zp.Context) void {

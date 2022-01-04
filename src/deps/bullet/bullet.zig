@@ -1,4 +1,8 @@
 pub const c = @import("c.zig");
+pub const World = c.CbtWorldHandle;
+pub const Shape = c.CbtShapeHandle;
+pub const Body = c.CbtBodyHandle;
+pub const Constraint = c.CbtConstraintHandle;
 pub const worldCreate = c.cbtWorldCreate;
 pub const worldDestroy = c.cbtWorldDestroy;
 pub const worldSetGravity = c.cbtWorldSetGravity;

@@ -6,13 +6,13 @@ const Self = @This();
 /// timestamp of event
 timestamp: u32,
 
-pub fn fromAxisEvent(e: c.SDL_ControllerAxisEvent) Self {
+pub fn fromAxisEvent(e: sdl.ControllerAxisEvent) Self {
     return .{
         .timestamp = e.timestamp,
     };
 }
 
-pub fn fromButtonEvent(e: c.SDL_ControllerButtonEvent) Self {
+pub fn fromButtonEvent(e: sdl.ControllerButtonEvent) Self {
     return .{
         .timestamp = e.timestamp,
     };

@@ -136,13 +136,15 @@ pub fn processEvent(e: event.Event) bool {
             switch (ee.data) {
                 .button => |button| {
                     if (button.clicked) {
-                        bd.mouse_pressed[
-                            switch (button.btn) {
-                                .left => 0,
-                                .right => 1,
-                                .middle => 2,
-                            }
-                        ] = true;
+                        var idx: i32 = switch (button.btn) {
+                            .left => 0,
+                            .right => 1,
+                            .middle => 2,
+                            else => -1,
+                        };
+                        if (idx >= 0) {
+                            bd.mouse_pressed[@intCast(u32, idx)] = true;
+                        }
                     }
                 },
                 .wheel => |wheel| {

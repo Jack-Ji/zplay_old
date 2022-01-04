@@ -3,12 +3,6 @@ const sdl = zp.deps.sdl;
 const c = sdl.c;
 const Self = @This();
 
-const Button = enum(c_int) {
-    left = c.SDL_BUTTON_LEFT,
-    right = c.SDL_BUTTON_RIGHT,
-    middle = c.SDL_BUTTON_MIDDLE,
-};
-
 const Data = union(enum) {
     motion: struct {
         x: i32, // current horizontal coordinate, relative to window
@@ -19,7 +13,7 @@ const Data = union(enum) {
     button: struct {
         x: i32, // current horizontal coordinate, relative to window
         y: i32, // current vertical coordinate, relative to window
-        btn: Button, // pressed/released button
+        btn: sdl.MouseButton, // pressed/released button
         clicked: bool, // false means released
         double_clicked: bool, // double clicks
     },
@@ -35,42 +29,42 @@ timestamp: u32 = undefined,
 /// mouse event data
 data: Data = undefined,
 
-pub fn fromMotionEvent(e: c.SDL_MouseMotionEvent) Self {
+pub fn fromMotionEvent(e: sdl.MouseMotionEvent) Self {
     return .{
         .timestamp = e.timestamp,
         .data = .{
             .motion = .{
                 .x = e.x,
                 .y = e.y,
-                .xrel = e.xrel,
-                .yrel = e.yrel,
+                .xrel = e.delta_x,
+                .yrel = e.delta_y,
             },
         },
     };
 }
 
-pub fn fromButtonEvent(e: c.SDL_MouseButtonEvent) Self {
+pub fn fromButtonEvent(e: sdl.MouseButtonEvent) Self {
     return .{
         .timestamp = e.timestamp,
         .data = .{
             .button = .{
                 .x = e.x,
                 .y = e.y,
-                .btn = @intToEnum(Button, @as(c_int, e.button)),
-                .clicked = e.state == c.SDL_PRESSED,
+                .btn = e.button,
+                .clicked = e.state == .pressed,
                 .double_clicked = e.clicks > 1,
             },
         },
     };
 }
 
-pub fn fromWheelEvent(e: c.SDL_MouseWheelEvent) Self {
+pub fn fromWheelEvent(e: sdl.MouseWheelEvent) Self {
     return .{
         .timestamp = e.timestamp,
         .data = .{
             .wheel = .{
-                .scroll_x = if (e.direction == c.SDL_MOUSEWHEEL_FLIPPED) -e.x else e.x,
-                .scroll_y = if (e.direction == c.SDL_MOUSEWHEEL_FLIPPED) -e.y else e.y,
+                .scroll_x = if (e.direction == .normal) -e.delta_x else e.delta_x,
+                .scroll_y = if (e.direction == .flipped) -e.delta_y else e.delta_y,
             },
         },
     };
