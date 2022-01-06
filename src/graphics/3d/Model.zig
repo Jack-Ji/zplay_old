@@ -34,6 +34,9 @@ generated_textures: std.ArrayList(Texture2D) = undefined,
 loaded_textures: std.ArrayList(Texture2D) = undefined,
 
 /// load gltf model file 
+/// WARNING: Model won't deallocate default texture, 
+///          cause it might be used somewhere else, 
+///          user's code knows better what to do with it.
 pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_meshes: bool, default_textre: ?Texture2D) !Self {
     var data: *gltf.Data = try gltf.loadFile(filename, null);
     defer gltf.free(data);

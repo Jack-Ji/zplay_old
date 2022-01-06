@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const zp = @import("zplay");
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
@@ -6,21 +7,19 @@ const bt = zp.deps.bt;
 const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
+const VertexArray = zp.graphics.common.VertexArray;
 const Texture2D = zp.graphics.texture.Texture2D;
 const Renderer = zp.graphics.@"3d".Renderer;
+const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
 const PhongRenderer = zp.graphics.@"3d".PhongRenderer;
 const Light = zp.graphics.@"3d".Light;
 const Model = zp.graphics.@"3d".Model;
 const Material = zp.graphics.@"3d".Material;
 const Camera = zp.graphics.@"3d".Camera;
 
-var rd: Renderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
 var wireframe_mode = false;
-var room_texture: Texture2D = undefined;
-var room: Model = undefined;
-var scene1: Scene = undefined;
-var frame_mt: Material = undefined;
+var scene: Scene = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(5, 10, 25),
     Vec3.new(-4, 8, 0),
@@ -43,37 +42,9 @@ fn init(ctx: *zp.Context) anyerror!void {
             .direction = Vec3.new(-1, -1, 0),
         },
     }));
-    rd = phong_renderer.renderer();
 
-    // load models
-    room_texture = Texture2D.fromPixelData(
-        std.testing.allocator,
-        &.{ 128, 128, 128, 255 },
-        1,
-        1,
-        .{},
-    ) catch unreachable;
-    room = try Model.fromGLTF(
-        std.testing.allocator,
-        "assets/world.gltf",
-        false,
-        room_texture,
-    );
-    var frame_texture = Texture2D.fromPixelData(
-        std.testing.allocator,
-        &.{ 0, 0, 0, 255 },
-        1,
-        1,
-        .{},
-    ) catch unreachable;
-    frame_mt = Material.init(.{
-        .phong = .{
-            .diffuse_map = frame_texture,
-            .specular_map = frame_texture,
-            .shiness = 0,
-        },
-    });
-    scene1 = try loadScene();
+    // create scene
+    scene = try Scene.init(std.testing.allocator, ctx);
 
     // toggle depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -136,48 +107,10 @@ fn loop(ctx: *zp.Context) void {
     ctx.graphics.getDrawableSize(ctx.window, &width, &height);
     ctx.graphics.clear(true, true, true, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
-    // render room
-    const projection = alg.Mat4.perspective(
-        camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        1000,
-    );
+    // render world
+    var rd = phong_renderer.renderer();
     rd.begin();
-    room.render(
-        rd,
-        Mat4.identity(),
-        projection,
-        camera,
-        null,
-        null,
-    ) catch unreachable;
-    {
-        ctx.graphics.setPolygonMode(.line);
-        defer ctx.graphics.setPolygonMode(.fill);
-        for (scene1.items) |obj| {
-            obj.model.render(
-                rd,
-                Mat4.fromScale(Vec3.set(1.001)).translate(obj.position),
-                projection,
-                camera,
-                frame_mt,
-                null,
-            ) catch unreachable;
-        }
-    }
-    if (!wireframe_mode) {
-        for (scene1.items) |obj| {
-            obj.model.render(
-                rd,
-                Mat4.fromTranslate(obj.position),
-                projection,
-                camera,
-                null,
-                null,
-            ) catch unreachable;
-        }
-    }
+    scene.update(ctx, rd) catch unreachable;
     rd.end();
 
     // settings
@@ -196,58 +129,378 @@ fn loop(ctx: *zp.Context) void {
             dig.c.ImGuiWindowFlags_NoResize |
                 dig.c.ImGuiWindowFlags_AlwaysAutoResize,
         )) {
-            _ = dig.checkbox("wireframe", &wireframe_mode);
+            if (dig.checkbox("wireframe", &wireframe_mode)) {
+                ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
+            }
         }
         dig.end();
     }
     dig.endFrame();
 }
 
-const Object = struct {
-    model: Model,
-    position: Vec3,
-    //rigid_body: bt.Body,
-};
-const Scene = std.ArrayList(Object);
+const Scene = struct {
+    const Object = struct {
+        model: Model,
+        body: bt.Body,
+        size: Vec3 = undefined,
+    };
+    const default_linear_damping: f32 = 0.1;
+    const default_angular_damping: f32 = 0.1;
+    const default_world_friction: f32 = 0.15;
 
-fn loadScene() !Scene {
-    var scene = Scene.init(std.testing.allocator);
+    world: bt.World,
+    objs: std.ArrayList(Object),
+    projection: Mat4,
+    physics_debug: *PhysicsDebug,
 
-    try scene.append(.{
-        .model = try Model.fromGLTF(std.testing.allocator, "assets/capsule.gltf", false, null),
-        .position = Vec3.new(-20, 5, -2),
-    });
-    try scene.append(.{
-        .model = try Model.fromGLTF(std.testing.allocator, "assets/cylinder.gltf", false, null),
-        .position = Vec3.new(-15, 5, -2),
-    });
-    try scene.append(.{
-        .model = try Model.fromGLTF(std.testing.allocator, "assets/cube.gltf", false, null),
-        .position = Vec3.new(-10, 5, -2),
-    });
-    try scene.append(.{
-        .model = try Model.fromGLTF(std.testing.allocator, "assets/cone.gltf", false, null),
-        .position = Vec3.new(-5, 5, -2),
-    });
-    try scene.append(.{
-        .model = try Model.fromGLTF(std.testing.allocator, "assets/sphere.gltf", false, null),
-        .position = Vec3.new(5, 5, -2),
-    });
+    fn init(allocator: std.mem.Allocator, ctx: *zp.Context) !Scene {
+        var width: u32 = undefined;
+        var height: u32 = undefined;
+        ctx.graphics.getDrawableSize(ctx.window, &width, &height);
 
-    // allocate texture units
-    var unit: i32 = 0;
-    for (room.materials.items) |m| {
-        unit = m.allocTextureUnit(unit);
-    }
-    unit = frame_mt.allocTextureUnit(unit);
-    for (scene.items) |obj| {
-        for (obj.model.materials.items) |m| {
-            unit = m.allocTextureUnit(unit);
+        var self = Scene{
+            .world = bt.worldCreate(),
+            .objs = std.ArrayList(Object).init(allocator),
+            .projection = alg.Mat4.perspective(
+                camera.zoom,
+                @intToFloat(f32, width) / @intToFloat(f32, height),
+                0.1,
+                1000,
+            ),
+            .physics_debug = try std.testing.allocator.create(PhysicsDebug),
+        };
+        bt.worldSetGravity(self.world, &Vec3.new(0.0, -10.0, 0.0).toArray());
+
+        // physics debug draw
+        self.physics_debug.* = PhysicsDebug.init(std.testing.allocator);
+        bt.worldDebugSetCallbacks(self.world, &.{
+            .drawLine1 = PhysicsDebug.drawLine1Callback,
+            .drawLine2 = PhysicsDebug.drawLine2Callback,
+            .drawContactPoint = PhysicsDebug.drawContactPointCallback,
+            .reportErrorWarning = PhysicsDebug.reportErrorWarningCallback,
+            .user_data = self.physics_debug,
+        });
+
+        // init/add objects
+        var room = Object{
+            .model = try Model.fromGLTF(
+                allocator,
+                "assets/world.gltf",
+                false,
+                try Texture2D.fromPixelData(
+                    allocator,
+                    &.{ 128, 128, 128, 255 },
+                    1,
+                    1,
+                    .{},
+                ),
+            ),
+            .body = bt.bodyAllocate(),
+        };
+        var shape = bt.shapeAllocate(bt.c.CBT_SHAPE_TYPE_TRIANGLE_MESH);
+        bt.shapeTriMeshCreateBegin(shape);
+        bt.shapeTriMeshAddIndexVertexArray(
+            shape,
+            @intCast(i32, room.model.meshes.items[0].indices.?.items.len / 3),
+            room.model.meshes.items[0].indices.?.items.ptr,
+            3 * @sizeOf(u32),
+            @intCast(i32, room.model.meshes.items[0].positions.items.len),
+            room.model.meshes.items[0].positions.items.ptr,
+            @sizeOf(Vec3),
+        );
+        bt.shapeTriMeshCreateEnd(shape);
+        try self.addBodyToWorld(&room, 0, shape, Vec3.zero());
+        bt.bodySetFriction(room.body, default_world_friction);
+
+        var capsule = Object{
+            .model = try Model.fromGLTF(
+                allocator,
+                "assets/capsule.gltf",
+                false,
+                null,
+            ),
+            .body = bt.bodyAllocate(),
+        };
+        shape = bt.shapeAllocate(bt.c.CBT_SHAPE_TYPE_CAPSULE);
+        bt.shapeCapsuleCreate(shape, 1, 2, bt.c.CBT_LINEAR_AXIS_Y);
+        try self.addBodyToWorld(&capsule, 30, shape, Vec3.new(-5, 12, -2));
+
+        var cylinder = Object{
+            .model = try Model.fromGLTF(
+                allocator,
+                "assets/cylinder.gltf",
+                false,
+                null,
+            ),
+            .body = bt.bodyAllocate(),
+        };
+        shape = bt.shapeAllocate(bt.c.CBT_SHAPE_TYPE_CYLINDER);
+        bt.shapeCylinderCreate(shape, &Vec3.new(1.5, 2.0, 1.5).toArray(), bt.c.CBT_LINEAR_AXIS_Y);
+        try self.addBodyToWorld(&cylinder, 60, shape, Vec3.new(-5, 10, -2));
+
+        var cube = Object{
+            .model = try Model.fromGLTF(
+                allocator,
+                "assets/cube.gltf",
+                false,
+                null,
+            ),
+            .body = bt.bodyAllocate(),
+        };
+        shape = bt.shapeAllocate(bt.c.CBT_SHAPE_TYPE_BOX);
+        bt.shapeBoxCreate(shape, &Vec3.new(0.5, 1.0, 2.0).toArray());
+        try self.addBodyToWorld(&cube, 50, shape, Vec3.new(-5, 8, -2));
+
+        var cone = Object{
+            .model = try Model.fromGLTF(
+                allocator,
+                "assets/cone.gltf",
+                false,
+                null,
+            ),
+            .body = bt.bodyAllocate(),
+        };
+        shape = bt.shapeAllocate(bt.c.CBT_SHAPE_TYPE_CONE);
+        bt.shapeConeCreate(shape, 1.0, 2.0, bt.c.CBT_LINEAR_AXIS_Y);
+        try self.addBodyToWorld(&cone, 15, shape, Vec3.new(-5, 5, -2));
+
+        var sphere = Object{
+            .model = try Model.fromGLTF(
+                allocator,
+                "assets/sphere.gltf",
+                false,
+                null,
+            ),
+            .body = bt.bodyAllocate(),
+        };
+        shape = bt.shapeAllocate(bt.c.CBT_SHAPE_TYPE_SPHERE);
+        bt.shapeSphereCreate(shape, 1.5);
+        try self.addBodyToWorld(&sphere, 25, shape, Vec3.new(-5, 3, -2));
+
+        // allocate texture units
+        var unit: i32 = 0;
+        for (self.objs.items) |obj| {
+            for (obj.model.materials.items) |m| {
+                unit = m.allocTextureUnit(unit);
+            }
         }
+
+        return self;
     }
 
-    return scene;
-}
+    fn addBodyToWorld(self: *Scene, obj: *Object, mass: f32, shape: bt.Shape, position: Vec3) !void {
+        const shape_type = bt.shapeGetType(shape);
+        const mesh_size = switch (shape_type) {
+            bt.c.CBT_SHAPE_TYPE_BOX => blk: {
+                var half_extents: bt.Vector3 = undefined;
+                bt.shapeBoxGetHalfExtentsWithoutMargin(shape, &half_extents);
+                break :blk Vec3.fromSlice(&half_extents);
+            },
+            bt.c.CBT_SHAPE_TYPE_SPHERE => blk: {
+                break :blk Vec3.set(bt.shapeSphereGetRadius(shape));
+            },
+            bt.c.CBT_SHAPE_TYPE_CONE => blk: {
+                assert(bt.shapeConeGetUpAxis(shape) == bt.c.CBT_LINEAR_AXIS_Y);
+                const radius = bt.shapeConeGetRadius(shape);
+                const height = bt.shapeConeGetHeight(shape);
+                assert(radius == 1.0 and height == 2.0);
+                break :blk Vec3.new(radius, 0.5 * height, radius);
+            },
+            bt.c.CBT_SHAPE_TYPE_CYLINDER => blk: {
+                var half_extents: bt.Vector3 = undefined;
+                assert(bt.shapeCylinderGetUpAxis(shape) == bt.c.CBT_LINEAR_AXIS_Y);
+                bt.shapeCylinderGetHalfExtentsWithoutMargin(shape, &half_extents);
+                assert(half_extents[0] == half_extents[2]);
+                break :blk Vec3.fromSlice(&half_extents);
+            },
+            bt.c.CBT_SHAPE_TYPE_CAPSULE => blk: {
+                assert(bt.shapeCapsuleGetUpAxis(shape) == bt.c.CBT_LINEAR_AXIS_Y);
+                const radius = bt.shapeCapsuleGetRadius(shape);
+                const half_height = bt.shapeCapsuleGetHalfHeight(shape);
+                assert(radius == 1.0 and half_height == 1.0);
+                break :blk Vec3.new(radius, half_height, radius);
+            },
+            bt.c.CBT_SHAPE_TYPE_TRIANGLE_MESH => Vec3.set(1),
+            bt.c.CBT_SHAPE_TYPE_COMPOUND => Vec3.set(1),
+            else => blk: {
+                assert(false);
+                break :blk Vec3.set(1);
+            },
+        };
+
+        obj.size = mesh_size;
+        try self.objs.append(obj.*);
+        bt.bodyCreate(
+            obj.body,
+            mass,
+            &bt.convertMat4ToTransform(Mat4.fromTranslate(position)),
+            shape,
+        );
+
+        bt.bodySetUserIndex(obj.body, 0, @intCast(i32, self.objs.items.len - 1));
+        bt.bodySetDamping(obj.body, default_linear_damping, default_angular_damping);
+        bt.bodySetActivationState(obj.body, bt.c.CBT_DISABLE_DEACTIVATION);
+        bt.worldAddBody(self.world, obj.body);
+    }
+
+    fn update(self: Scene, ctx: *zp.Context, rd: Renderer) !void {
+        // update physical world
+        _ = bt.worldStepSimulation(self.world, ctx.delta_tick, 1, 1.0 / 60.0);
+
+        // render objects
+        for (self.objs.items) |obj| {
+            var tr: bt.Transform = undefined;
+            bt.bodyGetGraphicsWorldTransform(obj.body, &tr);
+
+            try obj.model.render(
+                rd,
+                bt.convertTransformToMat4(tr).mult(Mat4.fromScale(obj.size)),
+                self.projection,
+                camera,
+                null,
+                null,
+            );
+        }
+
+        // render physical debug
+        bt.worldDebugDraw(self.world);
+        self.physics_debug.render(self.projection);
+    }
+};
+
+const PhysicsDebug = struct {
+    positions: std.ArrayList(Vec3),
+    colors: std.ArrayList(Vec4),
+    vertex_array: VertexArray,
+    simple_renderer: SimpleRenderer,
+
+    fn init(allocator: std.mem.Allocator) PhysicsDebug {
+        var debug = PhysicsDebug{
+            .positions = std.ArrayList(Vec3).init(allocator),
+            .colors = std.ArrayList(Vec4).init(allocator),
+            .vertex_array = VertexArray.init(2),
+            .simple_renderer = SimpleRenderer.init(),
+        };
+
+        debug.vertex_array.use();
+        defer debug.vertex_array.disuse();
+        debug.vertex_array.setAttribute(
+            0,
+            SimpleRenderer.ATTRIB_LOCATION_POS,
+            3,
+            f32,
+            false,
+            0,
+            0,
+        );
+        debug.vertex_array.setAttribute(
+            1,
+            SimpleRenderer.ATTRIB_LOCATION_COLOR,
+            4,
+            f32,
+            false,
+            0,
+            0,
+        );
+        return debug;
+    }
+
+    fn deinit(debug: *PhysicsDebug) void {
+        debug.positions.deinit();
+        debug.colors.deinit();
+        debug.vertex_array.deinit();
+        debug.simple_renderer.deinit();
+        debug.* = undefined;
+    }
+
+    fn render(debug: *PhysicsDebug, projection: Mat4) void {
+        if (debug.positions.items.len == 0) return;
+
+        debug.vertex_array.bufferData(0, Vec3, debug.positions.items, .array_buffer, .stream_draw);
+        debug.vertex_array.bufferData(1, Vec4, debug.colors.items, .array_buffer, .stream_draw);
+
+        var rd = debug.simple_renderer.renderer();
+        rd.begin();
+        defer rd.end();
+
+        rd.render(
+            debug.vertex_array,
+            false,
+            .lines,
+            0,
+            @intCast(u32, debug.positions.items.len),
+            Mat4.identity(),
+            projection,
+            camera,
+            null,
+            null,
+        ) catch unreachable;
+
+        debug.positions.resize(0) catch unreachable;
+        debug.colors.resize(0) catch unreachable;
+    }
+
+    fn drawLine1(debug: *PhysicsDebug, p0: Vec3, p1: Vec3, color: Vec4) void {
+        debug.positions.appendSlice(&.{ p0, p1 }) catch unreachable;
+        debug.colors.appendSlice(&.{ color, color }) catch unreachable;
+    }
+
+    fn drawLine2(debug: *PhysicsDebug, p0: Vec3, p1: Vec3, color0: Vec4, color1: Vec4) void {
+        debug.positions.appendSlice(&.{ p0, p1 }) catch unreachable;
+        debug.colors.appendSlice(&.{ color0, color1 }) catch unreachable;
+    }
+
+    fn drawContactPoint(debug: *PhysicsDebug, point: Vec3, normal: Vec3, distance: f32, color: Vec4) void {
+        debug.drawLine1(point, point.add(normal.scale(distance)), color);
+        debug.drawLine1(point, point.add(normal.scale(0.01)), Vec4.zero());
+    }
+
+    fn drawLine1Callback(p0: [*c]const f32, p1: [*c]const f32, color: [*c]const f32, user: ?*anyopaque) callconv(.C) void {
+        const ptr = @ptrCast(*PhysicsDebug, @alignCast(@alignOf(PhysicsDebug), user.?));
+        ptr.drawLine1(
+            Vec3.new(p0[0], p0[1], p0[2]),
+            Vec3.new(p1[0], p1[1], p1[2]),
+            Vec4.new(color[0], color[1], color[2], 1.0),
+        );
+    }
+
+    fn drawLine2Callback(
+        p0: [*c]const f32,
+        p1: [*c]const f32,
+        color0: [*c]const f32,
+        color1: [*c]const f32,
+        user: ?*anyopaque,
+    ) callconv(.C) void {
+        const ptr = @ptrCast(*PhysicsDebug, @alignCast(@alignOf(PhysicsDebug), user.?));
+        ptr.drawLine2(
+            Vec3.new(p0[0], p0[1], p0[2]),
+            Vec3.new(p1[0], p1[1], p1[2]),
+            Vec4.new(color0[0], color0[1], color0[2], 1),
+            Vec4.new(color1[0], color1[1], color1[2], 1),
+        );
+    }
+
+    fn drawContactPointCallback(
+        point: [*c]const f32,
+        normal: [*c]const f32,
+        distance: f32,
+        _: c_int,
+        color: [*c]const f32,
+        user: ?*anyopaque,
+    ) callconv(.C) void {
+        const ptr = @ptrCast(*PhysicsDebug, @alignCast(@alignOf(PhysicsDebug), user.?));
+        ptr.drawContactPoint(
+            Vec3.new(point[0], point[1], point[2]),
+            Vec3.new(normal[0], normal[1], normal[2]),
+            distance,
+            Vec4.new(color[0], color[1], color[2], 1.0),
+        );
+    }
+
+    fn reportErrorWarningCallback(str: [*c]const u8, _: ?*anyopaque) callconv(.C) void {
+        std.log.info("{s}", .{str});
+    }
+};
 
 fn quit(ctx: *zp.Context) void {
     _ = ctx;

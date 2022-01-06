@@ -15,9 +15,9 @@ var vertex_array: VertexArray = undefined;
 var material: Material = undefined;
 
 const vertices = [_]f32{
-    -0.5, -0.5, 0.0, 1.0, 0.0,
-    0.5,  -0.5, 0.0, 0.0, 1.0,
-    0.0,  0.5,  0.0, 1.0, 1.0,
+    -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
+    0.5,  -0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
+    0.0,  0.5,  0.0, 0.0, 0.0, 1.0, 1.0,
 };
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -32,8 +32,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.bufferData(0, f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 5 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_TEX, 3, f32, false, 5 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 7 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_COLOR, 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // create material
     material = Material.init(.{ .single_texture = try Texture2D.fromPixelData(

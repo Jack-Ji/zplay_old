@@ -2,6 +2,7 @@ pub const c = @import("c.zig");
 pub const World = c.CbtWorldHandle;
 pub const Shape = c.CbtShapeHandle;
 pub const Body = c.CbtBodyHandle;
+pub const Vector3 = c.CbtVector3;
 pub const Constraint = c.CbtConstraintHandle;
 pub const worldCreate = c.cbtWorldCreate;
 pub const worldDestroy = c.cbtWorldDestroy;
@@ -201,3 +202,27 @@ pub const conD6Spring2GetAngularUpperLimit = c.cbtConD6Spring2GetAngularUpperLim
 pub const conConeTwistCreate1 = c.cbtConConeTwistCreate1;
 pub const conConeTwistCreate2 = c.cbtConConeTwistCreate2;
 pub const conConeTwistSetLimit = c.cbtConConeTwistSetLimit;
+
+// 4x3 tranform matrix manipulation
+const zp = @import("../../zplay.zig");
+const Mat4 = zp.deps.alg.Mat4;
+pub const Transform = [4]Vector3;
+pub fn convertMat4ToTransform(m: Mat4) Transform {
+    return [4][3]f32{
+        [3]f32{ m.data[0][0], m.data[0][1], m.data[0][2] },
+        [3]f32{ m.data[1][0], m.data[1][1], m.data[1][2] },
+        [3]f32{ m.data[2][0], m.data[2][1], m.data[2][2] },
+        [3]f32{ m.data[3][0], m.data[3][1], m.data[3][2] },
+    };
+}
+
+pub fn convertTransformToMat4(a: Transform) Mat4 {
+    return Mat4{
+        .data = .{
+            .{ a[0][0], a[0][1], a[0][2], 0 },
+            .{ a[1][0], a[1][1], a[1][2], 0 },
+            .{ a[2][0], a[2][1], a[2][2], 0 },
+            .{ a[3][0], a[3][1], a[3][2], 1 },
+        },
+    };
+}

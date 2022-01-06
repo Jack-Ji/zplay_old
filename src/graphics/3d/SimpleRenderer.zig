@@ -19,11 +19,13 @@ const Self = @This();
 /// vertex attribute locations
 pub const ATTRIB_LOCATION_POS = 0;
 pub const ATTRIB_LOCATION_TEX = 1;
+pub const ATTRIB_LOCATION_COLOR = 2;
 
 const vs =
     \\#version 330 core
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 1) in vec2 a_tex;
+    \\layout (location = 2) in vec4 a_color;
     \\
     \\uniform mat4 u_model;
     \\uniform mat4 u_view;
@@ -31,12 +33,14 @@ const vs =
     \\
     \\out vec3 v_pos;
     \\out vec2 v_tex;
+    \\out vec4 v_color;
     \\
     \\void main()
     \\{
     \\    gl_Position = u_project * u_view * u_model * vec4(a_pos, 1.0);
     \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
     \\    v_tex = a_tex;
+    \\    v_color = a_color;
     \\}
 ;
 
@@ -46,12 +50,13 @@ const fs =
     \\
     \\in vec3 v_pos;
     \\in vec2 v_tex;
+    \\in vec4 v_color;
     \\
     \\uniform sampler2D u_texture;
     \\
     \\void main()
     \\{
-    \\    frag_color = texture(u_texture, v_tex);
+    \\    frag_color = texture(u_texture, v_tex) + v_color;
     \\}
 ;
 
@@ -156,8 +161,12 @@ fn renderMesh(
 
     // attribute settings
     mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_POS, 3, f32, false, 0, 0);
-    assert(mesh.texcoords != null);
-    mesh.vertex_array.setAttribute(Mesh.vbo_texcoords, ATTRIB_LOCATION_TEX, 2, f32, false, 0, 0);
+    if (mesh.texcoords != null) {
+        mesh.vertex_array.setAttribute(Mesh.vbo_texcoords, ATTRIB_LOCATION_TEX, 2, f32, false, 0, 0);
+    }
+    if (mesh.colors != null) {
+        mesh.vertex_array.setAttribute(Mesh.vbo_colors, ATTRIB_LOCATION_COLOR, 4, f32, false, 0, 0);
+    }
 
     // set uniforms
     self.program.setUniformByName("u_model", model);
