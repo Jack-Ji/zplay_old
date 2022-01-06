@@ -136,7 +136,9 @@ fn render(
         self.program.setUniformByName("u_view", Mat4.identity());
     }
     self.program.setUniformByName("u_mix_factor", self.mix_factor);
-    self.applyMaterial(material.?);
+    if (material) |mr| {
+        self.applyMaterial(mr);
+    }
 
     // issue draw call
     vertex_array.use();
@@ -182,7 +184,9 @@ fn renderMesh(
         self.program.setUniformByName("u_view", Mat4.identity());
     }
     self.program.setUniformByName("u_mix_factor", self.mix_factor);
-    self.applyMaterial(material.?);
+    if (material) |mr| {
+        self.applyMaterial(mr);
+    }
 
     // issue draw call
     if (mesh.indices) |ids| {

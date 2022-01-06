@@ -46,8 +46,9 @@ fn init(ctx: *zp.Context) anyerror!void {
     // create scene
     scene = try Scene.init(std.testing.allocator, ctx);
 
-    // toggle depth test
+    // graphics init
     ctx.graphics.toggleCapability(.depth_test, true);
+    ctx.graphics.setLineWidth(5);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -349,9 +350,23 @@ const Scene = struct {
 
         // render objects
         for (self.objs.items) |obj| {
+            // draw debug lines
+            var linear_velocity: bt.Vector3 = undefined;
+            var angular_velocity: bt.Vector3 = undefined;
+            var position: bt.Vector3 = undefined;
+            bt.bodyGetLinearVelocity(obj.body, &linear_velocity);
+            bt.bodyGetAngularVelocity(obj.body, &angular_velocity);
+            bt.bodyGetCenterOfMassPosition(obj.body, &position);
+            const p1_linear = Vec3.fromSlice(&position).add(Vec3.fromSlice(&linear_velocity));
+            const p1_angular = Vec3.fromSlice(&position).add(Vec3.fromSlice(&angular_velocity));
+            const color_linear = bt.Vector3{ 1.0, 0.0, 1.0 };
+            const color_angular = bt.Vector3{ 0.0, 1.0, 1.0 };
+            bt.worldDebugDrawLine1(self.world, &position, &p1_linear.toArray(), &color_linear);
+            bt.worldDebugDrawLine1(self.world, &position, &p1_angular.toArray(), &color_angular);
+
+            // draw object
             var tr: bt.Transform = undefined;
             bt.bodyGetGraphicsWorldTransform(obj.body, &tr);
-
             try obj.model.render(
                 rd,
                 bt.convertTransformToMat4(tr).mult(Mat4.fromScale(obj.size)),
@@ -381,6 +396,7 @@ const PhysicsDebug = struct {
             .vertex_array = VertexArray.init(2),
             .simple_renderer = SimpleRenderer.init(),
         };
+        debug.simple_renderer.mix_factor = 1.0;
 
         debug.vertex_array.use();
         defer debug.vertex_array.disuse();
@@ -402,7 +418,6 @@ const PhysicsDebug = struct {
             0,
             0,
         );
-        debug.simple_renderer.setColorMixFactor(1.0);
         return debug;
     }
 

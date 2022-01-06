@@ -266,6 +266,13 @@ pub fn isCapabilityEnabled(self: Self, cap: Capability) bool {
     return gl.isEnabled(@enumToInt(cap)) == gl.GL_TRUE;
 }
 
+/// set line width
+pub fn setLineWidth(self: Self, w: f32) void {
+    _ = self;
+    gl.lineWidth(w);
+    gl.util.checkError();
+}
+
 /// set polygon mode
 pub fn setPolygonMode(self: *Self, mode: PolygonMode) void {
     _ = self;
