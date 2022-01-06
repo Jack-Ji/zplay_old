@@ -26,6 +26,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // create renderer
     simple_renderer = SimpleRenderer.init();
+    simple_renderer.mix_factor = 1;
 
     // vertex array
     vertex_array = VertexArray.init(5);

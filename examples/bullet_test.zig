@@ -402,6 +402,7 @@ const PhysicsDebug = struct {
             0,
             0,
         );
+        debug.simple_renderer.setColorMixFactor(1.0);
         return debug;
     }
 

@@ -53,15 +53,19 @@ const fs =
     \\in vec4 v_color;
     \\
     \\uniform sampler2D u_texture;
+    \\uniform float u_mix_factor;
     \\
     \\void main()
     \\{
-    \\    frag_color = texture(u_texture, v_tex) + v_color;
+    \\    frag_color = mix(texture(u_texture, v_tex), v_color, u_mix_factor);
     \\}
 ;
 
 /// lighting program
 program: ShaderProgram = undefined,
+
+/// set factor used to mix texture and vertex's colors
+mix_factor: f32 = 0,
 
 /// create a simple renderer
 pub fn init() Self {
@@ -131,6 +135,7 @@ fn render(
     } else {
         self.program.setUniformByName("u_view", Mat4.identity());
     }
+    self.program.setUniformByName("u_mix_factor", self.mix_factor);
     self.applyMaterial(material.?);
 
     // issue draw call
@@ -176,6 +181,7 @@ fn renderMesh(
     } else {
         self.program.setUniformByName("u_view", Mat4.identity());
     }
+    self.program.setUniformByName("u_mix_factor", self.mix_factor);
     self.applyMaterial(material.?);
 
     // issue draw call
