@@ -114,3 +114,32 @@ fn updateVectors(self: *Self) void {
     self.right = self.dir.cross(self.world_up).norm();
     self.up = self.right.cross(self.dir).norm();
 }
+
+/// get position of ray test target
+/// NOTE: assuming mouse's coordinate is relative to top-left corner of viewport
+pub fn getRayTestTarget(
+    self: Self,
+    viewport_w: u32,
+    viewport_h: u32,
+    mouse_x: u32,
+    mouse_y: u32,
+) Vec3 {
+    const far_plane: f32 = 10000.0;
+    const tanfov = math.tan(0.5 * alg.toRadians(self.zoom));
+    const width = @intToFloat(f32, viewport_w);
+    const height = @intToFloat(f32, viewport_h);
+    const aspect = width / height;
+
+    const ray_forward = self.dir.scale(far_plane);
+    const hor = self.right.scale(2.0 * far_plane * tanfov * aspect);
+    const vertical = self.up.scale(2.0 * far_plane * tanfov);
+
+    const ray_to_center = self.position.add(ray_forward);
+    const dhor = hor.scale(1.0 / width);
+    const dvert = vertical.scale(1.0 / height);
+
+    var ray_to = ray_to_center.sub(hor.scale(0.5)).sub(vertical.scale(0.5));
+    ray_to = ray_to.add(dhor.scale(@intToFloat(f32, mouse_x)));
+    ray_to = ray_to.add(dvert.scale(@intToFloat(f32, viewport_h - mouse_y)));
+    return ray_to;
+}

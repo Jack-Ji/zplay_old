@@ -216,7 +216,7 @@ fn loop(ctx: *zp.Context) void {
     {
         ctx.graphics.toggleCapability(.depth_test, true);
         ctx.graphics.clear(true, true, true, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
-        const projection = alg.Mat4.perspective(
+        const projection = Mat4.perspective(
             45,
             @intToFloat(f32, width) / @intToFloat(f32, height),
             0.1,
@@ -254,7 +254,7 @@ fn loop(ctx: *zp.Context) void {
     }
 }
 
-fn renderBoxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
+fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
     simple_renderer.renderer().begin();
     defer simple_renderer.renderer().end();
 
@@ -267,7 +267,7 @@ fn renderBoxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
         });
     }
     for (cube_positions) |pos, i| {
-        var model = alg.Mat4.fromRotation(
+        var model = Mat4.fromRotation(
             20 * @intToFloat(f32, i) + frame,
             Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
@@ -289,13 +289,13 @@ fn renderBoxes(ctx: *zp.Context, projection: alg.Mat4, frame: f32) void {
             .test_ref = 1,
         });
         for (cube_positions) |pos, i| {
-            var model = alg.Mat4.fromRotation(
+            var model = Mat4.fromRotation(
                 20 * @intToFloat(f32, i) + frame,
                 Vec3.new(1, 0.3, 0.5),
             ).translate(pos);
             simple_renderer.renderer().renderMesh(
                 cube,
-                model.mult(alg.Mat4.fromScale(Vec3.set(1.01))),
+                model.mult(Mat4.fromScale(Vec3.set(1.01))),
                 projection,
                 camera,
                 color_material,

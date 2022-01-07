@@ -3,6 +3,7 @@ pub const World = c.CbtWorldHandle;
 pub const Shape = c.CbtShapeHandle;
 pub const Body = c.CbtBodyHandle;
 pub const Vector3 = c.CbtVector3;
+pub const RayCastResult = c.CbtRayCastResult;
 pub const Constraint = c.CbtConstraintHandle;
 pub const worldCreate = c.cbtWorldCreate;
 pub const worldDestroy = c.cbtWorldDestroy;

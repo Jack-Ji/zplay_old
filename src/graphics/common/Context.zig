@@ -110,6 +110,9 @@ vsync: bool = undefined,
 /// current color
 color: [4]f32 = .{ 0, 0, 0, 1 },
 
+/// line width
+line_width: f32 = 1,
+
 /// current polygon mode
 polygon_mode: PolygonMode = undefined,
 
@@ -267,8 +270,8 @@ pub fn isCapabilityEnabled(self: Self, cap: Capability) bool {
 }
 
 /// set line width
-pub fn setLineWidth(self: Self, w: f32) void {
-    _ = self;
+pub fn setLineWidth(self: *Self, w: f32) void {
+    self.line_width = w;
     gl.lineWidth(w);
     gl.util.checkError();
 }

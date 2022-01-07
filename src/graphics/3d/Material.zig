@@ -1,6 +1,4 @@
 const std = @import("std");
-const PhongRenderer = @import("PhongRenderer.zig");
-const SimpleRenderer = @import("SimpleRenderer.zig");
 const zp = @import("../../zplay.zig");
 const TextureUnit = zp.graphics.common.Texture.TextureUnit;
 const Texture2D = zp.graphics.texture.Texture2D;

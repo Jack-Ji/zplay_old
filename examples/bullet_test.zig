@@ -17,7 +17,9 @@ const Model = zp.graphics.@"3d".Model;
 const Material = zp.graphics.@"3d".Material;
 const Camera = zp.graphics.@"3d".Camera;
 
+var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
+var color_material: Material = undefined;
 var wireframe_mode = false;
 var scene: Scene = undefined;
 var camera = Camera.fromPositionAndTarget(
@@ -33,6 +35,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // create renderer
+    simple_renderer = SimpleRenderer.init();
     phong_renderer = PhongRenderer.init(std.testing.allocator);
     phong_renderer.setDirLight(Light.init(.{
         .directional = .{
@@ -43,12 +46,23 @@ fn init(ctx: *zp.Context) anyerror!void {
         },
     }));
 
+    // init color_material
+    color_material = Material.init(.{
+        .single_texture = try Texture2D.fromPixelData(
+            std.testing.allocator,
+            &.{ 0, 255, 0, 255 },
+            1,
+            1,
+            .{},
+        ),
+    });
+
     // create scene
     scene = try Scene.init(std.testing.allocator, ctx);
 
     // graphics init
     ctx.graphics.toggleCapability(.depth_test, true);
-    ctx.graphics.setLineWidth(5);
+    ctx.graphics.toggleCapability(.stencil_test, true);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -168,12 +182,12 @@ const Scene = struct {
                 0.1,
                 1000,
             ),
-            .physics_debug = try std.testing.allocator.create(PhysicsDebug),
+            .physics_debug = try allocator.create(PhysicsDebug),
         };
         bt.worldSetGravity(self.world, &Vec3.new(0.0, -10.0, 0.0).toArray());
 
         // physics debug draw
-        self.physics_debug.* = PhysicsDebug.init(std.testing.allocator);
+        self.physics_debug.* = PhysicsDebug.init(allocator);
         bt.worldDebugSetCallbacks(self.world, &.{
             .drawLine1 = PhysicsDebug.drawLine1Callback,
             .drawLine2 = PhysicsDebug.drawLine2Callback,
@@ -285,13 +299,14 @@ const Scene = struct {
                 unit = m.allocTextureUnit(unit);
             }
         }
+        _ = color_material.allocTextureUnit(unit);
 
         return self;
     }
 
     fn addBodyToWorld(self: *Scene, obj: *Object, mass: f32, shape: bt.Shape, position: Vec3) !void {
         const shape_type = bt.shapeGetType(shape);
-        const mesh_size = switch (shape_type) {
+        obj.size = switch (shape_type) {
             bt.c.CBT_SHAPE_TYPE_BOX => blk: {
                 var half_extents: bt.Vector3 = undefined;
                 bt.shapeBoxGetHalfExtentsWithoutMargin(shape, &half_extents);
@@ -328,8 +343,6 @@ const Scene = struct {
                 break :blk Vec3.set(1);
             },
         };
-
-        obj.size = mesh_size;
         try self.objs.append(obj.*);
         bt.bodyCreate(
             obj.body,
@@ -345,11 +358,39 @@ const Scene = struct {
     }
 
     fn update(self: Scene, ctx: *zp.Context, rd: Renderer) !void {
+        var width: u32 = undefined;
+        var height: u32 = undefined;
+        ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+        const mouse_state = ctx.getMouseState();
+
         // update physical world
         _ = bt.worldStepSimulation(self.world, ctx.delta_tick, 1, 1.0 / 60.0);
 
+        // get selected object
+        var result: bt.RayCastResult = undefined;
+        var ray_target = camera.getRayTestTarget(
+            width,
+            height,
+            @intCast(u32, mouse_state.x),
+            @intCast(u32, mouse_state.y),
+        );
+        var hit_idx: u32 = undefined;
+        var hit = bt.rayTestClosest(
+            self.world,
+            &camera.position.toArray(),
+            &ray_target.toArray(),
+            bt.c.CBT_COLLISION_FILTER_DEFAULT,
+            bt.c.CBT_COLLISION_FILTER_ALL,
+            bt.c.CBT_RAYCAST_FLAG_USE_USE_GJK_CONVEX_TEST,
+            &result,
+        );
+        if (hit and result.body != null) {
+            hit_idx = @intCast(u32, bt.bodyGetUserIndex(result.body, 0));
+            if (hit_idx == 0) hit = false;
+        }
+
         // render objects
-        for (self.objs.items) |obj| {
+        for (self.objs.items) |obj, idx| {
             // draw debug lines
             var linear_velocity: bt.Vector3 = undefined;
             var angular_velocity: bt.Vector3 = undefined;
@@ -364,9 +405,16 @@ const Scene = struct {
             bt.worldDebugDrawLine1(self.world, &position, &p1_linear.toArray(), &color_linear);
             bt.worldDebugDrawLine1(self.world, &position, &p1_angular.toArray(), &color_angular);
 
-            // draw object
+            // draw object, highlight selected object
             var tr: bt.Transform = undefined;
             bt.bodyGetGraphicsWorldTransform(obj.body, &tr);
+            if (hit and hit_idx == idx) {
+                ctx.graphics.setStencilOption(.{
+                    .test_func = .always,
+                    .test_ref = 1,
+                    .action_dppass = .replace,
+                });
+            }
             try obj.model.render(
                 rd,
                 bt.convertTransformToMat4(tr).mult(Mat4.fromScale(obj.size)),
@@ -375,11 +423,32 @@ const Scene = struct {
                 null,
                 null,
             );
+            if (hit and hit_idx == idx) {
+                ctx.graphics.setStencilOption(.{
+                    .test_func = .not_equal,
+                    .test_ref = 1,
+                });
+                simple_renderer.renderer().begin();
+                defer rd.begin();
+                try obj.model.render(
+                    simple_renderer.renderer(),
+                    bt.convertTransformToMat4(tr)
+                        .mult(Mat4.fromScale(Vec3.set(1.05)))
+                        .mult(Mat4.fromScale(obj.size)),
+                    self.projection,
+                    camera,
+                    color_material,
+                    null,
+                );
+            }
         }
 
         // render physical debug
         bt.worldDebugDraw(self.world);
+        var old_line_width = ctx.graphics.line_width;
+        ctx.graphics.setLineWidth(5);
         self.physics_debug.render(self.projection);
+        ctx.graphics.setLineWidth(old_line_width);
     }
 };
 
