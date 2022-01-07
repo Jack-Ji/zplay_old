@@ -7,8 +7,8 @@ A simple framework intended for game/tool creation.
 * Support image formats: tga/png/jpeg
 * Support audio formats: mp3/ogg (TODO)
 * glTF 2.0 file support
+* 3D physics system (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 * Sprite system (TODO)
-* Collision system (TODO)
 * Particle system (TODO)
 * dear-imgui and extensions(implot/imnodes) integration 
 * NanoVG/NanoSVG integration
@@ -27,14 +27,17 @@ A simple framework intended for game/tool creation.
 * mesh generation
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/mesh_generation.png)
 
+* phong lighting
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/phong_lighting.png)
+
+* collision test
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/bullet_test.gif)
+
 * imgui demo
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/imgui_demo.png)
 
 * vector graphics
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/vector_graphics.png)
-
-* phong lighting
-![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/phong_lighting.png)
 
 # FYI
 I'm still learning, which means codebase will probably change drastically over time. If you want a stable

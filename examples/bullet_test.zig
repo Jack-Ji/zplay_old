@@ -134,7 +134,7 @@ fn loop(ctx: *zp.Context) void {
         dig.setNextWindowPos(
             .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
             .{
-                .cond = dig.c.ImGuiCond_Once,
+                .cond = dig.c.ImGuiCond_Always,
                 .pivot = .{ .x = 1, .y = 0 },
             },
         );
@@ -165,7 +165,6 @@ const Scene = struct {
 
     world: bt.World,
     objs: std.ArrayList(Object),
-    projection: Mat4,
     physics_debug: *PhysicsDebug,
 
     fn init(allocator: std.mem.Allocator, ctx: *zp.Context) !Scene {
@@ -176,12 +175,6 @@ const Scene = struct {
         var self = Scene{
             .world = bt.worldCreate(),
             .objs = std.ArrayList(Object).init(allocator),
-            .projection = alg.Mat4.perspective(
-                camera.zoom,
-                @intToFloat(f32, width) / @intToFloat(f32, height),
-                0.1,
-                1000,
-            ),
             .physics_debug = try allocator.create(PhysicsDebug),
         };
         bt.worldSetGravity(self.world, &Vec3.new(0.0, -10.0, 0.0).toArray());
@@ -363,6 +356,14 @@ const Scene = struct {
         ctx.graphics.getDrawableSize(ctx.window, &width, &height);
         const mouse_state = ctx.getMouseState();
 
+        // calc projection matrix
+        const projection = Mat4.perspective(
+            camera.zoom,
+            @intToFloat(f32, width) / @intToFloat(f32, height),
+            0.1,
+            1000,
+        );
+
         // update physical world
         _ = bt.worldStepSimulation(self.world, ctx.delta_tick, 1, 1.0 / 60.0);
 
@@ -418,7 +419,7 @@ const Scene = struct {
             try obj.model.render(
                 rd,
                 bt.convertTransformToMat4(tr).mult(Mat4.fromScale(obj.size)),
-                self.projection,
+                projection,
                 camera,
                 null,
                 null,
@@ -435,7 +436,7 @@ const Scene = struct {
                     bt.convertTransformToMat4(tr)
                         .mult(Mat4.fromScale(Vec3.set(1.05)))
                         .mult(Mat4.fromScale(obj.size)),
-                    self.projection,
+                    projection,
                     camera,
                     color_material,
                     null,
@@ -447,7 +448,7 @@ const Scene = struct {
         bt.worldDebugDraw(self.world);
         var old_line_width = ctx.graphics.line_width;
         ctx.graphics.setLineWidth(5);
-        self.physics_debug.render(self.projection);
+        self.physics_debug.render(projection);
         ctx.graphics.setLineWidth(old_line_width);
     }
 };
@@ -597,5 +598,6 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .enable_maximized = true,
     });
 }
