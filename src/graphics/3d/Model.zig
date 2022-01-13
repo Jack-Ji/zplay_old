@@ -111,6 +111,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
         self.generated_textures.append(try Texture2D.fromPixelData(
             allocator,
             &.{ 255, 255, 255, 255 },
+            4,
             1,
             1,
             .{},
@@ -157,6 +158,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
                 @floatToInt(u8, base_color[2] * 255),
                 @floatToInt(u8, base_color[3] * 255),
             },
+            4,
             1,
             1,
             .{},

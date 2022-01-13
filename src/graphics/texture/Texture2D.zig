@@ -111,7 +111,12 @@ pub fn fromFilePath(
 }
 
 /// create 2d texture with given file's data buffer
-pub fn fromFileData(allocator: std.mem.Allocator, data: []const u8, flip: bool, option: Option) !Self {
+pub fn fromFileData(
+    allocator: std.mem.Allocator,
+    data: []const u8,
+    flip: bool,
+    option: Option,
+) !Self {
     var width: c_int = undefined;
     var height: c_int = undefined;
     var channels: c_int = undefined;
@@ -147,13 +152,28 @@ pub fn fromFileData(allocator: std.mem.Allocator, data: []const u8, flip: bool, 
     );
 }
 
-/// create 2d texture with pixel data (r8g8b8a8)
-pub fn fromPixelData(allocator: std.mem.Allocator, data: []const u8, width: u32, height: u32, option: Option) !Self {
-    assert(data.len == width * height * 4);
+/// create 2d texture with pixel data (r8g8b8a8 or r8g8b8)
+pub fn fromPixelData(
+    allocator: std.mem.Allocator,
+    data: []const u8,
+    channels: u8,
+    width: u32,
+    height: u32,
+    option: Option,
+) !Self {
+    assert(channels == 3 or channels == 4);
+    assert(data.len == width * height * @intCast(u32, channels));
     return Self.init(
         allocator,
         data,
-        .rgba,
+        switch (channels) {
+            3 => .rgb,
+            4 => .rgba,
+            else => std.debug.panic(
+                "unsupported image format: width({d}) height({d}) channels({d})",
+                .{ width, height, channels },
+            ),
+        },
         width,
         height,
         option,

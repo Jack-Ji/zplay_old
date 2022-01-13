@@ -40,11 +40,12 @@ fn init(ctx: *zp.Context) anyerror!void {
     material = Material.init(.{ .single_texture = try Texture2D.fromPixelData(
         std.testing.allocator,
         &.{
-            0,   0,   0,   255,
-            0,   255, 0,   255,
-            0,   0,   255, 255,
-            255, 255, 255, 255,
+            0,   0,   0,
+            0,   255, 0,
+            0,   0,   255,
+            255, 255, 255,
         },
+        3,
         2,
         2,
         .{},
