@@ -70,7 +70,7 @@ mix_factor: f32 = 0,
 /// create a simple renderer
 pub fn init() Self {
     return .{
-        .program = ShaderProgram.init(vs, fs),
+        .program = ShaderProgram.init(vs, fs, null),
     };
 }
 

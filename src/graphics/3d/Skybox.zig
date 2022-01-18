@@ -57,7 +57,7 @@ vertex_array: VertexArray,
 /// create a simple renderer
 pub fn init() Self {
     var self = Self{
-        .program = ShaderProgram.init(vs, fs),
+        .program = ShaderProgram.init(vs, fs, null),
         .vertex_array = VertexArray.init(1),
     };
 

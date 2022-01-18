@@ -211,7 +211,7 @@ spot_lights: std.ArrayList(Light) = undefined,
 /// create a Phong lighting renderer
 pub fn init(allocator: std.mem.Allocator) Self {
     return .{
-        .program = ShaderProgram.init(vs, fs),
+        .program = ShaderProgram.init(vs, fs, null),
         .dir_light = Light.init(
             .{
                 .directional = .{

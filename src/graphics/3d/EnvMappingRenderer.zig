@@ -96,6 +96,7 @@ pub fn init(t: Type) Self {
                 .reflect => reflect_fs,
                 .refract => refract_fs,
             },
+            null,
         ),
         .type = t,
     };

@@ -28,6 +28,7 @@ var current: gl.GLuint = 0;
 pub fn init(
     vs_source: [:0]const u8,
     fs_source: [:0]const u8,
+    gs_source: ?[:0]const u8,
 ) Self {
     var program: Self = undefined;
     var success: gl.GLint = undefined;
@@ -66,10 +67,31 @@ pub fn init(
     }
     gl.util.checkError();
 
+    // geometry shader
+    var gshader: gl.GLuint = undefined;
+    if (gs_source) |src| {
+        gshader = gl.createShader(gl.GL_GEOMETRY_SHADER);
+        gl.shaderSource(gshader, 1, &src.ptr, null);
+        gl.compileShader(gshader);
+        gl.getShaderiv(gshader, gl.GL_COMPILE_STATUS, &success);
+        if (success == 0) {
+            gl.getShaderInfoLog(gshader, 512, &log_size, &shader_log);
+            std.debug.panic(
+                "compile geometry shader failed, error log:\n{s}" ++
+                    "\n\n>>>>> full shader source <<<<<\n{s}\n",
+                .{ shader_log[0..@intCast(u32, log_size)], prettifySource(src) },
+            );
+        }
+        gl.util.checkError();
+    }
+
     // link program
     program.id = gl.createProgram();
     gl.attachShader(program.id, vshader);
     gl.attachShader(program.id, fshader);
+    if (gs_source != null) {
+        gl.attachShader(program.id, gshader);
+    }
     gl.linkProgram(program.id);
     gl.getProgramiv(program.id, gl.GL_LINK_STATUS, &success);
     if (success == 0) {
@@ -87,6 +109,9 @@ pub fn init(
     program.uniform_locs = std.StringHashMap(gl.GLint).init(allocator);
     program.string_cache = std.ArrayList([]u8).init(allocator);
 
+    if (gs_source != null) {
+        gl.deleteShader(gshader);
+    }
     return program;
 }
 

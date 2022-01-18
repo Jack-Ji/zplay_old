@@ -210,7 +210,7 @@ fn loop(ctx: *zp.Context) void {
             _ = dig.combo_Str(
                 "environment mapping",
                 &S.current_mapping,
-                "reflect\x00refract",
+                "reflect\x00refract\x00",
                 null,
             );
             if (S.current_mapping == 1) {
