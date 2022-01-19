@@ -465,12 +465,12 @@ const PhysicsDebug = struct {
         var debug = PhysicsDebug{
             .positions = std.ArrayList(Vec3).init(allocator),
             .colors = std.ArrayList(Vec4).init(allocator),
-            .vertex_array = VertexArray.init(2),
+            .vertex_array = VertexArray.init(allocator, 2),
             .simple_renderer = SimpleRenderer.init(),
         };
         debug.simple_renderer.mix_factor = 1.0;
-        debug.vertex_array.bufferDataAlloc(0, 100 * @sizeOf(Vec3), .array_buffer, .stream_draw);
-        debug.vertex_array.bufferDataAlloc(1, 100 * @sizeOf(Vec4), .array_buffer, .stream_draw);
+        debug.vertex_array.vbos[0].allocData(100 * @sizeOf(Vec3), .array_buffer, .stream_draw);
+        debug.vertex_array.vbos[1].allocData(100 * @sizeOf(Vec4), .array_buffer, .stream_draw);
 
         debug.vertex_array.use();
         defer debug.vertex_array.disuse();
@@ -506,8 +506,8 @@ const PhysicsDebug = struct {
     fn render(debug: *PhysicsDebug, projection: Mat4) void {
         if (debug.positions.items.len == 0) return;
 
-        debug.vertex_array.bufferSubData(0, 0, Vec3, debug.positions.items, .array_buffer);
-        debug.vertex_array.bufferSubData(1, 0, Vec4, debug.colors.items, .array_buffer);
+        debug.vertex_array.vbos[0].updateData(0, Vec3, debug.positions.items, .array_buffer);
+        debug.vertex_array.vbos[1].updateData(0, Vec4, debug.colors.items, .array_buffer);
 
         var rd = debug.simple_renderer.renderer();
         rd.begin();

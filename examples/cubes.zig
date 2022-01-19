@@ -56,7 +56,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // allocate skybox
-    skybox = Skybox.init();
+    skybox = Skybox.init(std.testing.allocator);
 
     // allocate framebuffer
     var width: u32 = undefined;

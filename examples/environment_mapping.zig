@@ -86,7 +86,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     current_material = skybox_material;
 
     // alloc renderers
-    skybox = Skybox.init();
+    skybox = Skybox.init(std.testing.allocator);
     reflect_renderer = EnvMappingRenderer.init(.reflect);
     refract_renderer = EnvMappingRenderer.init(.refract);
     current_renderer = reflect_renderer.renderer();

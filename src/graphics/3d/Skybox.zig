@@ -55,16 +55,15 @@ program: ShaderProgram,
 vertex_array: VertexArray,
 
 /// create a simple renderer
-pub fn init() Self {
+pub fn init(allocator: std.mem.Allocator) Self {
     var self = Self{
         .program = ShaderProgram.init(vs, fs, null),
-        .vertex_array = VertexArray.init(1),
+        .vertex_array = VertexArray.init(allocator, 1),
     };
 
     self.vertex_array.use();
     defer self.vertex_array.disuse();
-    self.vertex_array.bufferData(
-        0,
+    self.vertex_array.vbos[0].allocInitData(
         f32,
         &[_]f32{
             -1.0, 1.0,  -1.0,

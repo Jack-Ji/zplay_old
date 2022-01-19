@@ -47,7 +47,7 @@ pub fn init(
 ) !Self {
     var self: Self = .{
         .primitive_type = primitive_type,
-        .vertex_array = VertexArray.init(vbo_num),
+        .vertex_array = VertexArray.init(allocator, vbo_num),
         .positions = try std.ArrayList(Vec3).initCapacity(allocator, positions.len),
         .owns_data = true,
     };
@@ -76,7 +76,8 @@ pub fn init(
 }
 
 /// create Mesh, maybe taking ownership of given arrays
-pub fn fromArrayLists(
+pub fn fromArrays(
+    allocator: std.mem.Allocator,
     primitive_type: drawcall.PrimitiveType,
     positions: std.ArrayList(Vec3),
     indices: ?std.ArrayList(u32),
@@ -88,7 +89,7 @@ pub fn fromArrayLists(
 ) Self {
     var mesh: Self = .{
         .primitive_type = primitive_type,
-        .vertex_array = VertexArray.init(vbo_num),
+        .vertex_array = VertexArray.init(allocator, vbo_num),
         .positions = positions,
         .normals = normals,
         .texcoords = texcoords,
@@ -105,21 +106,21 @@ pub fn setup(self: Self) void {
     self.vertex_array.use();
     defer self.vertex_array.disuse();
 
-    self.vertex_array.bufferData(vbo_positions, Vec3, self.positions.items, .array_buffer, .static_draw);
+    self.vertex_array.vbos[vbo_positions].allocInitData(Vec3, self.positions.items, .array_buffer, .static_draw);
     if (self.indices) |ids| {
-        self.vertex_array.bufferData(vbo_indices, u32, ids.items, .element_array_buffer, .static_draw);
+        self.vertex_array.vbos[vbo_indices].allocInitData(u32, ids.items, .element_array_buffer, .static_draw);
     }
     if (self.normals) |ns| {
-        self.vertex_array.bufferData(vbo_normals, Vec3, ns.items, .array_buffer, .static_draw);
+        self.vertex_array.vbos[vbo_normals].allocInitData(Vec3, ns.items, .array_buffer, .static_draw);
     }
     if (self.texcoords) |ts| {
-        self.vertex_array.bufferData(vbo_texcoords, Vec2, ts.items, .array_buffer, .static_draw);
+        self.vertex_array.vbos[vbo_texcoords].allocInitData(Vec2, ts.items, .array_buffer, .static_draw);
     }
     if (self.colors) |cs| {
-        self.vertex_array.bufferData(vbo_colors, Vec4, cs.items, .array_buffer, .static_draw);
+        self.vertex_array.vbos[vbo_colors].allocInitData(Vec4, cs.items, .array_buffer, .static_draw);
     }
     if (self.tangents) |ts| {
-        self.vertex_array.bufferData(vbo_tangents, Vec4, ts.items, .array_buffer, .static_draw);
+        self.vertex_array.vbos[vbo_tangents].allocInitData(Vec4, ts.items, .array_buffer, .static_draw);
     }
 }
 
@@ -343,7 +344,8 @@ pub fn genSphere(
         }
     }
 
-    var mesh = fromArrayLists(
+    var mesh = fromArrays(
+        allocator,
         .triangles,
         positions,
         indices,
@@ -502,7 +504,8 @@ pub fn genCylinder(
         });
     }
 
-    var mesh = fromArrayLists(
+    var mesh = fromArrays(
+        allocator,
         .triangles,
         positions,
         indices,

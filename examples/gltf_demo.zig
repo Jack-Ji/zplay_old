@@ -246,7 +246,7 @@ fn loadScene() void {
     }
 
     // allocate skybox
-    skybox = Skybox.init();
+    skybox = Skybox.init(std.testing.allocator);
     cubemap = TextureCube.fromFilePath(
         std.testing.allocator,
         "assets/skybox/right.jpg",

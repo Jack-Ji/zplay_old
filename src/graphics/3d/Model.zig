@@ -288,7 +288,8 @@ fn parseNode(
                     &texcoords,
                     null,
                 );
-                self.meshes.append(Mesh.fromArrayLists(
+                self.meshes.append(Mesh.fromArrays(
+                    allocator,
                     primtype,
                     positions,
                     indices,
