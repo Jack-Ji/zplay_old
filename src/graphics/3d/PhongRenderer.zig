@@ -39,10 +39,10 @@ const vs =
     \\out vec3 v_normal;
     \\out vec2 v_tex;
     \\
-    \\uniform mat4 u_model;
-    \\uniform mat4 u_normal;
-    \\uniform mat4 u_view;
-    \\uniform mat4 u_project;
+    \\uniform mat4 u_model = mat4(1.0);
+    \\uniform mat4 u_normal = mat4(1.0);
+    \\uniform mat4 u_view = mat4(1.0);
+    \\uniform mat4 u_project = mat4(1.0);
     \\
     \\void main()
     \\{
@@ -200,7 +200,7 @@ const fs =
     \\}
 ;
 
-/// lighting program
+/// shader programs
 program: ShaderProgram = undefined,
 
 /// various lights

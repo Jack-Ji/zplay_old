@@ -166,10 +166,5 @@ pub fn draw(
     );
 
     // issue draw call
-    drawcall.drawBuffer(
-        .triangles,
-        0,
-        36,
-        null,
-    );
+    drawcall.drawBuffer(.triangles, 0, 36);
 }

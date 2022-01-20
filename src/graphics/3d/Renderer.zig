@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const Camera = @import("Camera.zig");
 const Material = @import("Material.zig");
 const Mesh = @import("Mesh.zig");
@@ -10,18 +11,33 @@ const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
 const Renderer = @This();
 
-// The type erased pointer to the renderer implementation
+/// The type erased pointer to the renderer implementation
 ptr: *anyopaque,
 vtable: *const VTable,
 
+/// renderer's status
+pub const Status = enum {
+    not_ready,
+    ready_to_draw,
+    ready_to_draw_instanced,
+};
+
 pub const VTable = struct {
     /// begin using renderer
-    beginFn: fn (ptr: *anyopaque) void,
+    beginFn: fn (ptr: *anyopaque, instanced_draw: bool) void,
 
     /// stop using renderer
     endFn: fn (ptr: *anyopaque) void,
 
+    /// write instanced transform matrices, which is used when doing instanced drawing
+    updateInstanceTransformsFn: fn (
+        ptr: *anyopaque,
+        va: VertexArray,
+        transforms: []Mat4,
+    ) anyerror!void,
+
     /// generic rendering
+    /// param @transforms is ignored when doing instanced drawing
     renderFn: fn (
         ptr: *anyopaque,
         vertex_array: VertexArray,
@@ -29,19 +45,20 @@ pub const VTable = struct {
         primitive: drawcall.PrimitiveType,
         offset: u32,
         count: u32,
-        model: Mat4,
-        projection: Mat4,
+        transforms: ?[]Mat4,
+        projection: ?Mat4,
         camera: ?Camera,
         material: ?Material,
         instance_count: ?u32,
     ) anyerror!void,
 
     /// mesh rendering
+    /// param @transforms is ignored when doing instanced drawing
     renderMeshFn: fn (
         ptr: *anyopaque,
         mesh: Mesh,
-        model: Mat4,
-        projection: Mat4,
+        transforms: ?[]Mat4,
+        projection: ?Mat4,
         camera: ?Camera,
         material: ?Material,
         instance_count: ?u32,
@@ -50,8 +67,13 @@ pub const VTable = struct {
 
 pub fn init(
     pointer: anytype,
-    comptime beginFn: fn (ptr: @TypeOf(pointer)) void,
+    comptime beginFn: fn (ptr: @TypeOf(pointer), instanced_draw: bool) void,
     comptime endFn: fn (ptr: @TypeOf(pointer)) void,
+    comptime updateInstanceTransformsFn: fn (
+        ptr: @TypeOf(pointer),
+        va: VertexArray,
+        transforms: []Mat4,
+    ) anyerror!void,
     comptime renderFn: fn (
         ptr: @TypeOf(pointer),
         vertex_array: VertexArray,
@@ -59,8 +81,8 @@ pub fn init(
         primitive: drawcall.PrimitiveType,
         offset: u32,
         count: u32,
-        model: Mat4,
-        projection: Mat4,
+        transforms: ?[]Mat4,
+        projection: ?Mat4,
         camera: ?Camera,
         material: ?Material,
         instance_count: ?u32,
@@ -68,8 +90,8 @@ pub fn init(
     comptime renderMeshFn: fn (
         ptr: @TypeOf(pointer),
         mesh: Mesh,
-        model: Mat4,
-        projection: Mat4,
+        transforms: ?[]Mat4,
+        projection: ?Mat4,
         camera: ?Camera,
         material: ?Material,
         instance_count: ?u32,
@@ -84,14 +106,29 @@ pub fn init(
     const alignment = ptr_info.Pointer.alignment;
 
     const gen = struct {
-        fn beginImpl(ptr: *anyopaque) void {
+        fn beginImpl(ptr: *anyopaque, instanced_draw: bool) void {
             const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
-            return @call(.{ .modifier = .always_inline }, beginFn, .{self});
+            return @call(.{ .modifier = .always_inline }, beginFn, .{ self, instanced_draw });
         }
+
         fn endImpl(ptr: *anyopaque) void {
             const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
             return @call(.{ .modifier = .always_inline }, endFn, .{self});
         }
+
+        fn updateInstanceTransformsImpl(ptr: *anyopaque, va: VertexArray, transforms: []Mat4) anyerror!void {
+            const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
+            return @call(
+                .{ .modifier = .always_inline },
+                updateInstanceTransformsFn,
+                .{
+                    self,
+                    va,
+                    transforms,
+                },
+            );
+        }
+
         fn renderImpl(
             ptr: *anyopaque,
             vertex_array: VertexArray,
@@ -99,52 +136,61 @@ pub fn init(
             primitive: drawcall.PrimitiveType,
             offset: u32,
             count: u32,
-            model: Mat4,
-            projection: Mat4,
+            transforms: ?[]Mat4,
+            projection: ?Mat4,
             camera: ?Camera,
             material: ?Material,
             instance_count: ?u32,
         ) anyerror!void {
             const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
-            return @call(.{ .modifier = .always_inline }, renderFn, .{
-                self,
-                vertex_array,
-                use_elements,
-                primitive,
-                offset,
-                count,
-                model,
-                projection,
-                camera,
-                material,
-                instance_count,
-            });
+            return @call(
+                .{ .modifier = .always_inline },
+                renderFn,
+                .{
+                    self,
+                    vertex_array,
+                    use_elements,
+                    primitive,
+                    offset,
+                    count,
+                    transforms,
+                    projection,
+                    camera,
+                    material,
+                    instance_count,
+                },
+            );
         }
 
         fn renderMeshImpl(
             ptr: *anyopaque,
             mesh: Mesh,
-            model: Mat4,
-            projection: Mat4,
+            transforms: ?[]Mat4,
+            projection: ?Mat4,
             camera: ?Camera,
             material: ?Material,
             instance_count: ?u32,
         ) anyerror!void {
             const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
-            return @call(.{ .modifier = .always_inline }, renderMeshFn, .{
-                self,
-                mesh,
-                model,
-                projection,
-                camera,
-                material,
-                instance_count,
-            });
+            return @call(
+                .{ .modifier = .always_inline },
+                renderMeshFn,
+                .{
+                    self,
+                    mesh,
+                    transforms,
+                    projection,
+                    camera,
+                    material,
+                    instance_count,
+                },
+            );
         }
 
         const vtable = VTable{
             .beginFn = beginImpl,
             .endFn = endImpl,
+            .updateInstanceTransformsFn = updateInstanceTransformsImpl,
             .renderFn = renderImpl,
             .renderMeshFn = renderMeshImpl,
         };
@@ -156,35 +202,41 @@ pub fn init(
     };
 }
 
-pub fn begin(renderer: Renderer) void {
-    renderer.vtable.beginFn(renderer.ptr);
+pub fn begin(rd: Renderer, instanced_draw: bool) void {
+    rd.vtable.beginFn(rd.ptr, instanced_draw);
 }
 
-pub fn end(renderer: Renderer) void {
-    renderer.vtable.endFn(renderer.ptr);
+pub fn end(rd: Renderer) void {
+    rd.vtable.endFn(rd.ptr);
+}
+
+pub fn updateInstanceTransforms(rd: Renderer, va: VertexArray, transforms: []Mat4) anyerror!void {
+    return rd.vtable.updateInstanceTransformsFn(rd.ptr, va, transforms);
 }
 
 pub fn render(
-    renderer: Renderer,
+    rd: Renderer,
     vertex_array: VertexArray,
     use_elements: bool,
     primitive: drawcall.PrimitiveType,
     offset: u32,
     count: u32,
-    model: Mat4,
-    projection: Mat4,
+    transforms: ?[]Mat4,
+    projection: ?Mat4,
     camera: ?Camera,
     material: ?Material,
     instance_count: ?u32,
 ) anyerror!void {
-    return renderer.vtable.renderFn(
-        renderer.ptr,
+    assert((transforms == null and instance_count != null) or
+        (transforms != null and instance_count == null));
+    return rd.vtable.renderFn(
+        rd.ptr,
         vertex_array,
         use_elements,
         primitive,
         offset,
         count,
-        model,
+        transforms,
         projection,
         camera,
         material,
@@ -192,20 +244,21 @@ pub fn render(
     );
 }
 
-/// render a mesh
 pub fn renderMesh(
-    renderer: Renderer,
+    rd: Renderer,
     mesh: Mesh,
-    model: Mat4,
-    projection: Mat4,
+    transforms: ?[]Mat4,
+    projection: ?Mat4,
     camera: ?Camera,
     material: ?Material,
     instance_count: ?u32,
 ) anyerror!void {
-    return renderer.vtable.renderMeshFn(
-        renderer.ptr,
+    assert((transforms == null and instance_count != null) or
+        (transforms != null and instance_count == null));
+    return rd.vtable.renderMeshFn(
+        rd.ptr,
         mesh,
-        model,
+        transforms,
         projection,
         camera,
         material,

@@ -21,22 +21,12 @@ pub fn drawBuffer(
     primitive: PrimitiveType,
     offset: u32,
     vertex_count: u32,
-    instance_count: ?u32,
 ) void {
-    if (instance_count) |count| {
-        gl.drawArraysInstanced(
-            @enumToInt(primitive),
-            @intCast(gl.GLint, offset),
-            @intCast(gl.GLsizei, vertex_count),
-            @intCast(gl.GLsizei, count),
-        );
-    } else {
-        gl.drawArrays(
-            @enumToInt(primitive),
-            @intCast(gl.GLint, offset),
-            @intCast(gl.GLsizei, vertex_count),
-        );
-    }
+    gl.drawArrays(
+        @enumToInt(primitive),
+        @intCast(gl.GLint, offset),
+        @intCast(gl.GLsizei, vertex_count),
+    );
     gl.util.checkError();
 }
 
@@ -46,26 +36,52 @@ pub fn drawElements(
     offset: u32,
     element_count: u32,
     comptime ElementType: type,
-    instance_count: ?u32,
 ) void {
     if (ElementType != u16 and ElementType != u32) {
         std.debug.panic("unsupported element type!", .{});
     }
-    if (instance_count) |count| {
-        gl.drawElementsInstanced(
-            @enumToInt(primitive),
-            @intCast(gl.GLsizei, element_count),
-            gl.util.dataType(ElementType),
-            @intToPtr(*allowzero anyopaque, offset),
-            @intCast(gl.GLsizei, count),
-        );
-    } else {
-        gl.drawElements(
-            @enumToInt(primitive),
-            @intCast(gl.GLsizei, element_count),
-            gl.util.dataType(ElementType),
-            @intToPtr(*allowzero anyopaque, offset),
-        );
+    gl.drawElements(
+        @enumToInt(primitive),
+        @intCast(gl.GLsizei, element_count),
+        gl.util.dataType(ElementType),
+        @intToPtr(*allowzero anyopaque, offset),
+    );
+    gl.util.checkError();
+}
+
+/// issue draw call
+pub fn drawBufferInstanced(
+    primitive: PrimitiveType,
+    offset: u32,
+    vertex_count: u32,
+    count: u32,
+) void {
+    gl.drawArraysInstanced(
+        @enumToInt(primitive),
+        @intCast(gl.GLint, offset),
+        @intCast(gl.GLsizei, vertex_count),
+        @intCast(gl.GLsizei, count),
+    );
+    gl.util.checkError();
+}
+
+/// issue draw call (only accept unsigned-integer indices!)
+pub fn drawElementsInstanced(
+    primitive: PrimitiveType,
+    offset: u32,
+    element_count: u32,
+    comptime ElementType: type,
+    count: u32,
+) void {
+    if (ElementType != u16 and ElementType != u32) {
+        std.debug.panic("unsupported element type!", .{});
     }
+    gl.drawElementsInstanced(
+        @enumToInt(primitive),
+        @intCast(gl.GLsizei, element_count),
+        gl.util.dataType(ElementType),
+        @intToPtr(*allowzero anyopaque, offset),
+        @intCast(gl.GLsizei, count),
+    );
     gl.util.checkError();
 }

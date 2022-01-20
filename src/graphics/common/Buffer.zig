@@ -102,6 +102,39 @@ pub fn updateData(self: Self, offset: u32, comptime T: type, data: []const T, ta
     gl.util.checkError();
 }
 
+// set vertex attribute (will enable attribute afterwards)
+pub fn setAttribute(
+    self: Self,
+    loc: gl.GLuint,
+    size: u32,
+    comptime T: type,
+    normalized: bool,
+    stride: u32,
+    offset: u32,
+    divisor: ?u8,
+) void {
+    gl.bindBuffer(@enumToInt(Target.array_buffer), self.id);
+    gl.util.checkError();
+
+    gl.vertexAttribPointer(
+        loc,
+        @intCast(c_int, size),
+        gl.util.dataType(T),
+        gl.util.boolType(normalized),
+        @intCast(c_int, stride),
+        @intToPtr(*allowzero anyopaque, offset),
+    );
+    gl.util.checkError();
+
+    if (divisor) |div| {
+        gl.vertexAttribDivisor(loc, @intCast(c_uint, div));
+        gl.util.checkError();
+    }
+
+    gl.enableVertexAttribArray(loc);
+    gl.util.checkError();
+}
+
 /// copy gpu memory to user space
 pub fn getBufferData(
     self: Self,

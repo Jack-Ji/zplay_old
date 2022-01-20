@@ -48,6 +48,7 @@ const cube_positions = [_]Vec3{
     Vec3.new(1.5, 0.2, -1.5),
     Vec3.new(-1.3, 1.0, -1.5),
 };
+var cube_transforms: [cube_positions.len]Mat4 = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -76,7 +77,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     });
 
     // simple renderer
-    simple_renderer = SimpleRenderer.init();
+    simple_renderer = SimpleRenderer.init(std.testing.allocator);
 
     // generate mesh
     quad = try Mesh.genQuad(std.testing.allocator, 2, 2);
@@ -242,10 +243,10 @@ fn loop(ctx: *zp.Context) void {
         if (rotate_scene_fb) {
             model = Mat4.fromRotation(S.frame, Vec3.up());
         }
-        simple_renderer.renderer().begin();
+        simple_renderer.renderer().begin(false);
         simple_renderer.renderer().renderMesh(
             quad,
-            model,
+            &.{model},
             Mat4.identity(),
             null,
             fb_material,
@@ -256,8 +257,9 @@ fn loop(ctx: *zp.Context) void {
 }
 
 fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
-    simple_renderer.renderer().begin();
-    defer simple_renderer.renderer().end();
+    const rd = simple_renderer.renderer();
+    rd.begin(true);
+    defer rd.end();
 
     // update stencil buffers
     if (outlined) {
@@ -268,19 +270,23 @@ fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
         });
     }
     for (cube_positions) |pos, i| {
-        var model = Mat4.fromRotation(
+        cube_transforms[i] = Mat4.fromRotation(
             20 * @intToFloat(f32, i) + frame,
             Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
-        simple_renderer.renderer().renderMesh(
-            cube,
-            model,
-            projection,
-            camera,
-            cube_material,
-            null,
-        ) catch unreachable;
     }
+    rd.updateInstanceTransforms(
+        cube.vertex_array,
+        &cube_transforms,
+    ) catch unreachable;
+    rd.renderMesh(
+        cube,
+        null,
+        projection,
+        camera,
+        cube_material,
+        @intCast(u32, cube_transforms.len),
+    ) catch unreachable;
 
     // outline cubes
     // draw scaled up cubes, using single color
@@ -289,20 +295,21 @@ fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
             .test_func = .not_equal,
             .test_ref = 1,
         });
-        for (cube_positions) |pos, i| {
-            var model = Mat4.fromRotation(
-                20 * @intToFloat(f32, i) + frame,
-                Vec3.new(1, 0.3, 0.5),
-            ).translate(pos);
-            simple_renderer.renderer().renderMesh(
-                cube,
-                model.mult(Mat4.fromScale(Vec3.set(1.01))),
-                projection,
-                camera,
-                color_material,
-                null,
-            ) catch unreachable;
+        for (cube_transforms) |*tr| {
+            tr.* = tr.mult(Mat4.fromScale(Vec3.set(1.01)));
         }
+        rd.updateInstanceTransforms(
+            cube.vertex_array,
+            &cube_transforms,
+        ) catch unreachable;
+        rd.renderMesh(
+            cube,
+            null,
+            projection,
+            camera,
+            color_material,
+            @intCast(u32, cube_transforms.len),
+        ) catch unreachable;
     }
 }
 

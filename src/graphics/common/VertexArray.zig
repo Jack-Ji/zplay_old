@@ -74,22 +74,7 @@ pub fn setAttribute(
     offset: u32,
 ) void {
     assert(vbo_index < self.vbo_num);
-    gl.bindBuffer(
-        @enumToInt(Buffer.Target.array_buffer),
-        self.vbos[vbo_index].id,
-    );
-    gl.util.checkError();
-
-    gl.vertexAttribPointer(
-        loc,
-        @intCast(c_int, size),
-        gl.util.dataType(T),
-        gl.util.boolType(normalized),
-        @intCast(c_int, stride),
-        @intToPtr(*allowzero anyopaque, offset),
-    );
-    gl.enableVertexAttribArray(loc);
-    gl.util.checkError();
+    self.vbos[vbo_index].setAttribute(loc, size, T, normalized, stride, offset, null);
 }
 
 /// start using vertex array
