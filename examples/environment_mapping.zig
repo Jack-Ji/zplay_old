@@ -173,7 +173,7 @@ fn loop(ctx: *zp.Context) void {
         0.1,
         100,
     );
-    current_renderer.begin();
+    current_renderer.begin(false);
     model.render(
         current_renderer,
         Mat4.fromTranslate(Vec3.new(0.0, 0, 0))
@@ -182,7 +182,6 @@ fn loop(ctx: *zp.Context) void {
         projection,
         camera,
         current_material,
-        null,
     ) catch unreachable;
     current_renderer.end();
 

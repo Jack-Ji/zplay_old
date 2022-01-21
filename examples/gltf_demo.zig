@@ -115,39 +115,36 @@ fn loop(ctx: *zp.Context) void {
         100,
     );
 
-    var renderer = simple_renderer.renderer();
-    renderer.begin();
+    var rd = simple_renderer.renderer();
+    rd.begin(false);
     dog.render(
-        renderer,
+        rd,
         Mat4.fromTranslate(Vec3.new(-2.0, -0.7, 0))
             .scale(Vec3.set(0.7))
             .mult(Mat4.fromRotation(ctx.tick * 50, Vec3.up())),
         projection,
         camera,
         null,
-        null,
     ) catch unreachable;
     girl.render(
-        renderer,
+        rd,
         Mat4.fromTranslate(Vec3.new(2.0, -1.2, 0))
             .scale(Vec3.set(0.7))
             .mult(Mat4.fromRotation(ctx.tick * 100, Vec3.up())),
         projection,
         camera,
         null,
-        null,
     ) catch unreachable;
     helmet.render(
-        renderer,
+        rd,
         Mat4.fromTranslate(Vec3.new(0.0, 0, 0))
             .scale(Vec3.set(0.7))
             .mult(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
         projection,
         camera,
         null,
-        null,
     ) catch unreachable;
-    renderer.end();
+    rd.end();
 
     // skybox
     skybox.draw(&ctx.graphics, projection, camera, skybox_material);

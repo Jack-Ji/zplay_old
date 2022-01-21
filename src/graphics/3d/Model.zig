@@ -321,17 +321,38 @@ fn parseNode(
 /// draw model using renderer
 pub fn render(
     self: Self,
-    renderer: Renderer,
-    model: Mat4,
+    rd: Renderer,
+    transform: Mat4,
+    projection: Mat4,
+    camera: ?Camera,
+    material: ?Material,
+) !void {
+    for (self.meshes.items) |m, i| {
+        try m.render(
+            rd,
+            transform.mult(self.transforms.items[i]),
+            projection,
+            camera,
+            if (material) |mr| mr else self.materials.items[self.material_indices.items[i]],
+        );
+    }
+}
+
+/// instanced draw model using renderer
+pub fn renderInstanced(
+    self: Self,
+    rd: Renderer,
+    mesh_transforms: []Renderer.InstanceTransformArray,
     projection: Mat4,
     camera: ?Camera,
     material: ?Material,
     instance_count: ?u32,
 ) !void {
+    assert(mesh_transforms.len == self.meshes.items.len);
     for (self.meshes.items) |m, i| {
-        try renderer.renderMesh(
-            m,
-            model.mult(self.transforms.items[i]),
+        try m.renderInstanced(
+            rd,
+            mesh_transforms[i],
             projection,
             camera,
             if (material) |mr| mr else self.materials.items[self.material_indices.items[i]],

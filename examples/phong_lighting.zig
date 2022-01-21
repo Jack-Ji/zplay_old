@@ -181,50 +181,47 @@ fn loop(ctx: *zp.Context) void {
         0.1,
         100,
     );
-    var renderer = phong_renderer.renderer();
-    renderer.begin();
+    var rd = phong_renderer.renderer();
+    rd.begin(false);
     for (cube_positions) |pos, i| {
         const model = Mat4.fromRotation(
             20 * @intToFloat(f32, i),
             Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
-        renderer.renderMesh(
-            cube,
+        cube.render(
+            rd,
             model,
             projection,
             camera,
             phong_material,
-            null,
         ) catch unreachable;
     }
-    renderer.end();
+    rd.end();
 
     // draw lights
-    renderer = simple_renderer.renderer();
-    renderer.begin();
+    rd = simple_renderer.renderer();
+    rd.begin(false);
     for (phong_renderer.point_lights.items) |light| {
         const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        renderer.renderMesh(
-            cube,
+        cube.render(
+            rd,
             model,
             projection,
             camera,
             light_material,
-            null,
         ) catch unreachable;
     }
     for (phong_renderer.spot_lights.items) |light| {
         const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        renderer.renderMesh(
-            cube,
+        cube.render(
+            rd,
             model,
             projection,
             camera,
             light_material,
-            null,
         ) catch unreachable;
     }
-    renderer.end();
+    rd.end();
 }
 
 fn quit(ctx: *zp.Context) void {

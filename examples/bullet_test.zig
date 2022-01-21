@@ -125,7 +125,7 @@ fn loop(ctx: *zp.Context) void {
 
     // render world
     var rd = phong_renderer.renderer();
-    rd.begin();
+    rd.begin(false);
     scene.update(ctx, rd) catch unreachable;
     rd.end();
 
@@ -424,15 +424,14 @@ const Scene = struct {
                 projection,
                 camera,
                 null,
-                null,
             );
             if (hit and hit_idx == idx) {
                 ctx.graphics.setStencilOption(.{
                     .test_func = .not_equal,
                     .test_ref = 1,
                 });
-                simple_renderer.renderer().begin();
-                defer rd.begin();
+                simple_renderer.renderer().begin(false);
+                defer rd.begin(false);
                 try obj.model.render(
                     simple_renderer.renderer(),
                     bt.convertTransformToMat4(tr)
@@ -441,7 +440,6 @@ const Scene = struct {
                     projection,
                     camera,
                     color_material,
-                    null,
                 );
             }
         }
@@ -476,7 +474,7 @@ const PhysicsDebug = struct {
         defer debug.vertex_array.disuse();
         debug.vertex_array.setAttribute(
             0,
-            SimpleRenderer.ATTRIB_LOCATION_POS,
+            Renderer.ATTRIB_LOCATION_POS,
             3,
             f32,
             false,
@@ -485,7 +483,7 @@ const PhysicsDebug = struct {
         );
         debug.vertex_array.setAttribute(
             1,
-            SimpleRenderer.ATTRIB_LOCATION_COLOR,
+            Renderer.ATTRIB_LOCATION_COLOR,
             4,
             f32,
             false,
@@ -510,7 +508,7 @@ const PhysicsDebug = struct {
         debug.vertex_array.vbos[1].updateData(0, Vec4, debug.colors.items, .array_buffer);
 
         var rd = debug.simple_renderer.renderer();
-        rd.begin();
+        rd.begin(false);
         defer rd.end();
 
         rd.render(
@@ -522,7 +520,6 @@ const PhysicsDebug = struct {
             Mat4.identity(),
             projection,
             camera,
-            null,
             null,
         ) catch unreachable;
 

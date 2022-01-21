@@ -1,6 +1,9 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
+const Renderer = @import("Renderer.zig");
+const Camera = @import("Camera.zig");
+const Material = @import("Material.zig");
 const zp = @import("../../zplay.zig");
 const drawcall = zp.graphics.common.drawcall;
 const VertexArray = zp.graphics.common.VertexArray;
@@ -8,6 +11,7 @@ const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
+const Mat4 = alg.Mat4;
 const Self = @This();
 
 pub const vbo_positions = 0;
@@ -134,6 +138,101 @@ pub fn deinit(self: Self) void {
         if (self.texcoords) |ts| ts.deinit();
         if (self.colors) |cs| cs.deinit();
         if (self.tangents) |ts| ts.deinit();
+    }
+}
+
+/// draw mesh using renderer
+pub fn render(
+    self: Self,
+    rd: Renderer,
+    transform: Mat4,
+    projection: Mat4,
+    camera: ?Camera,
+    material: ?Material,
+) !void {
+    self.vertex_array.use();
+    self.enableAttributes(rd.getVertexAttribs());
+    self.vertex_array.disuse();
+
+    try rd.render(
+        self.vertex_array,
+        self.indices != null,
+        self.primitive_type,
+        0,
+        if (self.indices) |ids|
+            @intCast(u32, ids.items.len)
+        else
+            @intCast(u32, self.positions.items.len),
+        transform,
+        projection,
+        camera,
+        material,
+    );
+}
+
+/// instanced draw mesh using renderer
+pub fn renderInstanced(
+    self: Self,
+    rd: Renderer,
+    transforms: Renderer.InstanceTransformArray,
+    projection: Mat4,
+    camera: ?Camera,
+    material: ?Material,
+    instance_count: ?u32,
+) !void {
+    self.vertex_array.use();
+    self.enableAttributes(rd.getVertexAttribs());
+    self.vertex_array.disuse();
+
+    try rd.renderInstanced(
+        self.vertex_array,
+        self.indices != null,
+        self.primitive_type,
+        0,
+        if (self.indices) |ids|
+            @intCast(u32, ids.items.len)
+        else
+            @intCast(u32, self.positions.items.len),
+        transforms,
+        projection,
+        camera,
+        material,
+        instance_count,
+    );
+}
+
+/// enable vertex attributes
+/// NOTE: VertexArray should have been activated!
+fn enableAttributes(self: Self, attrs: []const u32) void {
+    for (attrs) |a| {
+        switch (a) {
+            Renderer.ATTRIB_LOCATION_POS => {
+                self.vertex_array.setAttribute(vbo_positions, a, 3, f32, false, 0, 0);
+            },
+            Renderer.ATTRIB_LOCATION_COLOR => {
+                if (self.colors != null) {
+                    self.vertex_array.setAttribute(vbo_colors, a, 4, f32, false, 0, 0);
+                }
+            },
+            Renderer.ATTRIB_LOCATION_NORMAL => {
+                if (self.normals != null) {
+                    self.vertex_array.setAttribute(vbo_normals, a, 3, f32, false, 0, 0);
+                }
+            },
+            Renderer.ATTRIB_LOCATION_TANGENT => {
+                if (self.tangents != null) {
+                    self.vertex_array.setAttribute(vbo_tangents, a, 3, f32, false, 0, 0);
+                }
+            },
+            Renderer.ATTRIB_LOCATION_TEXTURE1 => {
+                if (self.texcoords != null) {
+                    self.vertex_array.setAttribute(vbo_texcoords, a, 2, f32, false, 0, 0);
+                }
+            },
+            Renderer.ATTRIB_LOCATION_TEXTURE2 => {},
+            Renderer.ATTRIB_LOCATION_TEXTURE3 => {},
+            else => {},
+        }
     }
 }
 

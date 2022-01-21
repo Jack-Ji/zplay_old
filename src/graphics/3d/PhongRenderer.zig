@@ -21,19 +21,19 @@ const max_spot_light_num = 16;
 pub const Error = error{
     TooManyPointLights,
     TooManySpotLights,
-    RendererNotActive,
 };
 
-/// vertex attribute locations
-pub const ATTRIB_LOCATION_POS = 0;
-pub const ATTRIB_LOCATION_NORMAL = 1;
-pub const ATTRIB_LOCATION_TEX = 2;
+const vertex_attribs = [_]u32{
+    Renderer.ATTRIB_LOCATION_POS,
+    Renderer.ATTRIB_LOCATION_NORMAL,
+    Renderer.ATTRIB_LOCATION_TEXTURE1,
+};
 
 const vs =
     \\#version 330 core
     \\layout (location = 0) in vec3 a_pos;
-    \\layout (location = 1) in vec3 a_normal;
-    \\layout (location = 2) in vec2 a_tex;
+    \\layout (location = 2) in vec3 a_normal;
+    \\layout (location = 4) in vec2 a_tex1;
     \\
     \\out vec3 v_pos;
     \\out vec3 v_normal;
@@ -49,7 +49,30 @@ const vs =
     \\    gl_Position = u_project * u_view * u_model * vec4(a_pos, 1.0);
     \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
     \\    v_normal = mat3(u_normal) * a_normal;
-    \\    v_tex = a_tex;
+    \\    v_tex = a_tex1;
+    \\}
+;
+
+const vs_instanced =
+    \\#version 330 core
+    \\layout (location = 0) in vec3 a_pos;
+    \\layout (location = 2) in vec3 a_normal;
+    \\layout (location = 4) in vec2 a_tex1;
+    \\layout (location = 10) in mat4 a_transform;
+    \\
+    \\out vec3 v_pos;
+    \\out vec3 v_normal;
+    \\out vec2 v_tex;
+    \\
+    \\uniform mat4 u_view = mat4(1.0);
+    \\uniform mat4 u_project = mat4(1.0);
+    \\
+    \\void main()
+    \\{
+    \\    gl_Position = u_project * u_view * a_transform * vec4(a_pos, 1.0);
+    \\    v_pos = vec3(a_transform * vec4(a_pos, 1.0));
+    \\    v_normal = mat3(transpose(inverse(a_transform))) * a_normal;
+    \\    v_tex = a_tex1;
     \\}
 ;
 
@@ -200,8 +223,12 @@ const fs =
     \\}
 ;
 
+/// status of renderer
+status: Renderer.Status = .not_ready,
+
 /// shader programs
 program: ShaderProgram = undefined,
+program_instanced: ShaderProgram,
 
 /// various lights
 dir_light: Light = undefined,
@@ -212,6 +239,7 @@ spot_lights: std.ArrayList(Light) = undefined,
 pub fn init(allocator: std.mem.Allocator) Self {
     return .{
         .program = ShaderProgram.init(vs, fs, null),
+        .program_instanced = ShaderProgram.init(vs_instanced, fs, null),
         .dir_light = Light.init(
             .{
                 .directional = .{
@@ -230,13 +258,14 @@ pub fn init(allocator: std.mem.Allocator) Self {
 /// free resources
 pub fn deinit(self: *Self) void {
     self.program.deinit();
+    self.program_instanced.deinit();
     self.point_lights.deinit();
     self.spot_lights.deinit();
 }
 
 /// get renderer
 pub fn renderer(self: *Self) Renderer {
-    return Renderer.init(self, begin, end, render, renderMesh);
+    return Renderer.init(self, begin, end, getVertexAttribs, render, renderInstanced);
 }
 
 /// set directional light
@@ -277,9 +306,15 @@ pub fn clearSpotLights(self: *Self) void {
 }
 
 /// begin rendering
-fn begin(self: *Self) void {
+fn begin(self: *Self, instanced_draw: bool) void {
     // enable program
-    self.program.use();
+    if (instanced_draw) {
+        self.program_instanced.use();
+        self.status = .ready_to_draw_instanced;
+    } else {
+        self.program.use();
+        self.status = .ready_to_draw;
+    }
 
     // directional light
     self.dir_light.apply(&self.program, "u_directional_light");
@@ -302,25 +337,52 @@ fn begin(self: *Self) void {
 
 /// end rendering
 fn end(self: *Self) void {
-    self.program.disuse();
+    assert(self.status != .not_ready);
+    self.getProgram().disuse();
+    self.status = .not_ready;
+}
+
+/// get supported attributes
+fn getVertexAttribs(self: *Self) []const u32 {
+    _ = self;
+    return &vertex_attribs;
+}
+
+// get current using shader program
+fn getProgram(self: Self) ShaderProgram {
+    assert(self.status != .not_ready);
+    return if (self.status == .ready_to_draw) self.program else self.program_instanced;
 }
 
 /// use material data
 fn applyMaterial(self: *Self, material: Material) void {
     assert(material.data == .phong);
     var buf: [64]u8 = undefined;
-    self.program.setUniformByName(
+    self.getProgram().setUniformByName(
         std.fmt.bufPrintZ(&buf, "u_material.diffuse", .{}) catch unreachable,
         material.data.phong.diffuse_map.tex.getTextureUnit(),
     );
-    self.program.setUniformByName(
+    self.getProgram().setUniformByName(
         std.fmt.bufPrintZ(&buf, "u_material.specular", .{}) catch unreachable,
         material.data.phong.specular_map.tex.getTextureUnit(),
     );
-    self.program.setUniformByName(
+    self.getProgram().setUniformByName(
         std.fmt.bufPrintZ(&buf, "u_material.shiness", .{}) catch unreachable,
         material.data.phong.shiness,
     );
+}
+
+/// init common uniform variables
+fn initCommonUniformVars(
+    self: *Self,
+    projection: ?Mat4,
+    camera: ?Camera,
+    material: ?Material,
+) void {
+    self.getProgram().setUniformByName("u_project", projection.?);
+    self.getProgram().setUniformByName("u_view", camera.?.getViewMatrix());
+    self.getProgram().setUniformByName("u_view_pos", camera.?.position);
+    self.applyMaterial(material.?);
 }
 
 /// render geometries
@@ -331,69 +393,64 @@ fn render(
     primitive: drawcall.PrimitiveType,
     offset: u32,
     count: u32,
-    model: Mat4,
-    projection: Mat4,
+    transform: Mat4,
+    projection: ?Mat4,
     camera: ?Camera,
     material: ?Material,
-    instance_count: ?u32,
 ) !void {
-    if (!self.program.isUsing()) {
-        return error.RendererNotActive;
-    }
-
-    // set uniforms
-    self.program.setUniformByName("u_model", model);
-    self.program.setUniformByName("u_normal", model.inv().transpose());
-    self.program.setUniformByName("u_project", projection);
-    self.program.setUniformByName("u_view", camera.?.getViewMatrix());
-    self.program.setUniformByName("u_view_pos", camera.?.position);
-    self.applyMaterial(material.?);
-
-    // issue draw call
+    assert(self.status == .ready_to_draw);
     vertex_array.use();
     defer vertex_array.disuse();
+
+    // set uniforms
+    self.initCommonUniformVars(projection, camera, material);
+    self.getProgram().setUniformByName("u_model", transform);
+    self.getProgram().setUniformByName("u_normal", transform.inv().transpose());
+
     if (use_elements) {
-        drawcall.drawElements(primitive, offset, count, u32, instance_count);
+        drawcall.drawElements(primitive, offset, count, u32);
     } else {
-        drawcall.drawBuffer(primitive, offset, count, instance_count);
+        drawcall.drawBuffer(primitive, offset, count);
     }
 }
 
-fn renderMesh(
+pub fn renderInstanced(
     self: *Self,
-    mesh: Mesh,
-    model: Mat4,
-    projection: Mat4,
+    vertex_array: VertexArray,
+    use_elements: bool,
+    primitive: drawcall.PrimitiveType,
+    offset: u32,
+    count: u32,
+    transforms: Renderer.InstanceTransformArray,
+    projection: ?Mat4,
     camera: ?Camera,
     material: ?Material,
-    instance_count: ?u32,
-) !void {
-    if (!self.program.isUsing()) {
-        return error.RendererNotActive;
-    }
+    instance_count: u32,
+) anyerror!void {
+    assert(self.status == .ready_to_draw_instanced);
+    vertex_array.use();
+    defer vertex_array.disuse();
 
-    mesh.vertex_array.use();
-    defer mesh.vertex_array.disuse();
-
-    // attribute settings
-    mesh.vertex_array.setAttribute(Mesh.vbo_positions, ATTRIB_LOCATION_POS, 3, f32, false, 0, 0);
-    assert(mesh.normals != null);
-    mesh.vertex_array.setAttribute(Mesh.vbo_normals, ATTRIB_LOCATION_NORMAL, 3, f32, false, 0, 0);
-    assert(mesh.texcoords != null);
-    mesh.vertex_array.setAttribute(Mesh.vbo_texcoords, ATTRIB_LOCATION_TEX, 2, f32, false, 0, 0);
+    // enable instance transforms attribute
+    transforms.enableAttributes();
 
     // set uniforms
-    self.program.setUniformByName("u_model", model);
-    self.program.setUniformByName("u_normal", model.inv().transpose());
-    self.program.setUniformByName("u_project", projection);
-    self.program.setUniformByName("u_view", camera.?.getViewMatrix());
-    self.program.setUniformByName("u_view_pos", camera.?.position);
-    self.applyMaterial(material.?);
+    self.initCommonUniformVars(projection, camera, material);
 
-    // issue draw call
-    if (mesh.indices) |ids| {
-        drawcall.drawElements(mesh.primitive_type, 0, @intCast(u32, ids.items.len), u32, instance_count);
+    if (use_elements) {
+        drawcall.drawElementsInstanced(
+            primitive,
+            offset,
+            count,
+            u32,
+            instance_count,
+        );
     } else {
-        drawcall.drawBuffer(mesh.primitive_type, 0, @intCast(u32, mesh.positions.items.len), instance_count);
+        drawcall.drawBufferInstanced(
+            primitive,
+            offset,
+            count,
+            instance_count,
+        );
     }
 }

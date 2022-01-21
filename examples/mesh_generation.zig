@@ -69,8 +69,11 @@ fn init(ctx: *zp.Context) anyerror!void {
     var unit = default_material.allocTextureUnit(0);
     _ = picture_material.allocTextureUnit(unit);
 
-    // enable depth test
+    // init graphics context params
     ctx.graphics.toggleCapability(.depth_test, true);
+    ctx.graphics.setPolygonMode(
+        if (wireframe_mode) .line else .fill,
+    );
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -137,73 +140,66 @@ fn loop(ctx: *zp.Context) void {
         Vec3.new(S.axis.x, S.axis.y, S.axis.z),
     );
 
-    var renderer = simple_renderer.renderer();
-    renderer.begin();
+    var rd = simple_renderer.renderer();
+    rd.begin(false);
     {
-        renderer.renderMesh(
-            quad,
+        quad.render(
+            rd,
             model.translate(Vec3.new(-2.0, 1.2, 0)),
             projection,
             camera,
             if (use_texture) picture_material else default_material,
-            null,
         ) catch unreachable;
 
-        renderer.renderMesh(
-            cube1,
+        cube1.render(
+            rd,
             model.translate(Vec3.new(-0.5, 1.2, 0)),
             projection,
             camera,
             if (use_texture) picture_material else default_material,
-            null,
         ) catch unreachable;
 
-        renderer.renderMesh(
-            cube2,
+        cube2.render(
+            rd,
             model.translate(Vec3.new(1.0, 1.2, 0)),
             projection,
             camera,
             if (use_texture) picture_material else default_material,
-            null,
         ) catch unreachable;
 
-        renderer.renderMesh(
-            sphere,
+        sphere.render(
+            rd,
             model.translate(Vec3.new(-2.2, -1.2, 0)),
             projection,
             camera,
             if (use_texture) picture_material else default_material,
-            null,
         ) catch unreachable;
 
-        renderer.renderMesh(
-            cylinder,
+        cylinder.render(
+            rd,
             model.translate(Vec3.new(-0.4, -1.2, 0)),
             projection,
             camera,
             if (use_texture) picture_material else default_material,
-            null,
         ) catch unreachable;
 
-        renderer.renderMesh(
-            prim,
+        prim.render(
+            rd,
             model.translate(Vec3.new(1.1, -1.2, 0)),
             projection,
             camera,
             if (use_texture) picture_material else default_material,
-            null,
         ) catch unreachable;
 
-        renderer.renderMesh(
-            cone,
+        cone.render(
+            rd,
             model.translate(Vec3.new(2.3, -1.2, 0)),
             projection,
             camera,
             if (use_texture) picture_material else default_material,
-            null,
         ) catch unreachable;
     }
-    renderer.end();
+    rd.end();
 
     // settings
     dig.beginFrame();
@@ -245,6 +241,5 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
-        .enable_highres_depth = false,
     });
 }

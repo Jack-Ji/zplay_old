@@ -20,6 +20,8 @@ var skybox: Skybox = undefined;
 var cubemap: TextureCube = undefined;
 var skybox_material: Material = undefined;
 var simple_renderer: SimpleRenderer = undefined;
+var rd: Renderer = undefined;
+var transform_array: Renderer.InstanceTransformArray = undefined;
 var fb: Framebuffer = undefined;
 var fb_texture: Texture2D = undefined;
 var fb_material: Material = undefined;
@@ -77,7 +79,11 @@ fn init(ctx: *zp.Context) anyerror!void {
     });
 
     // simple renderer
-    simple_renderer = SimpleRenderer.init(std.testing.allocator);
+    simple_renderer = SimpleRenderer.init();
+    rd = simple_renderer.renderer();
+
+    // transform array
+    transform_array = Renderer.InstanceTransformArray.init(std.testing.allocator);
 
     // generate mesh
     quad = try Mesh.genQuad(std.testing.allocator, 2, 2);
@@ -243,21 +249,19 @@ fn loop(ctx: *zp.Context) void {
         if (rotate_scene_fb) {
             model = Mat4.fromRotation(S.frame, Vec3.up());
         }
-        simple_renderer.renderer().begin(false);
-        simple_renderer.renderer().renderMesh(
-            quad,
-            &.{model},
+        rd.begin(false);
+        quad.render(
+            rd,
+            model,
             Mat4.identity(),
             null,
             fb_material,
-            null,
         ) catch unreachable;
-        simple_renderer.renderer().end();
+        rd.end();
     }
 }
 
 fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
-    const rd = simple_renderer.renderer();
     rd.begin(true);
     defer rd.end();
 
@@ -275,17 +279,14 @@ fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
             Vec3.new(1, 0.3, 0.5),
         ).translate(pos);
     }
-    rd.updateInstanceTransforms(
-        cube.vertex_array,
-        &cube_transforms,
-    ) catch unreachable;
-    rd.renderMesh(
-        cube,
-        null,
+    transform_array.updateTransforms(&cube_transforms) catch unreachable;
+    cube.renderInstanced(
+        rd,
+        transform_array,
         projection,
         camera,
         cube_material,
-        @intCast(u32, cube_transforms.len),
+        null,
     ) catch unreachable;
 
     // outline cubes
@@ -298,17 +299,14 @@ fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
         for (cube_transforms) |*tr| {
             tr.* = tr.mult(Mat4.fromScale(Vec3.set(1.01)));
         }
-        rd.updateInstanceTransforms(
-            cube.vertex_array,
-            &cube_transforms,
-        ) catch unreachable;
-        rd.renderMesh(
-            cube,
-            null,
+        transform_array.updateTransforms(&cube_transforms) catch unreachable;
+        cube.renderInstanced(
+            rd,
+            transform_array,
             projection,
             camera,
             color_material,
-            @intCast(u32, cube_transforms.len),
+            null,
         ) catch unreachable;
     }
 }

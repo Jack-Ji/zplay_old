@@ -33,8 +33,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.vbos[0].allocInitData(f32, &vertices, .array_buffer, .static_draw);
-    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_POS, 3, f32, false, 7 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, SimpleRenderer.ATTRIB_LOCATION_COLOR, 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, Renderer.ATTRIB_LOCATION_POS, 3, f32, false, 7 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, Renderer.ATTRIB_LOCATION_COLOR, 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // create material
     material = Material.init(.{ .single_texture = try Texture2D.fromPixelData(
@@ -81,7 +81,7 @@ fn loop(ctx: *zp.Context) void {
     ctx.graphics.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     // update color and draw triangle
-    simple_renderer.renderer().begin();
+    simple_renderer.renderer().begin(false);
     simple_renderer.renderer().render(
         vertex_array,
         false,
@@ -92,7 +92,6 @@ fn loop(ctx: *zp.Context) void {
         Mat4.identity(),
         null,
         material,
-        null,
     ) catch unreachable;
     simple_renderer.renderer().end();
 }
