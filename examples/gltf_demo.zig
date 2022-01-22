@@ -2,9 +2,9 @@ const std = @import("std");
 const zp = @import("zplay");
 const TextureUnit = zp.graphics.common.Texture.TextureUnit;
 const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
+const TextureCube = zp.graphics.texture.TextureCube;
 const Camera = zp.graphics.@"3d".Camera;
 const Model = zp.graphics.@"3d".Model;
-const TextureCube = zp.graphics.texture.TextureCube;
 const Skybox = zp.graphics.@"3d".Skybox;
 const Material = zp.graphics.@"3d".Material;
 const dig = zp.deps.dig;
@@ -103,7 +103,7 @@ fn loop(ctx: *zp.Context) void {
 
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.getWindowSize(&width, &height);
+    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
 
     // start drawing
     ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
@@ -117,33 +117,35 @@ fn loop(ctx: *zp.Context) void {
 
     var rd = simple_renderer.renderer();
     rd.begin(false);
-    dog.render(
-        rd,
-        Mat4.fromTranslate(Vec3.new(-2.0, -0.7, 0))
-            .scale(Vec3.set(0.7))
-            .mult(Mat4.fromRotation(ctx.tick * 50, Vec3.up())),
-        projection,
-        camera,
-        null,
-    ) catch unreachable;
-    girl.render(
-        rd,
-        Mat4.fromTranslate(Vec3.new(2.0, -1.2, 0))
-            .scale(Vec3.set(0.7))
-            .mult(Mat4.fromRotation(ctx.tick * 100, Vec3.up())),
-        projection,
-        camera,
-        null,
-    ) catch unreachable;
-    helmet.render(
-        rd,
-        Mat4.fromTranslate(Vec3.new(0.0, 0, 0))
-            .scale(Vec3.set(0.7))
-            .mult(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
-        projection,
-        camera,
-        null,
-    ) catch unreachable;
+    {
+        dog.render(
+            rd,
+            Mat4.fromTranslate(Vec3.new(-2.0, -0.7, 0))
+                .scale(Vec3.set(0.7))
+                .mult(Mat4.fromRotation(ctx.tick * 50, Vec3.up())),
+            projection,
+            camera,
+            null,
+        ) catch unreachable;
+        girl.render(
+            rd,
+            Mat4.fromTranslate(Vec3.new(2.0, -1.2, 0))
+                .scale(Vec3.set(0.7))
+                .mult(Mat4.fromRotation(ctx.tick * 100, Vec3.up())),
+            projection,
+            camera,
+            null,
+        ) catch unreachable;
+        helmet.render(
+            rd,
+            Mat4.fromTranslate(Vec3.new(0.0, 0, 0))
+                .scale(Vec3.set(0.7))
+                .mult(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
+            projection,
+            camera,
+            null,
+        ) catch unreachable;
+    }
     rd.end();
 
     // skybox

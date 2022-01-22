@@ -1,10 +1,10 @@
 const std = @import("std");
 const zp = @import("zplay");
 const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
+const Texture2D = zp.graphics.texture.Texture2D;
 const Mesh = zp.graphics.@"3d".Mesh;
 const Camera = zp.graphics.@"3d".Camera;
 const Material = zp.graphics.@"3d".Material;
-const Texture2D = zp.graphics.texture.Texture2D;
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
@@ -71,9 +71,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // init graphics context params
     ctx.graphics.toggleCapability(.depth_test, true);
-    ctx.graphics.setPolygonMode(
-        if (wireframe_mode) .line else .fill,
-    );
+    ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -111,7 +109,7 @@ fn loop(ctx: *zp.Context) void {
 
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.getWindowSize(&width, &height);
+    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
 
     // start drawing
     ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
@@ -135,14 +133,14 @@ fn loop(ctx: *zp.Context) void {
         );
     }
     S.axis = alg.Mat4.fromRotation(1, Vec3.new(-1, 1, -1)).multByVec4(S.axis);
-    const model = alg.Mat4.fromRotation(
-        S.frame,
-        Vec3.new(S.axis.x, S.axis.y, S.axis.z),
-    );
 
     var rd = simple_renderer.renderer();
     rd.begin(false);
     {
+        const model = alg.Mat4.fromRotation(
+            S.frame,
+            Vec3.new(S.axis.x, S.axis.y, S.axis.z),
+        );
         quad.render(
             rd,
             model.translate(Vec3.new(-2.0, 1.2, 0)),
@@ -150,7 +148,6 @@ fn loop(ctx: *zp.Context) void {
             camera,
             if (use_texture) picture_material else default_material,
         ) catch unreachable;
-
         cube1.render(
             rd,
             model.translate(Vec3.new(-0.5, 1.2, 0)),
@@ -158,7 +155,6 @@ fn loop(ctx: *zp.Context) void {
             camera,
             if (use_texture) picture_material else default_material,
         ) catch unreachable;
-
         cube2.render(
             rd,
             model.translate(Vec3.new(1.0, 1.2, 0)),
@@ -166,7 +162,6 @@ fn loop(ctx: *zp.Context) void {
             camera,
             if (use_texture) picture_material else default_material,
         ) catch unreachable;
-
         sphere.render(
             rd,
             model.translate(Vec3.new(-2.2, -1.2, 0)),
@@ -174,7 +169,6 @@ fn loop(ctx: *zp.Context) void {
             camera,
             if (use_texture) picture_material else default_material,
         ) catch unreachable;
-
         cylinder.render(
             rd,
             model.translate(Vec3.new(-0.4, -1.2, 0)),
@@ -182,7 +176,6 @@ fn loop(ctx: *zp.Context) void {
             camera,
             if (use_texture) picture_material else default_material,
         ) catch unreachable;
-
         prim.render(
             rd,
             model.translate(Vec3.new(1.1, -1.2, 0)),
@@ -190,7 +183,6 @@ fn loop(ctx: *zp.Context) void {
             camera,
             if (use_texture) picture_material else default_material,
         ) catch unreachable;
-
         cone.render(
             rd,
             model.translate(Vec3.new(2.3, -1.2, 0)),
@@ -205,7 +197,7 @@ fn loop(ctx: *zp.Context) void {
     dig.beginFrame();
     {
         dig.setNextWindowPos(
-            .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
+            .{ .x = @intToFloat(f32, width) - 30, .y = 50 },
             .{
                 .cond = dig.c.ImGuiCond_Always,
                 .pivot = .{ .x = 1, .y = 0 },
@@ -219,9 +211,7 @@ fn loop(ctx: *zp.Context) void {
                 dig.c.ImGuiWindowFlags_AlwaysAutoResize,
         )) {
             if (dig.checkbox("wireframe", &wireframe_mode)) {
-                ctx.graphics.setPolygonMode(
-                    if (wireframe_mode) .line else .fill,
-                );
+                ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
             }
             _ = dig.checkbox("perspective", &perspective_mode);
             _ = dig.checkbox("texture", &use_texture);

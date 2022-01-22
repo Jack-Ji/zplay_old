@@ -39,8 +39,9 @@ pub const Capability = enum(c_uint) {
 };
 
 pub const PolygonMode = enum(c_uint) {
-    fill = gl.GL_FILL,
+    point = gl.GL_POINT,
     line = gl.GL_LINE,
+    fill = gl.GL_FILL,
 };
 
 pub const TestFunc = enum(c_uint) {
