@@ -33,7 +33,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array = VertexArray.init(std.testing.allocator, 5);
     vertex_array.use();
     defer vertex_array.disuse();
-    vertex_array.vbos[0].allocInitData(f32, &vertices, .array_buffer, .static_draw);
+    vertex_array.vbos[0].allocInitData(f32, &vertices, .static_draw);
     vertex_array.setAttribute(0, Renderer.ATTRIB_LOCATION_POS, 3, f32, false, 7 * @sizeOf(f32), 0);
     vertex_array.setAttribute(0, Renderer.ATTRIB_LOCATION_COLOR, 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
 

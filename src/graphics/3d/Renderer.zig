@@ -60,9 +60,9 @@ pub const InstanceTransformArray = struct {
     pub fn updateTransforms(self: *Self, transforms: []Mat4) !void {
         var total_size: u32 = @intCast(u32, @sizeOf(Mat4) * transforms.len);
         if (self.buf.size < total_size) {
-            self.buf.allocData(total_size, .array_buffer, .static_draw);
+            self.buf.allocData(total_size, .static_draw);
         }
-        self.buf.updateData(0, Mat4, transforms, .array_buffer);
+        self.buf.updateData(0, Mat4, transforms);
         self.count = @intCast(u32, transforms.len);
     }
 

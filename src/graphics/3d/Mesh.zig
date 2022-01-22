@@ -7,6 +7,7 @@ const Material = @import("Material.zig");
 const zp = @import("../../zplay.zig");
 const drawcall = zp.graphics.common.drawcall;
 const VertexArray = zp.graphics.common.VertexArray;
+const Buffer = zp.graphics.common.Buffer;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
@@ -24,19 +25,19 @@ pub const vbo_num = 6;
 
 /// vertex array
 /// each vertex has multiple properties (see VertexAttribute)
-vertex_array: VertexArray = undefined,
+vertex_array: VertexArray,
 
 /// primitive type
-primitive_type: drawcall.PrimitiveType = undefined,
+primitive_type: drawcall.PrimitiveType,
 
 /// vertex attribute
-positions: std.ArrayList(Vec3) = undefined,
+positions: std.ArrayList(Vec3),
 indices: ?std.ArrayList(u32) = null,
 normals: ?std.ArrayList(Vec3) = null,
 texcoords: ?std.ArrayList(Vec2) = null,
 colors: ?std.ArrayList(Vec4) = null,
-tangents: ?std.ArrayList(Vec4) = null,
-owns_data: bool = undefined,
+tangents: ?std.ArrayList(Vec3) = null,
+owns_data: bool,
 
 /// allocate and initialize Mesh instance
 pub fn init(
@@ -47,7 +48,7 @@ pub fn init(
     normals: ?[]const Vec3,
     texcoords: ?[]const Vec2,
     colors: ?[]const Vec4,
-    tangents: ?[]const Vec4,
+    tangents: ?[]const Vec3,
 ) !Self {
     var self: Self = .{
         .primitive_type = primitive_type,
@@ -73,7 +74,7 @@ pub fn init(
         self.colors.?.appendSliceAssumeCapacity(cs);
     }
     if (tangents) |ts| {
-        self.tangents = try std.ArrayList(Vec4).initCapacity(allocator, ts.len);
+        self.tangents = try std.ArrayList(Vec3).initCapacity(allocator, ts.len);
         self.tangents.?.appendSliceAssumeCapacity(ts);
     }
     return self;
@@ -88,7 +89,7 @@ pub fn fromArrays(
     normals: ?std.ArrayList(Vec3),
     texcoords: ?std.ArrayList(Vec2),
     colors: ?std.ArrayList(Vec4),
-    tangents: ?std.ArrayList(Vec4),
+    tangents: ?std.ArrayList(Vec3),
     take_ownership: bool,
 ) Self {
     var mesh: Self = .{
@@ -107,24 +108,34 @@ pub fn fromArrays(
 
 /// setup vertex array's data
 pub fn setup(self: Self) void {
-    self.vertex_array.use();
-    defer self.vertex_array.disuse();
+    var has_element = false;
 
-    self.vertex_array.vbos[vbo_positions].allocInitData(Vec3, self.positions.items, .array_buffer, .static_draw);
+    self.vertex_array.use();
+    self.vertex_array.vbos[vbo_positions].allocInitData(Vec3, self.positions.items, .static_draw);
     if (self.indices) |ids| {
-        self.vertex_array.vbos[vbo_indices].allocInitData(u32, ids.items, .element_array_buffer, .static_draw);
+        self.vertex_array.vbos[vbo_indices].allocInitData(u32, ids.items, .static_draw);
+
+        // keep element buffer binded, which is demanded by vao
+        has_element = true;
+        Buffer.Target.element_array_buffer.setBinding(
+            self.vertex_array.vbos[vbo_indices].id,
+        );
     }
     if (self.normals) |ns| {
-        self.vertex_array.vbos[vbo_normals].allocInitData(Vec3, ns.items, .array_buffer, .static_draw);
+        self.vertex_array.vbos[vbo_normals].allocInitData(Vec3, ns.items, .static_draw);
     }
     if (self.texcoords) |ts| {
-        self.vertex_array.vbos[vbo_texcoords].allocInitData(Vec2, ts.items, .array_buffer, .static_draw);
+        self.vertex_array.vbos[vbo_texcoords].allocInitData(Vec2, ts.items, .static_draw);
     }
     if (self.colors) |cs| {
-        self.vertex_array.vbos[vbo_colors].allocInitData(Vec4, cs.items, .array_buffer, .static_draw);
+        self.vertex_array.vbos[vbo_colors].allocInitData(Vec4, cs.items, .static_draw);
     }
     if (self.tangents) |ts| {
-        self.vertex_array.vbos[vbo_tangents].allocInitData(Vec4, ts.items, .array_buffer, .static_draw);
+        self.vertex_array.vbos[vbo_tangents].allocInitData(Vec3, ts.items, .static_draw);
+    }
+    self.vertex_array.disuse();
+    if (has_element) {
+        Buffer.Target.element_array_buffer.setBinding(0);
     }
 }
 

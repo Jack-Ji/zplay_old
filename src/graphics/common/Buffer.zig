@@ -15,6 +15,20 @@ pub const Target = enum(c_uint) {
     texture_buffer = gl.GL_TEXTURE_BUFFER,
     transform_feedback_buffer = gl.GL_TRANSFORM_FEEDBACK_BUFFER,
     uniform_buffer = gl.GL_UNIFORM_BUFFER,
+
+    var binds = std.EnumArray(Target, gl.GLuint).initFill(0);
+
+    /// get current binding of @target
+    pub inline fn getBinding(target: Target) gl.GLuint {
+        return binds.get(target);
+    }
+
+    /// set binding of @target
+    pub inline fn setBinding(target: Target, id: gl.GLuint) void {
+        gl.bindBuffer(@enumToInt(target), id);
+        gl.util.checkError();
+        binds.set(target, id);
+    }
 };
 
 /// buffer data's usage
@@ -64,10 +78,12 @@ pub fn deinit(self: *Self) void {
 }
 
 /// allocate and initialize gpu memory
-pub fn allocInitData(self: *Self, comptime T: type, data: []const T, target: Target, usage: Usage) void {
-    gl.bindBuffer(@enumToInt(target), self.id);
+pub fn allocInitData(self: *Self, comptime T: type, data: []const T, usage: Usage) void {
+    Target.setBinding(.array_buffer, self.id);
+    defer Target.setBinding(.array_buffer, 0);
+
     gl.bufferData(
-        @enumToInt(target),
+        @enumToInt(Target.array_buffer),
         @intCast(c_longlong, data.len * @sizeOf(T)),
         data.ptr,
         @enumToInt(usage),
@@ -77,10 +93,12 @@ pub fn allocInitData(self: *Self, comptime T: type, data: []const T, target: Tar
 }
 
 /// only allocate gpu memory
-pub fn allocData(self: *Self, size: u32, target: Target, usage: Usage) void {
-    gl.bindBuffer(@enumToInt(target), self.id);
+pub fn allocData(self: *Self, size: u32, usage: Usage) void {
+    Target.setBinding(.array_buffer, self.id);
+    defer Target.setBinding(.array_buffer, 0);
+
     gl.bufferData(
-        @enumToInt(target),
+        @enumToInt(Target.array_buffer),
         @intCast(c_longlong, size),
         null,
         @enumToInt(usage),
@@ -90,11 +108,13 @@ pub fn allocData(self: *Self, size: u32, target: Target, usage: Usage) void {
 }
 
 /// update gpu memory, user need to make sure enough memory had been allocated
-pub fn updateData(self: Self, offset: u32, comptime T: type, data: []const T, target: Target) void {
+pub fn updateData(self: Self, offset: u32, comptime T: type, data: []const T) void {
     assert(self.size >= offset + data.len * @sizeOf(T));
-    gl.bindBuffer(@enumToInt(target), self.id);
+    Target.setBinding(.array_buffer, self.id);
+    defer Target.setBinding(.array_buffer, 0);
+
     gl.bufferSubData(
-        @enumToInt(target),
+        @enumToInt(Target.array_buffer),
         @intCast(c_longlong, offset),
         @intCast(c_longlong, data.len * @sizeOf(T)),
         data.ptr,
@@ -113,8 +133,8 @@ pub fn setAttribute(
     offset: u32,
     divisor: ?u8,
 ) void {
-    gl.bindBuffer(@enumToInt(Target.array_buffer), self.id);
-    gl.util.checkError();
+    Target.setBinding(.array_buffer, self.id);
+    defer Target.setBinding(.array_buffer, 0);
 
     gl.vertexAttribPointer(
         loc,
@@ -140,12 +160,12 @@ pub fn getBufferData(
     self: Self,
     offset: u32,
     data: []const u8,
-    target: Target,
 ) void {
     assert(self.size >= offset + data.len);
-    gl.bindBuffer(@enumToInt(target), self.id);
+    Target.setBinding(.array_buffer, self.id);
+    defer Target.setBinding(.array_buffer, 0);
     gl.getBufferSubData(
-        @enumToInt(target),
+        @enumToInt(Target.array_buffer),
         @intCast(c_longlong, offset),
         @intCast(c_longlong, data.len),
         data.ptr,
@@ -154,11 +174,12 @@ pub fn getBufferData(
 }
 
 /// get mapped memory pointer
-pub fn mapBufferRange(self: Self, offset: u32, size: u32, target: Target, access: Access) ?[*]u8 {
+pub fn mapBufferRange(self: Self, offset: u32, size: u32, access: Access) ?[*]u8 {
     assert(self.size >= offset + size);
-    gl.bindBuffer(@enumToInt(target), self.id);
+    Target.setBinding(.array_buffer, self.id);
+
     var data = gl.mapBufferRange(
-        @enumToInt(target),
+        @enumToInt(Target.array_buffer),
         @intCast(c_longlong, offset),
         @intCast(c_longlong, size),
         @enumToInt(access),
@@ -171,18 +192,21 @@ pub fn mapBufferRange(self: Self, offset: u32, size: u32, target: Target, access
 
 /// unmap specified buffer object
 /// returns true unless data store become corrupted, which means user needs to reinitialize data.
-pub fn unmapBuffer(self: Self, target: Target) bool {
-    _ = self;
-    return gl.util.boolType(gl.unmapBuffer(@enumToInt(target)));
+pub fn unmapBuffer(self: Self) bool {
+    assert(Target.getBinding(.array_buffer) == self.id);
+    defer Target.setBinding(.array_buffer, 0);
+
+    return gl.util.boolType(gl.unmapBuffer(@enumToInt(Target.array_buffer)));
 }
 
 /// copy data between buffers
 pub fn copy(dst: Self, src: Self, dst_offset: u32, src_offset: u32, size: u32) void {
     assert(dst.size >= dst_offset + size);
     assert(src.size >= src_offset + size);
-    gl.bindBuffer(@enumToInt(Target.copy_write_buffer), dst.id);
-    gl.bindBuffer(@enumToInt(Target.copy_read_buffer), src.id);
-    gl.util.checkError();
+    Target.setBinding(.copy_write_buffer, dst.id);
+    defer Target.setBinding(.copy_write_buffer, 0);
+    Target.setBinding(.copy_read_buffer, src.id);
+    defer Target.setBinding(.copy_read_buffer, 0);
 
     gl.copyBufferSubData(
         @enumToInt(Target.copy_read_buffer),

@@ -108,7 +108,6 @@ pub fn init(allocator: std.mem.Allocator) Self {
             -1.0, -1.0, 1.0,
             1.0,  -1.0, 1.0,
         },
-        .array_buffer,
         .static_draw,
     );
     self.vertex_array.setAttribute(
