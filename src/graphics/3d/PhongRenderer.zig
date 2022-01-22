@@ -349,9 +349,9 @@ fn getVertexAttribs(self: *Self) []const u32 {
 }
 
 // get current using shader program
-fn getProgram(self: Self) ShaderProgram {
+inline fn getProgram(self: *Self) *ShaderProgram {
     assert(self.status != .not_ready);
-    return if (self.status == .ready_to_draw) self.program else self.program_instanced;
+    return if (self.status == .ready_to_draw) &self.program else &self.program_instanced;
 }
 
 /// use material data
