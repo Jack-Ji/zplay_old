@@ -6,6 +6,7 @@ const Camera = zp.graphics.@"3d".Camera;
 const Material = zp.graphics.@"3d".Material;
 const Renderer = zp.graphics.@"3d".Renderer;
 const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
+const gl = zp.deps.gl;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
@@ -81,8 +82,9 @@ fn loop(ctx: *zp.Context) void {
     ctx.graphics.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     // update color and draw triangle
-    simple_renderer.renderer().begin(false);
-    simple_renderer.renderer().render(
+    var rd = simple_renderer.renderer();
+    rd.begin(false);
+    rd.render(
         vertex_array,
         false,
         .triangles,
@@ -93,7 +95,7 @@ fn loop(ctx: *zp.Context) void {
         null,
         material,
     ) catch unreachable;
-    simple_renderer.renderer().end();
+    rd.end();
 }
 
 fn quit(ctx: *zp.Context) void {

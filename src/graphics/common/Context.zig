@@ -138,6 +138,9 @@ pub fn prepare(g: zp.Game) !void {
     if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_MINOR_VERSION, 3) != 0) {
         return sdl.makeError();
     }
+    if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_PROFILE_MASK, sdl.c.SDL_GL_CONTEXT_PROFILE_CORE) != 0) {
+        return sdl.makeError();
+    }
     if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_STENCIL_SIZE, 1) != 0) {
         return sdl.makeError();
     }

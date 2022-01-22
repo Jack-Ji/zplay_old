@@ -1,15 +1,51 @@
 const std = @import("std");
 const gl = @import("gl.zig");
 
+pub const ErrorHandling = enum {
+    /// OpenGL functions will log the error, but will not assert that no error happened
+    log,
+
+    /// Asserts that no errors will happen.
+    assert,
+
+    /// No error checking will be executed. Gotta go fast!
+    none,
+};
+
+const error_handling: ErrorHandling =
+    std.meta.globalOption("opengl_error_handling", ErrorHandling) orelse
+    if (std.debug.runtime_safety) .assert else .none;
+
 /// check error of last opengl call
 pub fn checkError() void {
-    switch (gl.getError()) {
-        gl.GL_NO_ERROR => {},
-        gl.GL_INVALID_ENUM => @panic("invalid enum"),
-        gl.GL_INVALID_VALUE => @panic("invalid value"),
-        gl.GL_INVALID_OPERATION => @panic("invalid operation"),
-        gl.GL_OUT_OF_MEMORY => @panic("out of memory"),
-        else => @panic("unknow error"),
+    if (error_handling == .none) return;
+
+    var error_code = gl.getError();
+    if (error_code == gl.GL_NO_ERROR)
+        return;
+    while (error_code != gl.GL_NO_ERROR) : (error_code = gl.getError()) {
+        const name = switch (error_code) {
+            gl.GL_INVALID_ENUM => "invalid enum",
+            gl.GL_INVALID_VALUE => "invalid value",
+            gl.GL_INVALID_OPERATION => "invalid operation",
+            gl.GL_OUT_OF_MEMORY => "out of memory",
+            gl.GL_INVALID_FRAMEBUFFER_OPERATION => "invalid framebuffer operation",
+            //gl.GL_STACK_OVERFLOW => "stack overflow",
+            //gl.GL_STACK_UNDERFLOW => "stack underflow",
+            //gl.GL_INVALID_FRAMEBUFFER_OPERATION_EXT => Error.InvalidFramebufferOperation,
+            //gl.GL_INVALID_FRAMEBUFFER_OPERATION_OES => Error.InvalidFramebufferOperation,
+            //gl.GL_TABLE_TOO_LARGE => "Table too large",
+            //gl.GL_TABLE_TOO_LARGE_EXT => Error.TableTooLarge,
+            //gl.GL_TEXTURE_TOO_LARGE_EXT => "Texture too large",
+            else => "unknown error",
+        };
+
+        std.log.scoped(.OpenGL).err("OpenGL failure: {s}\n", .{name});
+        switch (error_handling) {
+            .log => {},
+            .assert => @panic("OpenGL error"),
+            .none => unreachable,
+        }
     }
 }
 
