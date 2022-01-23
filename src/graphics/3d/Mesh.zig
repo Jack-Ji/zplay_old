@@ -24,8 +24,7 @@ pub const vbo_indices = 5;
 pub const vbo_num = 6;
 
 /// vertex array
-/// each vertex has multiple properties (see VertexAttribute)
-vertex_array: VertexArray,
+vertex_array: ?VertexArray = null,
 
 /// primitive type
 primitive_type: drawcall.PrimitiveType,
@@ -52,7 +51,6 @@ pub fn init(
 ) !Self {
     var self: Self = .{
         .primitive_type = primitive_type,
-        .vertex_array = VertexArray.init(allocator, vbo_num),
         .positions = try std.ArrayList(Vec3).initCapacity(allocator, positions.len),
         .owns_data = true,
     };
@@ -82,7 +80,6 @@ pub fn init(
 
 /// create Mesh, maybe taking ownership of given arrays
 pub fn fromArrays(
-    allocator: std.mem.Allocator,
     primitive_type: drawcall.PrimitiveType,
     positions: std.ArrayList(Vec3),
     indices: ?std.ArrayList(u32),
@@ -94,7 +91,6 @@ pub fn fromArrays(
 ) Self {
     var mesh: Self = .{
         .primitive_type = primitive_type,
-        .vertex_array = VertexArray.init(allocator, vbo_num),
         .positions = positions,
         .normals = normals,
         .texcoords = texcoords,
@@ -107,33 +103,34 @@ pub fn fromArrays(
 }
 
 /// setup vertex array's data
-pub fn setup(self: Self) void {
+pub fn setup(self: *Self, allocator: std.mem.Allocator) void {
     var has_element = false;
 
-    self.vertex_array.use();
-    self.vertex_array.vbos[vbo_positions].allocInitData(Vec3, self.positions.items, .static_draw);
+    self.vertex_array = VertexArray.init(allocator, vbo_num);
+    self.vertex_array.?.use();
+    self.vertex_array.?.vbos[vbo_positions].allocInitData(Vec3, self.positions.items, .static_draw);
     if (self.indices) |ids| {
-        self.vertex_array.vbos[vbo_indices].allocInitData(u32, ids.items, .static_draw);
+        self.vertex_array.?.vbos[vbo_indices].allocInitData(u32, ids.items, .static_draw);
 
         // keep element buffer binded, which is demanded by vao
         has_element = true;
         Buffer.Target.element_array_buffer.setBinding(
-            self.vertex_array.vbos[vbo_indices].id,
+            self.vertex_array.?.vbos[vbo_indices].id,
         );
     }
     if (self.normals) |ns| {
-        self.vertex_array.vbos[vbo_normals].allocInitData(Vec3, ns.items, .static_draw);
+        self.vertex_array.?.vbos[vbo_normals].allocInitData(Vec3, ns.items, .static_draw);
     }
     if (self.texcoords) |ts| {
-        self.vertex_array.vbos[vbo_texcoords].allocInitData(Vec2, ts.items, .static_draw);
+        self.vertex_array.?.vbos[vbo_texcoords].allocInitData(Vec2, ts.items, .static_draw);
     }
     if (self.colors) |cs| {
-        self.vertex_array.vbos[vbo_colors].allocInitData(Vec4, cs.items, .static_draw);
+        self.vertex_array.?.vbos[vbo_colors].allocInitData(Vec4, cs.items, .static_draw);
     }
     if (self.tangents) |ts| {
-        self.vertex_array.vbos[vbo_tangents].allocInitData(Vec3, ts.items, .static_draw);
+        self.vertex_array.?.vbos[vbo_tangents].allocInitData(Vec3, ts.items, .static_draw);
     }
-    self.vertex_array.disuse();
+    self.vertex_array.?.disuse();
     if (has_element) {
         Buffer.Target.element_array_buffer.setBinding(0);
     }
@@ -141,7 +138,9 @@ pub fn setup(self: Self) void {
 
 /// free resources
 pub fn deinit(self: Self) void {
-    self.vertex_array.deinit();
+    if (self.vertex_array) |va| {
+        va.deinit();
+    }
     if (self.owns_data) {
         self.positions.deinit();
         if (self.indices) |ids| ids.deinit();
@@ -161,12 +160,12 @@ pub fn render(
     camera: ?Camera,
     material: ?Material,
 ) !void {
-    self.vertex_array.use();
+    self.vertex_array.?.use();
     self.enableAttributes(rd.getVertexAttribs());
-    self.vertex_array.disuse();
+    self.vertex_array.?.disuse();
 
     try rd.render(
-        self.vertex_array,
+        self.vertex_array.?,
         self.indices != null,
         self.primitive_type,
         0,
@@ -191,12 +190,12 @@ pub fn renderInstanced(
     material: ?Material,
     instance_count: ?u32,
 ) !void {
-    self.vertex_array.use();
+    self.vertex_array.?.use();
     self.enableAttributes(rd.getVertexAttribs());
-    self.vertex_array.disuse();
+    self.vertex_array.?.disuse();
 
     try rd.renderInstanced(
-        self.vertex_array,
+        self.vertex_array.?,
         self.indices != null,
         self.primitive_type,
         0,
@@ -218,26 +217,26 @@ fn enableAttributes(self: Self, attrs: []const u32) void {
     for (attrs) |a| {
         switch (a) {
             Renderer.ATTRIB_LOCATION_POS => {
-                self.vertex_array.setAttribute(vbo_positions, a, 3, f32, false, 0, 0);
+                self.vertex_array.?.setAttribute(vbo_positions, a, 3, f32, false, 0, 0);
             },
             Renderer.ATTRIB_LOCATION_COLOR => {
                 if (self.colors != null) {
-                    self.vertex_array.setAttribute(vbo_colors, a, 4, f32, false, 0, 0);
+                    self.vertex_array.?.setAttribute(vbo_colors, a, 4, f32, false, 0, 0);
                 }
             },
             Renderer.ATTRIB_LOCATION_NORMAL => {
                 if (self.normals != null) {
-                    self.vertex_array.setAttribute(vbo_normals, a, 3, f32, false, 0, 0);
+                    self.vertex_array.?.setAttribute(vbo_normals, a, 3, f32, false, 0, 0);
                 }
             },
             Renderer.ATTRIB_LOCATION_TANGENT => {
                 if (self.tangents != null) {
-                    self.vertex_array.setAttribute(vbo_tangents, a, 3, f32, false, 0, 0);
+                    self.vertex_array.?.setAttribute(vbo_tangents, a, 3, f32, false, 0, 0);
                 }
             },
             Renderer.ATTRIB_LOCATION_TEXTURE1 => {
                 if (self.texcoords != null) {
-                    self.vertex_array.setAttribute(vbo_texcoords, a, 2, f32, false, 0, 0);
+                    self.vertex_array.?.setAttribute(vbo_texcoords, a, 2, f32, false, 0, 0);
                 }
             },
             Renderer.ATTRIB_LOCATION_TEXTURE2 => {},
@@ -287,7 +286,7 @@ pub fn genQuad(
         null,
         null,
     );
-    mesh.setup();
+    mesh.setup(allocator);
     return mesh;
 }
 
@@ -455,7 +454,6 @@ pub fn genSphere(
     }
 
     var mesh = fromArrays(
-        allocator,
         .triangles,
         positions,
         indices,
@@ -465,7 +463,7 @@ pub fn genSphere(
         null,
         true,
     );
-    mesh.setup();
+    mesh.setup(allocator);
     return mesh;
 }
 
@@ -615,7 +613,6 @@ pub fn genCylinder(
     }
 
     var mesh = fromArrays(
-        allocator,
         .triangles,
         positions,
         indices,
@@ -625,6 +622,6 @@ pub fn genCylinder(
         null,
         true,
     );
-    mesh.setup();
+    mesh.setup(allocator);
     return mesh;
 }

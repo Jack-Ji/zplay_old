@@ -172,8 +172,8 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
     // TODO load animations
 
     // setup meshes' vertex buffer
-    for (self.meshes.items) |m| {
-        m.setup();
+    for (self.meshes.items) |*m| {
+        m.setup(allocator);
     }
     return self;
 }
@@ -289,7 +289,6 @@ fn parseNode(
                     null,
                 );
                 self.meshes.append(Mesh.fromArrays(
-                    allocator,
                     primtype,
                     positions,
                     indices,
