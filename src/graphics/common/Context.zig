@@ -132,16 +132,22 @@ culling_option: CullingOption = undefined,
 /// prepare graphics api
 pub fn prepare(g: zp.Game) !void {
     assert(g.graphics_api == .opengl); // only opengl for now
+    if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_FLAGS, 0) != 0) {
+        return sdl.makeError();
+    }
+    if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_PROFILE_MASK, sdl.c.SDL_GL_CONTEXT_PROFILE_CORE) != 0) {
+        return sdl.makeError();
+    }
     if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_MAJOR_VERSION, 3) != 0) {
         return sdl.makeError();
     }
     if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_MINOR_VERSION, 3) != 0) {
         return sdl.makeError();
     }
-    if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_CONTEXT_PROFILE_MASK, sdl.c.SDL_GL_CONTEXT_PROFILE_CORE) != 0) {
+    if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_DOUBLEBUFFER, 1) != 0) {
         return sdl.makeError();
     }
-    if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_STENCIL_SIZE, 1) != 0) {
+    if (sdl.c.SDL_GL_SetAttribute(sdl.c.SDL_GL_STENCIL_SIZE, 8) != 0) {
         return sdl.makeError();
     }
     if (g.enable_msaa) {
@@ -168,7 +174,7 @@ pub fn init(window: sdl.Window, api: Api) !Self {
     assert(api == .opengl); // only opengl for now
     const gl_ctx = try sdl.gl.createContext(window);
     try sdl.gl.makeCurrent(gl_ctx, window);
-    if (gl.gladLoadGL() == 0) {
+    if (gl.gladLoadGLLoader(sdl.c.SDL_GL_GetProcAddress) == 0) {
         @panic("load opengl functions failed!");
     }
     var self = Self{

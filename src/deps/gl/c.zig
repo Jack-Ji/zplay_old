@@ -5,7 +5,7 @@ const struct_gladGLversionStruct = extern struct {
 const GLADloadproc = ?fn ([*c]const u8) callconv(.C) ?*anyopaque;
 extern var GLVersion: struct_gladGLversionStruct;
 pub extern fn gladLoadGL() c_int;
-extern fn gladLoadGLLoader(GLADloadproc) c_int;
+pub extern fn gladLoadGLLoader(GLADloadproc) c_int;
 const khronos_int32_t = i32;
 const khronos_uint32_t = u32;
 const khronos_int64_t = i64;
