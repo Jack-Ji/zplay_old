@@ -276,7 +276,7 @@ pub fn genQuad(
         0, 1, 2, 0, 2, 3,
     };
 
-    const mesh = try init(
+    var mesh = try init(
         allocator,
         .triangles,
         &positions,
@@ -350,7 +350,7 @@ pub fn genCube(
         cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // back
     };
 
-    const mesh = try init(
+    var mesh = try init(
         allocator,
         .triangles,
         &positions,
@@ -360,7 +360,7 @@ pub fn genCube(
         null,
         null,
     );
-    mesh.setup();
+    mesh.setup(allocator);
     return mesh;
 }
 
