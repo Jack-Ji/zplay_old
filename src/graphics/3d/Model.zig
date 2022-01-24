@@ -268,7 +268,7 @@ fn parseNode(
                 // merge into existing mesh
                 gltf.appendMeshPrimitive(
                     primitive,
-                    &m.indices.?,
+                    &m.indices,
                     &m.positions,
                     &m.normals.?,
                     &m.texcoords.?,
@@ -290,8 +290,8 @@ fn parseNode(
                 );
                 self.meshes.append(Mesh.fromArrays(
                     primtype,
-                    positions,
                     indices,
+                    positions,
                     normals,
                     texcoords,
                     null,

@@ -30,8 +30,8 @@ vertex_array: ?VertexArray = null,
 primitive_type: drawcall.PrimitiveType,
 
 /// vertex attribute
+indices: std.ArrayList(u32),
 positions: std.ArrayList(Vec3),
-indices: ?std.ArrayList(u32) = null,
 normals: ?std.ArrayList(Vec3) = null,
 texcoords: ?std.ArrayList(Vec2) = null,
 colors: ?std.ArrayList(Vec4) = null,
@@ -42,8 +42,8 @@ owns_data: bool,
 pub fn init(
     allocator: std.mem.Allocator,
     primitive_type: drawcall.PrimitiveType,
+    indices: []const u32,
     positions: []const Vec3,
-    indices: ?[]const u32,
     normals: ?[]const Vec3,
     texcoords: ?[]const Vec2,
     colors: ?[]const Vec4,
@@ -51,14 +51,12 @@ pub fn init(
 ) !Self {
     var self: Self = .{
         .primitive_type = primitive_type,
+        .indices = try std.ArrayList(u32).initCapacity(allocator, indices.len),
         .positions = try std.ArrayList(Vec3).initCapacity(allocator, positions.len),
         .owns_data = true,
     };
+    self.indices.appendSliceAssumeCapacity(indices);
     self.positions.appendSliceAssumeCapacity(positions);
-    if (indices) |ids| {
-        self.indices = try std.ArrayList(u32).initCapacity(allocator, ids.len);
-        self.indices.?.appendSliceAssumeCapacity(ids);
-    }
     if (normals) |ns| {
         self.normals = try std.ArrayList(Vec3).initCapacity(allocator, ns.len);
         self.normals.?.appendSliceAssumeCapacity(ns);
@@ -81,8 +79,8 @@ pub fn init(
 /// create Mesh, maybe taking ownership of given arrays
 pub fn fromArrays(
     primitive_type: drawcall.PrimitiveType,
+    indices: std.ArrayList(u32),
     positions: std.ArrayList(Vec3),
-    indices: ?std.ArrayList(u32),
     normals: ?std.ArrayList(Vec3),
     texcoords: ?std.ArrayList(Vec2),
     colors: ?std.ArrayList(Vec4),
@@ -91,12 +89,12 @@ pub fn fromArrays(
 ) Self {
     var mesh: Self = .{
         .primitive_type = primitive_type,
+        .indices = indices,
         .positions = positions,
         .normals = normals,
         .texcoords = texcoords,
         .colors = colors,
         .tangents = tangents,
-        .indices = indices,
         .owns_data = take_ownership,
     };
     return mesh;
@@ -104,20 +102,13 @@ pub fn fromArrays(
 
 /// setup vertex array's data
 pub fn setup(self: *Self, allocator: std.mem.Allocator) void {
-    var has_element = false;
-
     self.vertex_array = VertexArray.init(allocator, vbo_num);
     self.vertex_array.?.use();
+    self.vertex_array.?.vbos[vbo_indices].allocInitData(u32, self.indices.items, .static_draw);
+    Buffer.Target.element_array_buffer.setBinding(
+        self.vertex_array.?.vbos[vbo_indices].id,
+    ); // keep element buffer binded, which is demanded by vao
     self.vertex_array.?.vbos[vbo_positions].allocInitData(Vec3, self.positions.items, .static_draw);
-    if (self.indices) |ids| {
-        self.vertex_array.?.vbos[vbo_indices].allocInitData(u32, ids.items, .static_draw);
-
-        // keep element buffer binded, which is demanded by vao
-        has_element = true;
-        Buffer.Target.element_array_buffer.setBinding(
-            self.vertex_array.?.vbos[vbo_indices].id,
-        );
-    }
     if (self.normals) |ns| {
         self.vertex_array.?.vbos[vbo_normals].allocInitData(Vec3, ns.items, .static_draw);
     }
@@ -131,9 +122,7 @@ pub fn setup(self: *Self, allocator: std.mem.Allocator) void {
         self.vertex_array.?.vbos[vbo_tangents].allocInitData(Vec3, ts.items, .static_draw);
     }
     self.vertex_array.?.disuse();
-    if (has_element) {
-        Buffer.Target.element_array_buffer.setBinding(0);
-    }
+    Buffer.Target.element_array_buffer.setBinding(0);
 }
 
 /// free resources
@@ -142,8 +131,8 @@ pub fn deinit(self: Self) void {
         va.deinit();
     }
     if (self.owns_data) {
+        self.indices.deinit();
         self.positions.deinit();
-        if (self.indices) |ids| ids.deinit();
         if (self.normals) |ns| ns.deinit();
         if (self.texcoords) |ts| ts.deinit();
         if (self.colors) |cs| cs.deinit();
@@ -166,13 +155,10 @@ pub fn render(
 
     try rd.render(
         self.vertex_array.?,
-        self.indices != null,
+        true,
         self.primitive_type,
         0,
-        if (self.indices) |ids|
-            @intCast(u32, ids.items.len)
-        else
-            @intCast(u32, self.positions.items.len),
+        @intCast(u32, self.indices.items.len),
         transform,
         projection,
         camera,
@@ -279,8 +265,8 @@ pub fn genQuad(
     var mesh = try init(
         allocator,
         .triangles,
-        &positions,
         &indices,
+        &positions,
         &normals,
         &texcoords,
         null,
@@ -298,6 +284,24 @@ pub fn genCube(
     h: f32,
 ) !Self {
     assert(w > 0 and d > 0 and h > 0);
+    const attrib_count = 36;
+    var positions = try std.ArrayList(Vec3).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var normals = try std.ArrayList(Vec3).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var texcoords = try std.ArrayList(Vec2).initCapacity(
+        allocator,
+        attrib_count,
+    );
+    var indices = try std.ArrayList(u32).initCapacity(
+        allocator,
+        attrib_count,
+    );
+
     const w2 = w / 2;
     const d2 = d / 2;
     const h2 = h / 2;
@@ -311,29 +315,14 @@ pub fn genCube(
         Vec3.new(-w2, -h2, -d2),
         Vec3.new(-w2, -h2, d2),
     };
-    const positions: [36]Vec3 = .{
+    positions.appendSliceAssumeCapacity(&.{
         vs[0], vs[1], vs[2], vs[0], vs[2], vs[3], // top
         vs[4], vs[7], vs[6], vs[4], vs[6], vs[5], // bottom
         vs[6], vs[7], vs[3], vs[6], vs[3], vs[2], // left
         vs[4], vs[5], vs[1], vs[4], vs[1], vs[0], // right
         vs[7], vs[4], vs[0], vs[7], vs[0], vs[3], // front
         vs[5], vs[6], vs[2], vs[5], vs[2], vs[1], // back
-    };
-
-    const up = Vec3.up();
-    const down = Vec3.down();
-    const left = Vec3.left();
-    const right = Vec3.right();
-    const forward = Vec3.forward();
-    const back = Vec3.back();
-    const normals: [36]Vec3 = .{
-        up, up, up, up, up, up, // top
-        down, down, down, down, down, down, // bottom
-        left, left, left, left, left, left, // left
-        right, right, right, right, right, right, // right
-        forward, forward, forward, forward, forward, forward, // front
-        back, back, back, back, back, back, // back
-    };
+    });
 
     const cs: [4]Vec2 = .{
         Vec2.new(0, 0),
@@ -341,24 +330,44 @@ pub fn genCube(
         Vec2.new(1, 1),
         Vec2.new(0, 1),
     };
-    var texcoords: [36]Vec2 = .{
+    texcoords.appendSliceAssumeCapacity(&.{
         cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // top
         cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // bottom
         cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // left
         cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // right
         cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // front
         cs[0], cs[1], cs[2], cs[0], cs[2], cs[3], // back
-    };
+    });
 
-    var mesh = try init(
-        allocator,
+    const up = Vec3.up();
+    const down = Vec3.down();
+    const left = Vec3.left();
+    const right = Vec3.right();
+    const forward = Vec3.forward();
+    const back = Vec3.back();
+    normals.appendSliceAssumeCapacity(&.{
+        up, up, up, up, up, up, // top
+        down, down, down, down, down, down, // bottom
+        left, left, left, left, left, left, // left
+        right, right, right, right, right, right, // right
+        forward, forward, forward, forward, forward, forward, // front
+        back, back, back, back, back, back, // back
+    });
+
+    var i: u32 = 0;
+    while (i < attrib_count) : (i += 1) {
+        indices.appendAssumeCapacity(i);
+    }
+
+    var mesh = fromArrays(
         .triangles,
-        &positions,
+        indices,
+        positions,
+        normals,
+        texcoords,
         null,
-        &normals,
-        &texcoords,
         null,
-        null,
+        true,
     );
     mesh.setup(allocator);
     return mesh;
@@ -455,8 +464,8 @@ pub fn genSphere(
 
     var mesh = fromArrays(
         .triangles,
-        positions,
         indices,
+        positions,
         normals,
         texcoords,
         null,
@@ -614,8 +623,8 @@ pub fn genCylinder(
 
     var mesh = fromArrays(
         .triangles,
-        positions,
         indices,
+        positions,
         normals,
         texcoords,
         null,

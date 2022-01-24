@@ -93,7 +93,7 @@ status: Renderer.Status = .not_ready,
 program: ShaderProgram,
 program_instanced: ShaderProgram,
 
-/// set factor used to mix texture and vertex's colors
+/// factor used to mix texture and vertex's colors
 mix_factor: f32 = 0,
 
 /// create a simple renderer

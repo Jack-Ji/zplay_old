@@ -190,35 +190,6 @@ fn loop(ctx: *zp.Context) void {
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(ctx.window, &width, &height);
 
-    // settings
-    dig.beginFrame();
-    defer dig.endFrame();
-    {
-        dig.setNextWindowPos(
-            .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
-            .{
-                .cond = dig.c.ImGuiCond_Always,
-                .pivot = .{ .x = 1, .y = 0 },
-            },
-        );
-        if (dig.begin(
-            "settings",
-            null,
-            dig.c.ImGuiWindowFlags_NoMove |
-                dig.c.ImGuiWindowFlags_NoResize |
-                dig.c.ImGuiWindowFlags_AlwaysAutoResize,
-        )) {
-            _ = dig.checkbox("wireframe", &wireframe_mode);
-            if (dig.checkbox("outlined", &outlined)) {
-                ctx.graphics.toggleCapability(.stencil_test, outlined);
-            }
-            if (dig.checkbox("rotate scene", &rotate_scene_fb)) {
-                if (rotate_scene_fb) S.frame = 0;
-            }
-        }
-        dig.end();
-    }
-
     // render to custom framebuffer
     ctx.graphics.useFramebuffer(fb);
     {
@@ -259,6 +230,35 @@ fn loop(ctx: *zp.Context) void {
         ) catch unreachable;
         rd.end();
     }
+
+    // settings
+    dig.beginFrame();
+    {
+        dig.setNextWindowPos(
+            .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
+            .{
+                .cond = dig.c.ImGuiCond_Always,
+                .pivot = .{ .x = 1, .y = 0 },
+            },
+        );
+        if (dig.begin(
+            "settings",
+            null,
+            dig.c.ImGuiWindowFlags_NoMove |
+                dig.c.ImGuiWindowFlags_NoResize |
+                dig.c.ImGuiWindowFlags_AlwaysAutoResize,
+        )) {
+            _ = dig.checkbox("wireframe", &wireframe_mode);
+            if (dig.checkbox("outlined", &outlined)) {
+                ctx.graphics.toggleCapability(.stencil_test, outlined);
+            }
+            if (dig.checkbox("rotate scene", &rotate_scene_fb)) {
+                if (rotate_scene_fb) S.frame = 0;
+            }
+        }
+        dig.end();
+    }
+    dig.endFrame();
 }
 
 fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
