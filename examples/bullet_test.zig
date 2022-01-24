@@ -211,8 +211,8 @@ const Scene = struct {
         bt.shapeTriMeshCreateBegin(shape);
         bt.shapeTriMeshAddIndexVertexArray(
             shape,
-            @intCast(i32, room.model.meshes.items[0].indices.?.items.len / 3),
-            room.model.meshes.items[0].indices.?.items.ptr,
+            @intCast(i32, room.model.meshes.items[0].indices.items.len / 3),
+            room.model.meshes.items[0].indices.items.ptr,
             3 * @sizeOf(u32),
             @intCast(i32, room.model.meshes.items[0].positions.items.len),
             room.model.meshes.items[0].positions.items.ptr,

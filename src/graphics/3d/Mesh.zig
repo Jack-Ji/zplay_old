@@ -182,13 +182,10 @@ pub fn renderInstanced(
 
     try rd.renderInstanced(
         self.vertex_array.?,
-        self.indices != null,
+        true,
         self.primitive_type,
         0,
-        if (self.indices) |ids|
-            @intCast(u32, ids.items.len)
-        else
-            @intCast(u32, self.positions.items.len),
+        @intCast(u32, self.indices.items.len),
         transforms,
         projection,
         camera,
