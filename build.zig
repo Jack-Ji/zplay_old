@@ -7,6 +7,7 @@ pub fn build(b: *std.build.Builder) void {
     const target = b.standardTargetOptions(.{
         .default_target = .{
             .abi = default_abi,
+            .cpu_model = .baseline, // choose compatibility over performance here, make your own choice
         },
     });
 
