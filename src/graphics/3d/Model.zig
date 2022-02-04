@@ -276,10 +276,10 @@ fn parseNode(
                 );
             } else {
                 // allocate new mesh
-                var positions = std.ArrayList(Vec3).init(allocator);
+                var positions = std.ArrayList(f32).init(allocator);
                 var indices = std.ArrayList(u32).init(allocator);
-                var normals = std.ArrayList(Vec3).init(allocator);
-                var texcoords = std.ArrayList(Vec2).init(allocator);
+                var normals = std.ArrayList(f32).init(allocator);
+                var texcoords = std.ArrayList(f32).init(allocator);
                 gltf.appendMeshPrimitive(
                     primitive,
                     &indices,

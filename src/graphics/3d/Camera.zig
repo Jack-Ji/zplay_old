@@ -51,17 +51,17 @@ pub fn fromPositionAndTarget(pos: Vec3, target: Vec3, world_up: ?Vec3) Self {
     // calculate euler angles
     var crossdir = Vec3.cross(camera.world_up, camera.up);
     if (Vec3.dot(crossdir, camera.right) < 0) {
-        camera.euler.x = -Vec3.getAngle(camera.world_up, camera.up);
+        camera.euler.data[0] = -Vec3.getAngle(camera.world_up, camera.up);
     } else {
-        camera.euler.x = Vec3.getAngle(camera.world_up, camera.up);
+        camera.euler.data[0] = Vec3.getAngle(camera.world_up, camera.up);
     }
     crossdir = Vec3.cross(camera.right, Vec3.right());
     if (Vec3.dot(crossdir, camera.world_up) < 0) {
-        camera.euler.y = -Vec3.getAngle(camera.right, Vec3.right()) - 90;
+        camera.euler.data[1] = -Vec3.getAngle(camera.right, Vec3.right()) - 90;
     } else {
-        camera.euler.y = Vec3.getAngle(camera.right, Vec3.right()) - 90;
+        camera.euler.data[1] = Vec3.getAngle(camera.right, Vec3.right()) - 90;
     }
-    camera.euler.z = 0;
+    camera.euler.data[2] = 0;
     return camera;
 }
 
@@ -95,21 +95,21 @@ pub fn move(self: *Self, direction: MoveDirection, distance: f32) void {
 
 /// rotate camera (in degrees)
 pub fn rotate(self: *Self, pitch: f32, yaw: f32) void {
-    self.euler.x += pitch;
-    self.euler.y += yaw;
+    self.euler.data[0] += pitch;
+    self.euler.data[1] += yaw;
     self.updateVectors();
 }
 
 /// update vectors: direction/right/up
 fn updateVectors(self: *Self) void {
-    self.euler.x = math.clamp(self.euler.x, -89, 89);
-    const sin_pitch = math.sin(alg.toRadians(self.euler.x));
-    const cos_pitch = math.cos(alg.toRadians(self.euler.x));
-    const sin_yaw = math.sin(alg.toRadians(self.euler.y));
-    const cos_yaw = math.cos(alg.toRadians(self.euler.y));
-    self.dir.x = cos_yaw * cos_pitch;
-    self.dir.y = sin_pitch;
-    self.dir.z = sin_yaw * cos_pitch;
+    self.euler.data[0] = math.clamp(self.euler.x(), -89, 89);
+    const sin_pitch = math.sin(alg.toRadians(self.euler.x()));
+    const cos_pitch = math.cos(alg.toRadians(self.euler.x()));
+    const sin_yaw = math.sin(alg.toRadians(self.euler.y()));
+    const cos_yaw = math.cos(alg.toRadians(self.euler.y()));
+    self.dir.data[0] = cos_yaw * cos_pitch;
+    self.dir.data[1] = sin_pitch;
+    self.dir.data[2] = sin_yaw * cos_pitch;
     self.dir = self.dir.norm();
     self.right = self.dir.cross(self.world_up).norm();
     self.up = self.right.cross(self.dir).norm();

@@ -139,7 +139,7 @@ fn loop(ctx: *zp.Context) void {
     {
         const model = alg.Mat4.fromRotation(
             S.frame,
-            Vec3.new(S.axis.x, S.axis.y, S.axis.z),
+            Vec3.new(S.axis.x(), S.axis.y(), S.axis.z()),
         );
         quad.render(
             rd,

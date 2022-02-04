@@ -212,9 +212,9 @@ fn setUniform(self: Self, loc: gl.GLint, v: anytype) void {
         [2]f32 => gl.uniform2fv(loc, 1, &v),
         [3]f32 => gl.uniform3fv(loc, 1, &v),
         [4]f32 => gl.uniform4fv(loc, 1, &v),
-        Vec2 => gl.uniform2f(loc, v.x, v.y),
-        Vec3 => gl.uniform3f(loc, v.x, v.y, v.z),
-        Vec4 => gl.uniform4f(loc, v.x, v.y, v.z, v.w),
+        Vec2 => gl.uniform2f(loc, v.x(), v.y()),
+        Vec3 => gl.uniform3f(loc, v.x(), v.y(), v.z()),
+        Vec4 => gl.uniform4f(loc, v.x(), v.y(), v.z(), v.w()),
         Mat4 => gl.uniformMatrix4fv(loc, 1, gl.GL_FALSE, v.getData()),
         else => std.debug.panic("unsupported type {s}", .{@typeName(@TypeOf(v))}),
     }
@@ -226,9 +226,9 @@ pub fn setAttributeDefaultValue(self: Self, _loc: gl.GLint, v: anytype) void {
     assert(self.id == current);
     const loc = @intCast(gl.GLuint, _loc);
     switch (@TypeOf(v)) {
-        Vec2 => gl.vertexAttrib2f(loc, v.x, v.y),
-        Vec3 => gl.vertexAttrib3f(loc, v.x, v.y, v.z),
-        Vec4 => gl.vertexAttrib4f(loc, v.x, v.y, v.z, v.w),
+        Vec2 => gl.vertexAttrib2f(loc, v.x(), v.y()),
+        Vec3 => gl.vertexAttrib3f(loc, v.x(), v.y(), v.z()),
+        Vec4 => gl.vertexAttrib4f(loc, v.x(), v.y(), v.z(), v.w()),
         f32 => gl.vertexAttrib1f(loc, v),
         i16 => gl.vertexAttrib1s(loc, v),
         f64 => gl.vertexAttrib1d(loc, v),

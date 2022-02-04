@@ -2,10 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const drawcall = zp.graphics.common.drawcall;
-const alg = zp.deps.alg;
-const Vec2 = alg.Vec2;
-const Vec3 = alg.Vec3;
-const Vec4 = alg.Vec4;
 
 pub const c = @import("c.zig");
 pub const Data = c.cgltf_data;
@@ -125,10 +121,10 @@ pub fn appendMeshPrimitiveByIndex(
     mesh_index: u32,
     prim_index: u32,
     indices: *std.ArrayList(u32),
-    positions: *std.ArrayList(Vec3),
-    normals: ?*std.ArrayList(Vec3),
-    texcoords0: ?*std.ArrayList(Vec2),
-    tangents: ?*std.ArrayList(Vec4),
+    positions: *std.ArrayList(f32),
+    normals: ?*std.ArrayList(f32),
+    texcoords0: ?*std.ArrayList(f32),
+    tangents: ?*std.ArrayList(f32),
 ) void {
     assert(mesh_index < data.meshes_count);
     assert(prim_index < data.meshes[mesh_index].primitives_count);
@@ -145,10 +141,10 @@ pub fn appendMeshPrimitiveByIndex(
 pub fn appendMeshPrimitive(
     primitive: *const Primitive,
     indices: *std.ArrayList(u32),
-    positions: *std.ArrayList(Vec3),
-    normals: ?*std.ArrayList(Vec3),
-    texcoords0: ?*std.ArrayList(Vec2),
-    tangents: ?*std.ArrayList(Vec4),
+    positions: *std.ArrayList(f32),
+    normals: ?*std.ArrayList(f32),
+    texcoords0: ?*std.ArrayList(f32),
+    tangents: ?*std.ArrayList(f32),
 ) void {
     const num_vertices: u32 = @intCast(u32, primitive.attributes[0].data.*.count);
     const num_indices: u32 = @intCast(u32, primitive.indices.*.count);
@@ -170,7 +166,7 @@ pub fn appendMeshPrimitive(
         if (accessor.*.stride == 1) {
             assert(accessor.*.component_type == c.cgltf_component_type_r_8u);
             const src = @ptrCast([*]const u8, data_addr);
-            const offset = @intCast(u8, positions.items.len);
+            const offset = @intCast(u8, positions.items.len / 3);
             var i: u32 = 0;
             while (i < num_indices) : (i += 1) {
                 indices.appendAssumeCapacity(src[i] + offset);
@@ -178,7 +174,7 @@ pub fn appendMeshPrimitive(
         } else if (accessor.*.stride == 2) {
             assert(accessor.*.component_type == c.cgltf_component_type_r_16u);
             const src = @ptrCast([*]const u16, data_addr);
-            const offset = @intCast(u16, positions.items.len);
+            const offset = @intCast(u16, positions.items.len / 3);
             var i: u32 = 0;
             while (i < num_indices) : (i += 1) {
                 indices.appendAssumeCapacity(src[i] + offset);
@@ -186,7 +182,7 @@ pub fn appendMeshPrimitive(
         } else if (accessor.*.stride == 4) {
             assert(accessor.*.component_type == c.cgltf_component_type_r_32u);
             const src = @ptrCast([*]const u32, data_addr);
-            const offset = @intCast(u32, positions.items.len);
+            const offset = @intCast(u32, positions.items.len / 3);
             var i: u32 = 0;
             while (i < num_indices) : (i += 1) {
                 indices.appendAssumeCapacity(src[i] + offset);
@@ -198,10 +194,10 @@ pub fn appendMeshPrimitive(
 
     // Attributes.
     {
-        positions.resize(positions.items.len + num_vertices) catch unreachable;
-        if (normals != null) normals.?.resize(normals.?.items.len + num_vertices) catch unreachable;
-        if (texcoords0 != null) texcoords0.?.resize(texcoords0.?.items.len + num_vertices) catch unreachable;
-        if (tangents != null) tangents.?.resize(tangents.?.items.len + num_vertices) catch unreachable;
+        positions.resize(positions.items.len + num_vertices * 3) catch unreachable;
+        if (normals != null) normals.?.resize(normals.?.items.len + num_vertices * 3) catch unreachable;
+        if (texcoords0 != null) texcoords0.?.resize(texcoords0.?.items.len + num_vertices * 2) catch unreachable;
+        if (tangents != null) tangents.?.resize(tangents.?.items.len + num_vertices * 4) catch unreachable;
 
         const num_attribs: u32 = @intCast(u32, primitive.attributes_count);
 
@@ -222,7 +218,7 @@ pub fn appendMeshPrimitive(
                 assert(accessor.*.type == c.cgltf_type_vec3);
                 assert(accessor.*.component_type == c.cgltf_component_type_r_32f);
                 @memcpy(
-                    @ptrCast([*]u8, &positions.items[positions.items.len - num_vertices]),
+                    @ptrCast([*]u8, &positions.items[positions.items.len - num_vertices * 3]),
                     data_addr,
                     accessor.*.count * accessor.*.stride,
                 );
@@ -230,7 +226,7 @@ pub fn appendMeshPrimitive(
                 assert(accessor.*.type == c.cgltf_type_vec3);
                 assert(accessor.*.component_type == c.cgltf_component_type_r_32f);
                 @memcpy(
-                    @ptrCast([*]u8, &normals.?.items[normals.?.items.len - num_vertices]),
+                    @ptrCast([*]u8, &normals.?.items[normals.?.items.len - num_vertices * 3]),
                     data_addr,
                     accessor.*.count * accessor.*.stride,
                 );
@@ -238,7 +234,7 @@ pub fn appendMeshPrimitive(
                 assert(accessor.*.type == c.cgltf_type_vec2);
                 assert(accessor.*.component_type == c.cgltf_component_type_r_32f);
                 @memcpy(
-                    @ptrCast([*]u8, &texcoords0.?.items[texcoords0.?.items.len - num_vertices]),
+                    @ptrCast([*]u8, &texcoords0.?.items[texcoords0.?.items.len - num_vertices * 2]),
                     data_addr,
                     accessor.*.count * accessor.*.stride,
                 );
@@ -246,7 +242,7 @@ pub fn appendMeshPrimitive(
                 assert(accessor.*.type == c.cgltf_type_vec4);
                 assert(accessor.*.component_type == c.cgltf_component_type_r_32f);
                 @memcpy(
-                    @ptrCast([*]u8, &tangents.?.items[tangents.?.items.len - num_vertices]),
+                    @ptrCast([*]u8, &tangents.?.items[tangents.?.items.len - num_vertices * 4]),
                     data_addr,
                     accessor.*.count * accessor.*.stride,
                 );

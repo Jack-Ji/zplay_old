@@ -219,9 +219,9 @@ const Scene = struct {
             @intCast(i32, room.model.meshes.items[0].indices.items.len / 3),
             room.model.meshes.items[0].indices.items.ptr,
             3 * @sizeOf(u32),
-            @intCast(i32, room.model.meshes.items[0].positions.items.len),
+            @intCast(i32, room.model.meshes.items[0].positions.items.len / 3),
             room.model.meshes.items[0].positions.items.ptr,
-            @sizeOf(Vec3),
+            @sizeOf(f32) * 3,
         );
         bt.shapeTriMeshCreateEnd(shape);
         try self.addBodyToWorld(&room, 0, shape, Vec3.zero());
@@ -459,15 +459,15 @@ const Scene = struct {
 };
 
 const PhysicsDebug = struct {
-    positions: std.ArrayList(Vec3),
-    colors: std.ArrayList(Vec4),
+    positions: std.ArrayList(f32),
+    colors: std.ArrayList(f32),
     vertex_array: VertexArray,
     simple_renderer: SimpleRenderer,
 
     fn init(allocator: std.mem.Allocator) PhysicsDebug {
         var debug = PhysicsDebug{
-            .positions = std.ArrayList(Vec3).init(allocator),
-            .colors = std.ArrayList(Vec4).init(allocator),
+            .positions = std.ArrayList(f32).init(allocator),
+            .colors = std.ArrayList(f32).init(allocator),
             .vertex_array = VertexArray.init(allocator, 2),
             .simple_renderer = SimpleRenderer.init(),
         };
@@ -509,8 +509,8 @@ const PhysicsDebug = struct {
     fn render(debug: *PhysicsDebug, projection: Mat4) void {
         if (debug.positions.items.len == 0) return;
 
-        debug.vertex_array.vbos[0].updateData(0, Vec3, debug.positions.items);
-        debug.vertex_array.vbos[1].updateData(0, Vec4, debug.colors.items);
+        debug.vertex_array.vbos[0].updateData(0, f32, debug.positions.items);
+        debug.vertex_array.vbos[1].updateData(0, f32, debug.colors.items);
 
         var rd = debug.simple_renderer.renderer();
         rd.begin(false);
@@ -521,7 +521,7 @@ const PhysicsDebug = struct {
             false,
             .lines,
             0,
-            @intCast(u32, debug.positions.items.len),
+            @intCast(u32, debug.positions.items.len / 3),
             Mat4.identity(),
             projection,
             camera,
@@ -533,13 +533,17 @@ const PhysicsDebug = struct {
     }
 
     fn drawLine1(debug: *PhysicsDebug, p0: Vec3, p1: Vec3, color: Vec4) void {
-        debug.positions.appendSlice(&.{ p0, p1 }) catch unreachable;
-        debug.colors.appendSlice(&.{ color, color }) catch unreachable;
+        debug.positions.appendSlice(&p0.toArray()) catch unreachable;
+        debug.positions.appendSlice(&p1.toArray()) catch unreachable;
+        debug.colors.appendSlice(&color.toArray()) catch unreachable;
+        debug.colors.appendSlice(&color.toArray()) catch unreachable;
     }
 
     fn drawLine2(debug: *PhysicsDebug, p0: Vec3, p1: Vec3, color0: Vec4, color1: Vec4) void {
-        debug.positions.appendSlice(&.{ p0, p1 }) catch unreachable;
-        debug.colors.appendSlice(&.{ color0, color1 }) catch unreachable;
+        debug.positions.appendSlice(&p0.toArray()) catch unreachable;
+        debug.positions.appendSlice(&p1.toArray()) catch unreachable;
+        debug.colors.appendSlice(&color0.toArray()) catch unreachable;
+        debug.colors.appendSlice(&color1.toArray()) catch unreachable;
     }
 
     fn drawContactPoint(debug: *PhysicsDebug, point: Vec3, normal: Vec3, distance: f32, color: Vec4) void {

@@ -191,7 +191,7 @@ fn loop(ctx: *zp.Context) void {
 
         const S = struct {
             const MAX_SIZE = 20000;
-            var data = std.ArrayList(Vec2).init(std.testing.allocator);
+            var data = std.ArrayList(f32).init(std.testing.allocator);
             var offset: u32 = 0;
             var history: f32 = 10;
             var interval: f32 = 0;
@@ -202,10 +202,11 @@ fn loop(ctx: *zp.Context) void {
         if (S.interval > 0.1) {
             var mpf = S.interval / S.count;
             if (S.data.items.len < S.MAX_SIZE) {
-                S.data.append(Vec2.new(ctx.tick, mpf)) catch unreachable;
+                S.data.appendSlice(&.{ ctx.tick, mpf }) catch unreachable;
             } else {
-                S.data.items[S.offset] = Vec2.new(ctx.tick, mpf);
-                S.offset = (S.offset + 1) % S.MAX_SIZE;
+                S.data.items[S.offset] = ctx.tick;
+                S.data.items[S.offset + 1] = mpf;
+                S.offset = (S.offset + 2) % S.MAX_SIZE;
             }
             S.interval = 0;
             S.count = 0;
@@ -220,9 +221,9 @@ fn loop(ctx: *zp.Context) void {
                     plot.plotLine_PtrPtr(
                         "line",
                         f32,
-                        &S.data.items[0].x,
-                        &S.data.items[0].y,
-                        @intCast(u32, S.data.items.len),
+                        &S.data.items[0],
+                        &S.data.items[1],
+                        @intCast(u32, S.data.items.len / 2),
                         .{ .offset = @intCast(c_int, S.offset) },
                     );
                 }

@@ -850,24 +850,26 @@ fn getPaint(p: *nsvg.c.NSVGpaint) Paint {
     var inverse: [6]f32 = undefined;
     _ = transformInverse(&inverse, &g.*.xform);
 
-    var s: Vec2 = undefined;
-    var e: Vec2 = undefined;
-    transformPoint(&s.x, &s.y, &inverse, 0, 0);
-    transformPoint(&e.x, &e.y, &inverse, 0, 1);
+    var sx: f32 = undefined;
+    var sy: f32 = undefined;
+    var ex: f32 = undefined;
+    var ey: f32 = undefined;
+    transformPoint(&sx, &sy, &inverse, 0, 0);
+    transformPoint(&ex, &ey, &inverse, 0, 1);
 
     return if (p.type == nsvg.c.NSVG_PAINT_LINEAR_GRADIENT)
-        linearGradient(s.x, s.y, e.x, e.y, icol, ocol)
+        linearGradient(sx, sy, ex, ey, icol, ocol)
     else
-        radialGradient(s.x, s.y, 0, 160, icol, ocol);
+        radialGradient(sx, sy, 0, 160, icol, ocol);
 }
 
 fn getLineCrossing(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2) f32 {
     const b = p2.sub(p0);
     const d = p1.sub(p0);
     const e = p3.sub(p2);
-    var m = d.x * e.y - d.y * e.x;
+    var m = d.x() * e.y() - d.y() * e.x();
     return if (math.fabs(m) < 1e-6)
         math.nan(f32)
     else
-        -(d.x * b.y - d.y * b.x) / m;
+        -(d.x() * b.y() - d.y() * b.x()) / m;
 }

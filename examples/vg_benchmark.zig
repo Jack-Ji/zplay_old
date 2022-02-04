@@ -110,7 +110,7 @@ fn loop(ctx: *zp.Context) void {
         // draw tigers
         for (S.positions.items) |pos| {
             nvg.save();
-            nvg.translate(pos.x, pos.y);
+            nvg.translate(pos.x(), pos.y());
             nvg.scale(0.3, 0.3);
             nvg.rotate(nvg.degToRad(ctx.tick * 30));
             nvg.translate(-tiger.image.width / 2, -tiger.image.height / 2);
