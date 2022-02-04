@@ -1,15 +1,16 @@
 const std = @import("std");
 const zp = @import("zplay");
-const VertexArray = zp.graphics.common.VertexArray;
-const Texture2D = zp.graphics.texture.Texture2D;
-const Camera = zp.graphics.@"3d".Camera;
-const Material = zp.graphics.@"3d".Material;
-const Renderer = zp.graphics.@"3d".Renderer;
-const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
 const gl = zp.deps.gl;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
+const gfx = zp.graphics;
+const VertexArray = gfx.common.VertexArray;
+const Texture2D = gfx.texture.Texture2D;
+const Renderer = gfx.Renderer;
+const Camera = gfx.Camera;
+const Material = gfx.Material;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
 var vertex_array: VertexArray = undefined;

@@ -1,5 +1,5 @@
 const std = @import("std");
-const zp = @import("../../zplay.zig");
+const zp = @import("../zplay.zig");
 const TextureUnit = zp.graphics.common.Texture.TextureUnit;
 const Texture2D = zp.graphics.texture.Texture2D;
 const TextureCube = zp.graphics.texture.TextureCube;

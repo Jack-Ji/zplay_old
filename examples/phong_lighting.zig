@@ -1,17 +1,18 @@
 const std = @import("std");
 const zp = @import("zplay");
-const Camera = zp.graphics.@"3d".Camera;
-const Light = zp.graphics.@"3d".Light;
-const Mesh = zp.graphics.@"3d".Mesh;
-const Material = zp.graphics.@"3d".Material;
-const Texture2D = zp.graphics.texture.Texture2D;
-const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
-const PhongRenderer = zp.graphics.@"3d".PhongRenderer;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
+const gfx = zp.graphics;
+const Texture2D = gfx.texture.Texture2D;
+const Camera = gfx.Camera;
+const Mesh = gfx.Mesh;
+const Material = gfx.Material;
+const Light = gfx.@"3d".Light;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
+const PhongRenderer = gfx.@"3d".PhongRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;

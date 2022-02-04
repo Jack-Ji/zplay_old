@@ -1,6 +1,6 @@
 const std = @import("std");
 const math = std.math;
-const zp = @import("../../zplay.zig");
+const zp = @import("../zplay.zig");
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;

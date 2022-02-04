@@ -1,18 +1,19 @@
 const std = @import("std");
 const zp = @import("zplay");
-const TextureUnit = zp.graphics.common.Texture.TextureUnit;
-const SimpleRenderer = zp.graphics.@"3d".SimpleRenderer;
-const TextureCube = zp.graphics.texture.TextureCube;
-const Camera = zp.graphics.@"3d".Camera;
-const Model = zp.graphics.@"3d".Model;
-const Skybox = zp.graphics.@"3d".Skybox;
-const Material = zp.graphics.@"3d".Material;
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
+const gfx = zp.graphics;
+const TextureUnit = gfx.common.Texture.TextureUnit;
+const TextureCube = gfx.texture.TextureCube;
+const Camera = gfx.Camera;
+const Material = gfx.Material;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
+const Model = gfx.@"3d".Model;
+const Skybox = gfx.@"3d".Skybox;
 
 var skybox: Skybox = undefined;
 var cubemap: TextureCube = undefined;
