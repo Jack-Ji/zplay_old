@@ -25,6 +25,7 @@ pub const Option = struct {
     has_alpha: bool = true,
     has_depth_stencil: bool = true,
     separate_depth_stencil: bool = false,
+    enable_multisample: bool = false,
 };
 
 pub fn init(
@@ -32,9 +33,15 @@ pub fn init(
     width: u32,
     height: u32,
     option: Option,
-) Self {
+) !Self {
     var self = Self{
-        .tex = Texture.init(allocator, .texture_2d),
+        .tex = try Texture.init(
+            allocator,
+            if (option.enable_multisample)
+                .texture_2d_multisample
+            else
+                .texture_2d,
+        ),
         .owned = true,
     };
     gl.genFramebuffers(1, &self.id);
@@ -43,26 +50,47 @@ pub fn init(
     gl.util.checkError();
 
     // attach color texture
-    self.tex.updateImageData(
-        .texture_2d,
+    if (option.enable_multisample) {
+        self.tex.allocMultisampleData(
+            .texture_2d_multisample,
+            if (option.has_alpha) .rgba else .rgb,
+            width,
+            height,
+        );
+    } else {
+        self.tex.updateImageData(
+            .texture_2d,
+            0,
+            if (option.has_alpha) .rgba else .rgb,
+            width,
+            height,
+            null,
+            if (option.has_alpha) .rgba else .rgb,
+            u8,
+            null,
+            false,
+        );
+        self.tex.setFilteringMode(.minifying, .linear);
+        self.tex.setFilteringMode(.magnifying, .linear);
+    }
+    gl.framebufferTexture2D(
+        gl.GL_FRAMEBUFFER,
+        gl.GL_COLOR_ATTACHMENT0,
+        if (option.enable_multisample)
+            gl.GL_TEXTURE_2D_MULTISAMPLE
+        else
+            gl.GL_TEXTURE_2D,
+        self.tex.id,
         0,
-        if (option.has_alpha) .rgba else .rgb,
-        width,
-        height,
-        null,
-        if (option.has_alpha) .rgba else .rgb,
-        u8,
-        null,
-        false,
     );
-    self.tex.setFilteringMode(.minifying, .linear);
-    self.tex.setFilteringMode(.magnifying, .linear);
-    gl.framebufferTexture2D(gl.GL_FRAMEBUFFER, gl.GL_COLOR_ATTACHMENT0, gl.GL_TEXTURE_2D, self.tex.id, 0);
     gl.util.checkError();
 
     // attach depth/stencil
     if (option.has_depth_stencil) {
-        self.allocRenderbuffers(option.separate_stecil_depth);
+        self.allocDepthStencil(
+            option.separate_depth_stencil,
+            option.enable_multisample,
+        );
     }
 
     var status = gl.checkFramebufferStatus(gl.GL_FRAMEBUFFER);
@@ -73,9 +101,16 @@ pub fn init(
     return self;
 }
 
-pub fn fromTexture(tex: *Texture, option: Option) !Self {
-    if (tex.tt != .texture_2d or (tex.format != .rgb and tex.format != .rgba)) {
+pub fn fromTexture(tex: *Texture, option_: Option) !Self {
+    if ((tex.tt != .texture_2d and tex.tt != .texture_2d_multisample) or
+        (tex.format != .rgb and tex.format != .rgba))
+    {
         return error.InvalidTexture;
+    }
+    assert(tex.width > 0 and tex.height.? > 0);
+    var option = option_;
+    if (tex.tt == .texture_2d_multisample) {
+        option.enable_multisample = true;
     }
 
     var self = Self{
@@ -91,7 +126,10 @@ pub fn fromTexture(tex: *Texture, option: Option) !Self {
     gl.framebufferTexture2D(
         gl.GL_FRAMEBUFFER,
         gl.GL_COLOR_ATTACHMENT0,
-        gl.GL_TEXTURE_2D,
+        if (option.enable_multisample)
+            gl.GL_TEXTURE_2D_MULTISAMPLE
+        else
+            gl.GL_TEXTURE_2D,
         self.tex.id,
         0,
     );
@@ -99,7 +137,10 @@ pub fn fromTexture(tex: *Texture, option: Option) !Self {
 
     // attach depth/stencil
     if (option.has_depth_stencil) {
-        self.allocDepthStencil(option.separate_depth_stencil);
+        self.allocDepthStencil(
+            option.separate_depth_stencil,
+            option.enable_multisample,
+        );
     }
 
     var status = gl.checkFramebufferStatus(gl.GL_FRAMEBUFFER);
@@ -111,7 +152,11 @@ pub fn fromTexture(tex: *Texture, option: Option) !Self {
 }
 
 /// attach depth/stencil buffers
-fn allocDepthStencil(self: *Self, separate_stecil_depth: bool) void {
+fn allocDepthStencil(
+    self: *Self,
+    separate_stecil_depth: bool,
+    enable_msaa: bool,
+) void {
     gl.genRenderbuffers(1, &self.rbo1);
     defer gl.bindRenderbuffer(gl.GL_RENDERBUFFER, 0);
     if (separate_stecil_depth) {
@@ -119,12 +164,22 @@ fn allocDepthStencil(self: *Self, separate_stecil_depth: bool) void {
 
         // depth
         gl.bindRenderbuffer(gl.GL_RENDERBUFFER, self.rbo1);
-        gl.renderbufferStorage(
-            gl.GL_RENDERBUFFER,
-            gl.GL_DEPTH_COMPONENT,
-            @intCast(c_int, self.tex.width),
-            @intCast(c_int, self.tex.height.?),
-        );
+        if (enable_msaa) {
+            gl.renderbufferStorageMultisample(
+                gl.GL_RENDERBUFFER,
+                4,
+                gl.GL_DEPTH_COMPONENT,
+                @intCast(c_int, self.tex.width),
+                @intCast(c_int, self.tex.height.?),
+            );
+        } else {
+            gl.renderbufferStorage(
+                gl.GL_RENDERBUFFER,
+                gl.GL_DEPTH_COMPONENT,
+                @intCast(c_int, self.tex.width),
+                @intCast(c_int, self.tex.height.?),
+            );
+        }
         gl.framebufferRenderbuffer(
             gl.GL_FRAMEBUFFER,
             gl.GL_DEPTH_ATTACHMENT,
@@ -134,12 +189,22 @@ fn allocDepthStencil(self: *Self, separate_stecil_depth: bool) void {
 
         // stencil
         gl.bindRenderbuffer(gl.GL_RENDERBUFFER, self.rbo2);
-        gl.renderbufferStorage(
-            gl.GL_RENDERBUFFER,
-            gl.GL_STENCIL_INDEX,
-            @intCast(c_int, self.tex.width),
-            @intCast(c_int, self.tex.height.?),
-        );
+        if (enable_msaa) {
+            gl.renderbufferStorageMultisample(
+                gl.GL_RENDERBUFFER,
+                4,
+                gl.GL_STENCIL_INDEX,
+                @intCast(c_int, self.tex.width),
+                @intCast(c_int, self.tex.height.?),
+            );
+        } else {
+            gl.renderbufferStorage(
+                gl.GL_RENDERBUFFER,
+                gl.GL_STENCIL_INDEX,
+                @intCast(c_int, self.tex.width),
+                @intCast(c_int, self.tex.height.?),
+            );
+        }
         gl.framebufferRenderbuffer(
             gl.GL_FRAMEBUFFER,
             gl.GL_STENCIL_ATTACHMENT,
@@ -148,12 +213,22 @@ fn allocDepthStencil(self: *Self, separate_stecil_depth: bool) void {
         );
     } else {
         gl.bindRenderbuffer(gl.GL_RENDERBUFFER, self.rbo1);
-        gl.renderbufferStorage(
-            gl.GL_RENDERBUFFER,
-            gl.GL_DEPTH24_STENCIL8,
-            @intCast(c_int, self.tex.width),
-            @intCast(c_int, self.tex.height.?),
-        );
+        if (enable_msaa) {
+            gl.renderbufferStorageMultisample(
+                gl.GL_RENDERBUFFER,
+                4,
+                gl.GL_DEPTH24_STENCIL8,
+                @intCast(c_int, self.tex.width),
+                @intCast(c_int, self.tex.height.?),
+            );
+        } else {
+            gl.renderbufferStorage(
+                gl.GL_RENDERBUFFER,
+                gl.GL_DEPTH24_STENCIL8,
+                @intCast(c_int, self.tex.width),
+                @intCast(c_int, self.tex.height.?),
+            );
+        }
         gl.framebufferRenderbuffer(
             gl.GL_FRAMEBUFFER,
             gl.GL_DEPTH_STENCIL_ATTACHMENT,
@@ -175,5 +250,34 @@ pub fn deinit(self: Self) void {
         gl.deleteRenderbuffers(1, &self.rbo2);
     }
     gl.deleteFramebuffers(1, &self.id);
+    gl.util.checkError();
+}
+
+/// copy pixel data to other framebuffer
+/// WARNING: after blit operation, default framebuffer will be activated!
+pub fn blitData(src: Self, dst: Self) void {
+    defer gl.bindFramebuffer(gl.GL_FRAMEBUFFER, 0);
+    gl.bindFramebuffer(
+        gl.GL_READ_FRAMEBUFFER,
+        src.id,
+    );
+    gl.bindFramebuffer(
+        gl.GL_DRAW_FRAMEBUFFER,
+        dst.id,
+    );
+    gl.util.checkError();
+
+    gl.blitFramebuffer(
+        0,
+        0,
+        @intCast(c_int, src.tex.width),
+        @intCast(c_int, src.tex.height.?),
+        0,
+        0,
+        @intCast(c_int, dst.tex.width),
+        @intCast(c_int, dst.tex.height.?),
+        gl.GL_COLOR_BUFFER_BIT,
+        gl.GL_NEAREST,
+    );
     gl.util.checkError();
 }

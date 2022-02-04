@@ -23,15 +23,19 @@ var simple_renderer: SimpleRenderer = undefined;
 var rd: Renderer = undefined;
 var transform_array: Renderer.InstanceTransformArray = undefined;
 var fb: Framebuffer = undefined;
-var fb_texture: Texture2D = undefined;
-var fb_material: Material = undefined;
+var fb_msaa: Framebuffer = undefined;
+var screen_fb: Framebuffer = undefined;
+var screen_fb_texture: Texture2D = undefined;
+var screen_fb_material: Material = undefined;
 var quad: Mesh = undefined;
 var cube: Mesh = undefined;
 var cube_material: Material = undefined;
 var color_material: Material = undefined;
 var wireframe_mode = false;
 var outlined = false;
-var rotate_scene_fb = false;
+var rotate_cubes = false;
+var rotate_scene = false;
+var enable_msaa = true;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(0, 0, 3),
     Vec3.zero(),
@@ -61,22 +65,37 @@ fn init(ctx: *zp.Context) anyerror!void {
     // allocate skybox
     skybox = Skybox.init(std.testing.allocator);
 
-    // allocate framebuffer
+    // allocate framebuffer stuff
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(ctx.window, &width, &height);
-    fb_texture = try Texture2D.init(
+    fb = try Framebuffer.init(
         std.testing.allocator,
-        null,
-        .rgba,
         width,
         height,
         .{},
     );
-    fb = try Framebuffer.fromTexture(fb_texture.tex, .{});
-    fb_material = Material.init(.{
-        .single_texture = fb_texture,
+    fb_msaa = try Framebuffer.init(
+        std.testing.allocator,
+        width,
+        height,
+        .{ .enable_multisample = true },
+    );
+    screen_fb_texture = try Texture2D.init(
+        std.testing.allocator,
+        null,
+        .rgb,
+        width,
+        height,
+        .{},
+    );
+    screen_fb_material = Material.init(.{
+        .single_texture = screen_fb_texture,
     });
+    screen_fb = try Framebuffer.fromTexture(
+        screen_fb_texture.tex,
+        .{},
+    );
 
     // simple renderer
     simple_renderer = SimpleRenderer.init();
@@ -122,17 +141,22 @@ fn init(ctx: *zp.Context) anyerror!void {
     });
 
     // alloc texture unit
-    var unit = fb_material.allocTextureUnit(0);
+    var unit = screen_fb_material.allocTextureUnit(0);
     unit = cube_material.allocTextureUnit(unit);
     unit = skybox_material.allocTextureUnit(unit);
     _ = color_material.allocTextureUnit(unit);
+
+    // toggle graphics caps
+    ctx.graphics.toggleCapability(.multisample, enable_msaa);
 }
 
 fn loop(ctx: *zp.Context) void {
     const S = struct {
-        var frame: f32 = 0;
+        var frame1: f32 = 0;
+        var frame2: f32 = 0;
     };
-    S.frame += 1;
+    if (rotate_cubes) S.frame1 += 1;
+    if (rotate_scene) S.frame2 += 1;
 
     // camera movement
     const distance = ctx.delta_tick * camera.move_speed;
@@ -191,7 +215,7 @@ fn loop(ctx: *zp.Context) void {
     ctx.graphics.getDrawableSize(ctx.window, &width, &height);
 
     // render to custom framebuffer
-    ctx.graphics.useFramebuffer(fb);
+    ctx.graphics.useFramebuffer(if (enable_msaa) fb_msaa else fb);
     {
         ctx.graphics.toggleCapability(.depth_test, true);
         ctx.graphics.clear(true, true, true, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
@@ -204,7 +228,7 @@ fn loop(ctx: *zp.Context) void {
 
         // draw boxes
         ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
-        renderBoxes(ctx, projection, S.frame);
+        renderBoxes(ctx, projection, S.frame1);
 
         // draw skybox
         skybox.draw(&ctx.graphics, projection, camera, skybox_material);
@@ -213,20 +237,23 @@ fn loop(ctx: *zp.Context) void {
     // draw framebuffer's color texture
     ctx.graphics.useFramebuffer(null);
     {
+        // copy pixels
+        Framebuffer.blitData(
+            if (enable_msaa) fb_msaa else fb,
+            screen_fb,
+        );
+
         ctx.graphics.setPolygonMode(.fill);
         ctx.graphics.toggleCapability(.depth_test, false);
         ctx.graphics.clear(true, false, false, [4]f32{ 0.3, 0.2, 0.3, 1.0 });
-        var model = Mat4.identity();
-        if (rotate_scene_fb) {
-            model = Mat4.fromRotation(S.frame, Vec3.up());
-        }
+        var model = Mat4.fromRotation(S.frame2, Vec3.up());
         rd.begin(false);
         quad.render(
             rd,
             model,
             Mat4.identity(),
             null,
-            fb_material,
+            screen_fb_material,
         ) catch unreachable;
         rd.end();
     }
@@ -252,9 +279,9 @@ fn loop(ctx: *zp.Context) void {
             if (dig.checkbox("outlined", &outlined)) {
                 ctx.graphics.toggleCapability(.stencil_test, outlined);
             }
-            if (dig.checkbox("rotate scene", &rotate_scene_fb)) {
-                if (rotate_scene_fb) S.frame = 0;
-            }
+            _ = dig.checkbox("rotate cubes", &rotate_cubes);
+            _ = dig.checkbox("rotate scene", &rotate_scene);
+            _ = dig.checkbox("msaa", &enable_msaa);
         }
         dig.end();
     }
@@ -321,5 +348,6 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .enable_msaa = true,
     });
 }

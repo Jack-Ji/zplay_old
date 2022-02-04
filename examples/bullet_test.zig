@@ -22,6 +22,7 @@ var phong_renderer: PhongRenderer = undefined;
 var color_material: Material = undefined;
 var wireframe_mode = false;
 var scene: Scene = undefined;
+var enable_msaa = false;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(5, 10, 25),
     Vec3.new(-4, 8, 0),
@@ -64,6 +65,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     // graphics init
     ctx.graphics.toggleCapability(.depth_test, true);
     ctx.graphics.toggleCapability(.stencil_test, true);
+    ctx.graphics.toggleCapability(.multisample, enable_msaa);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -147,6 +149,9 @@ fn loop(ctx: *zp.Context) void {
         )) {
             if (dig.checkbox("wireframe", &wireframe_mode)) {
                 ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
+            }
+            if (dig.checkbox("msaa", &enable_msaa)) {
+                ctx.graphics.toggleCapability(.multisample, enable_msaa);
             }
         }
         dig.end();
@@ -600,5 +605,6 @@ pub fn main() anyerror!void {
         .loopFn = loop,
         .quitFn = quit,
         .enable_maximized = true,
+        .enable_msaa = true,
     });
 }

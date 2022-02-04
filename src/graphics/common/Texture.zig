@@ -49,7 +49,7 @@ pub const UpdateTarget = enum(c_uint) {
     proxy_texture_2d_array = gl.GL_PROXY_TEXTURE_2D_ARRAY,
 };
 
-pub const TextureMultisampleTarget = enum(c_uint) {
+pub const MultisampleTarget = enum(c_uint) {
     /// 2d multisample
     texture_2d_multisample = gl.GL_TEXTURE_2D_MULTISAMPLE,
     proxy_texture_2d_multisample = gl.GL_PROXY_TEXTURE_2D_MULTISAMPLE,
@@ -59,7 +59,7 @@ pub const TextureMultisampleTarget = enum(c_uint) {
     proxy_texture_2d_multisample_array = gl.GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY,
 };
 
-pub const TextureFormat = enum(c_int) {
+pub const TextureFormat = enum(c_uint) {
     red = gl.GL_RED,
     rg = gl.GL_RG,
     rgb = gl.GL_RGB,
@@ -298,7 +298,7 @@ pub fn updateImageData(
             gl.texImage1D(
                 @enumToInt(target),
                 mipmap_level,
-                @enumToInt(texture_format),
+                @intCast(c_int, @enumToInt(texture_format)),
                 @intCast(c_int, width),
                 0,
                 @enumToInt(image_format),
@@ -311,7 +311,7 @@ pub fn updateImageData(
             gl.texImage2D(
                 @enumToInt(target),
                 mipmap_level,
-                @enumToInt(texture_format),
+                @intCast(c_int, @enumToInt(texture_format)),
                 @intCast(c_int, width),
                 @intCast(c_int, height.?),
                 0,
@@ -325,7 +325,7 @@ pub fn updateImageData(
             gl.texImage2D(
                 @enumToInt(target),
                 mipmap_level,
-                @enumToInt(texture_format),
+                @intCast(c_int, @enumToInt(texture_format)),
                 @intCast(c_int, width),
                 @intCast(c_int, height.?),
                 0,
@@ -339,7 +339,7 @@ pub fn updateImageData(
             gl.texImage2D(
                 @enumToInt(target),
                 mipmap_level,
-                @enumToInt(texture_format),
+                @intCast(c_int, @enumToInt(texture_format)),
                 @intCast(c_int, width),
                 @intCast(c_int, height.?),
                 0,
@@ -359,7 +359,7 @@ pub fn updateImageData(
             gl.texImage2D(
                 @enumToInt(target),
                 mipmap_level,
-                @enumToInt(texture_format),
+                @intCast(c_int, @enumToInt(texture_format)),
                 @intCast(c_int, width),
                 @intCast(c_int, height.?),
                 0,
@@ -373,7 +373,7 @@ pub fn updateImageData(
             gl.texImage3D(
                 @enumToInt(target),
                 mipmap_level,
-                @enumToInt(texture_format),
+                @intCast(c_int, @enumToInt(texture_format)),
                 @intCast(c_int, width),
                 @intCast(c_int, height.?),
                 @intCast(c_int, depth.?),
@@ -388,7 +388,7 @@ pub fn updateImageData(
             gl.texImage3D(
                 @enumToInt(target),
                 mipmap_level,
-                @enumToInt(texture_format),
+                @intCast(c_int, @enumToInt(texture_format)),
                 @intCast(c_int, width),
                 @intCast(c_int, height.?),
                 @intCast(c_int, depth.?),
@@ -413,6 +413,39 @@ pub fn updateImageData(
     self.width = width;
     self.height = height;
     self.depth = depth;
+}
+
+/// allocate multisample data
+pub fn allocMultisampleData(
+    self: *Self,
+    target: MultisampleTarget,
+    texture_format: TextureFormat,
+    width: u32,
+    height: u32,
+) void {
+    gl.bindTexture(@enumToInt(self.tt), self.id);
+    defer gl.bindTexture(@enumToInt(self.tt), 0);
+    switch (self.tt) {
+        .texture_2d_multisample => {
+            assert(target == .texture_2d_multisample or target == .proxy_texture_2d_multisample);
+            gl.texImage2DMultisample(
+                @enumToInt(target),
+                4,
+                @enumToInt(texture_format),
+                @intCast(c_int, width),
+                @intCast(c_int, height),
+                gl.GL_TRUE,
+            );
+        },
+        else => {
+            panic("invalid operation!", .{});
+        },
+    }
+    gl.util.checkError();
+
+    self.format = texture_format;
+    self.width = width;
+    self.height = height;
 }
 
 /// update multisample data
