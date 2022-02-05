@@ -12,18 +12,21 @@ const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
 const Renderer = @This();
 
-/// The type erased pointer to the renderer implementation
+/// global pointer to current activated current_renderer
+var current_renderer: ?*anyopaque = null;
+
+/// The type erased pointer to the current_renderer implementation
 ptr: *anyopaque,
 vtable: *const VTable,
 
-/// renderer's status
+/// current_renderer's status
 pub const Status = enum {
     not_ready,
     ready_to_draw,
     ready_to_draw_instanced,
 };
 
-/// renderer's vertex attribute locations
+/// current_renderer's vertex attribute locations
 /// NOTE: implementations' vertex shaders should follow this convention, otherwise
 /// Model/Mesh rendering won't be correct.
 pub const ATTRIB_LOCATION_POS = 0;
@@ -109,10 +112,10 @@ pub const InstanceTransformArray = struct {
 };
 
 pub const VTable = struct {
-    /// begin using renderer
+    /// begin using current_renderer
     beginFn: fn (ptr: *anyopaque, instanced_draw: bool) void,
 
-    /// stop using renderer
+    /// stop using current_renderer
     endFn: fn (ptr: *anyopaque) void,
 
     /// get supported vertex attributes' locations, instance transforms not included
@@ -283,11 +286,16 @@ pub fn init(
 }
 
 pub fn begin(rd: Renderer, instanced_draw: bool) void {
+    assert(current_renderer == null);
     rd.vtable.beginFn(rd.ptr, instanced_draw);
+    current_renderer = rd.ptr;
 }
 
 pub fn end(rd: Renderer) void {
+    assert(current_renderer != null);
+    assert(current_renderer == rd.ptr);
     rd.vtable.endFn(rd.ptr);
+    current_renderer = null;
 }
 
 pub fn getVertexAttribs(rd: Renderer) []const u32 {
@@ -306,6 +314,7 @@ pub fn render(
     camera: ?Camera,
     material: ?Material,
 ) anyerror!void {
+    assert(current_renderer == rd.ptr);
     return rd.vtable.renderFn(
         rd.ptr,
         vertex_array,
@@ -333,6 +342,7 @@ pub fn renderInstanced(
     material: ?Material,
     instance_count: ?u32,
 ) anyerror!void {
+    assert(current_renderer == rd.ptr);
     if (instance_count) |cnt| {
         assert(cnt <= transforms.count);
     }

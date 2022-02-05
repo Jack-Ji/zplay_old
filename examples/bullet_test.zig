@@ -128,9 +128,7 @@ fn loop(ctx: *zp.Context) void {
 
     // render world
     var rd = phong_renderer.renderer();
-    rd.begin(false);
     scene.update(ctx, rd) catch unreachable;
-    rd.end();
 
     // settings
     dig.beginFrame();
@@ -399,6 +397,7 @@ const Scene = struct {
         }
 
         // render objects
+        rd.begin(false);
         for (self.objs.items) |obj, idx| {
             // draw debug lines
             var linear_velocity: bt.Vector3 = undefined;
@@ -414,7 +413,6 @@ const Scene = struct {
             bt.worldDebugDrawLine1(self.world, &position, &p1_linear.toArray(), &color_linear);
             bt.worldDebugDrawLine1(self.world, &position, &p1_angular.toArray(), &color_angular);
 
-            // draw object, highlight selected object
             var tr: bt.Transform = undefined;
             bt.bodyGetGraphicsWorldTransform(obj.body, &tr);
             if (hit and hit_idx == idx) {
@@ -431,15 +429,22 @@ const Scene = struct {
                 camera,
                 null,
             );
+
+            // highlight selected object
             if (hit and hit_idx == idx) {
+                rd.end();
+                defer rd.begin(false);
+
+                var srd = simple_renderer.renderer();
+                srd.begin(false);
+                defer srd.end();
+
                 ctx.graphics.setStencilOption(.{
                     .test_func = .not_equal,
                     .test_ref = 1,
                 });
-                simple_renderer.renderer().begin(false);
-                defer rd.begin(false);
                 try obj.model.render(
-                    simple_renderer.renderer(),
+                    srd,
                     bt.convertTransformToMat4(tr)
                         .mult(Mat4.fromScale(Vec3.set(1.05)))
                         .mult(Mat4.fromScale(obj.size)),
@@ -449,6 +454,7 @@ const Scene = struct {
                 );
             }
         }
+        rd.end();
 
         // render physical debug
         bt.worldDebugDraw(self.world);
