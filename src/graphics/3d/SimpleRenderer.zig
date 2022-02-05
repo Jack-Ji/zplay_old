@@ -10,7 +10,6 @@ const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Mesh = gfx.Mesh;
 const Material = gfx.Material;
-const gl = zp.deps.gl;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
