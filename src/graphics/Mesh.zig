@@ -270,6 +270,66 @@ pub fn genQuad(
     return mesh;
 }
 
+// generate a circle
+pub fn genCircle(
+    allocator: std.mem.Allocator,
+    r: f32,
+    sector_count: u32,
+) !Self {
+    assert(r > 0 and sector_count > 0);
+    const attrib_count = sector_count + 2;
+    var positions = try std.ArrayList(f32).initCapacity(
+        allocator,
+        attrib_count * 3,
+    );
+    var normals = try std.ArrayList(f32).initCapacity(
+        allocator,
+        attrib_count * 3,
+    );
+    var texcoords = try std.ArrayList(f32).initCapacity(
+        allocator,
+        attrib_count * 2,
+    );
+    var indices = try std.ArrayList(u32).initCapacity(
+        allocator,
+        sector_count * 3,
+    );
+    var sector_step = math.pi * 2.0 / @intToFloat(f32, sector_count);
+
+    // vertex atributes
+    positions.appendSliceAssumeCapacity(&.{ 0, 0, 0 });
+    normals.appendSliceAssumeCapacity(&.{ 0, 0, 1 });
+    texcoords.appendSliceAssumeCapacity(&.{ 0.5, 0.5 });
+    var i: u32 = 0;
+    while (i <= sector_count) : (i += 1) {
+        var sector_angle = @intToFloat(f32, i) * sector_step;
+        const cos = math.cos(sector_angle);
+        const sin = math.sin(sector_angle);
+        positions.appendSliceAssumeCapacity(&.{ cos * r, sin * r, 0 });
+        normals.appendSliceAssumeCapacity(&.{ 0, 0, 1 });
+        texcoords.appendSliceAssumeCapacity(&.{ cos * 0.5 + 0.5, sin * 0.5 + 0.5 });
+    }
+
+    // vertex indices
+    i = 0;
+    while (i < sector_count) : (i += 1) {
+        indices.appendSliceAssumeCapacity(&.{ 0, i + 1, i + 2 });
+    }
+
+    var mesh = fromArrays(
+        .triangles,
+        indices,
+        positions,
+        normals,
+        texcoords,
+        null,
+        null,
+        true,
+    );
+    mesh.setup(allocator);
+    return mesh;
+}
+
 // generate a cube
 pub fn genCube(
     allocator: std.mem.Allocator,

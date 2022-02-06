@@ -16,8 +16,8 @@ var wireframe_mode = true;
 var perspective_mode = true;
 var use_texture = false;
 var quad: Mesh = undefined;
-var cube1: Mesh = undefined;
-var cube2: Mesh = undefined;
+var circle: Mesh = undefined;
+var cube: Mesh = undefined;
 var sphere: Mesh = undefined;
 var cylinder: Mesh = undefined;
 var prim: Mesh = undefined;
@@ -41,8 +41,8 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // generate meshes
     quad = try Mesh.genQuad(std.testing.allocator, 1, 1);
-    cube1 = try Mesh.genCube(std.testing.allocator, 0.5, 0.5, 0.5);
-    cube2 = try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2);
+    circle = try Mesh.genCircle(std.testing.allocator, 0.5, 50);
+    cube = try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2);
     sphere = try Mesh.genSphere(std.testing.allocator, 0.7, 36, 18);
     cylinder = try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0.5, 2, 36);
     prim = try Mesh.genCylinder(std.testing.allocator, 1, 0.3, 0.3, 1, 3);
@@ -149,14 +149,14 @@ fn loop(ctx: *zp.Context) void {
             camera,
             if (use_texture) picture_material else default_material,
         ) catch unreachable;
-        cube1.render(
+        circle.render(
             rd,
             model.translate(Vec3.new(-0.5, 1.2, 0)),
             projection,
             camera,
             if (use_texture) picture_material else default_material,
         ) catch unreachable;
-        cube2.render(
+        cube.render(
             rd,
             model.translate(Vec3.new(1.0, 1.2, 0)),
             projection,
