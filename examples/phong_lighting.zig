@@ -114,6 +114,8 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
+    ctx.graphics.toggleCapability(.blend, true);
+    ctx.graphics.toggleCapability(.cull_face, true);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -202,25 +204,34 @@ fn loop(ctx: *zp.Context) void {
     // draw lights
     rd = simple_renderer.renderer();
     rd.begin(false);
-    for (phong_renderer.point_lights.items) |light| {
-        const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        cube.render(
-            rd,
-            model,
-            projection,
-            camera,
-            light_material,
-        ) catch unreachable;
-    }
-    for (phong_renderer.spot_lights.items) |light| {
-        const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-        cube.render(
-            rd,
-            model,
-            projection,
-            camera,
-            light_material,
-        ) catch unreachable;
+    {
+        var old_blend_option = ctx.graphics.blend_option;
+        defer ctx.graphics.setBlendOption(old_blend_option);
+        ctx.graphics.setBlendOption(.{
+            .src_rgb = .constant_alpha,
+            .dst_rgb = .one_minus_constant_alpha,
+            .constant_color = [4]f32{ 0, 0, 0, 0.5 },
+        });
+        for (phong_renderer.point_lights.items) |light| {
+            const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
+            cube.render(
+                rd,
+                model,
+                projection,
+                camera,
+                light_material,
+            ) catch unreachable;
+        }
+        for (phong_renderer.spot_lights.items) |light| {
+            const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
+            cube.render(
+                rd,
+                model,
+                projection,
+                camera,
+                light_material,
+            ) catch unreachable;
+        }
     }
     rd.end();
 }

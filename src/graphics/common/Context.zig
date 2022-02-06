@@ -297,14 +297,12 @@ pub fn setPolygonMode(self: *Self, mode: PolygonMode) void {
 /// set depth options
 pub const DepthOption = struct {
     test_func: TestFunc = .less, // test function determines whether fragment is accepted
-    update_switch: ?bool = null, // false means depth buffer won't be updated during rendering
+    update_switch: bool = true, // false means depth buffer won't be updated during rendering
 };
 pub fn setDepthOption(self: *Self, option: DepthOption) void {
     _ = self;
     gl.depthFunc(@enumToInt(option.test_func));
-    if (option.update_switch) |s| {
-        gl.depthMask(gl.util.boolType(s));
-    }
+    gl.depthMask(gl.util.boolType(option.update_switch));
     self.depth_option = option;
     gl.util.checkError();
 }
@@ -314,10 +312,10 @@ pub const StencilOption = struct {
     action_sfail: StencilOp = .keep, // action to take if the stencil test fails.
     action_dpfail: StencilOp = .keep, // action to take if the stencil test passes, but the depth test fails.
     action_dppass: StencilOp = .keep, // action to take if both the stencil and the depth test pass.
-    test_func: ?TestFunc = null, // stencil test function that determines whether a fragment passes or is discarded.
+    test_func: TestFunc = .always, // stencil test function that determines whether a fragment passes or is discarded.
     test_ref: u8 = 0, // the reference value for the stencil test. The stencil buffer's content is compared to this value.
-    test_mask: ?u8 = null, // ANDed with both the reference value and the stored stencil value before the test compares them.
-    write_mask: ?u8 = null, // bitmask that is ANDed with the stencil value about to be written to the buffer.
+    test_mask: u8 = 0xff, // ANDed with both the reference value and the stored stencil value before the test compares them.
+    write_mask: u8 = 0xff, // bitmask that is ANDed with the stencil value about to be written to the buffer.
 };
 pub fn setStencilOption(self: *Self, option: StencilOption) void {
     _ = self;
@@ -326,16 +324,12 @@ pub fn setStencilOption(self: *Self, option: StencilOption) void {
         @enumToInt(option.action_dpfail),
         @enumToInt(option.action_dppass),
     );
-    if (option.test_func) |func| {
-        gl.stencilFunc(
-            @enumToInt(func),
-            @intCast(gl.GLint, option.test_ref),
-            @intCast(gl.GLuint, option.test_mask orelse 0xff),
-        );
-    }
-    if (option.write_mask) |mask| {
-        gl.stencilMask(@intCast(gl.GLuint, mask));
-    }
+    gl.stencilFunc(
+        @enumToInt(option.test_func),
+        @intCast(gl.GLint, option.test_ref),
+        @intCast(gl.GLuint, 0xff),
+    );
+    gl.stencilMask(@intCast(gl.GLuint, option.write_mask));
     self.stencil_option = option;
     gl.util.checkError();
 }
@@ -346,8 +340,8 @@ pub const BlendOption = struct {
     dst_rgb: BlendFactor = .one_minus_src_alpha,
     src_alpha: BlendFactor = .one, // blend factors for alpha
     dst_alpha: BlendFactor = .zero,
-    constant_color: ?[4]f32 = null, // constant blend color
-    equation: ?BlendEquation = null, // blend equation
+    constant_color: [4]f32 = [4]f32{ 0, 0, 0, 0 }, // constant blend color
+    equation: BlendEquation = .add, // blend equation
 };
 pub fn setBlendOption(self: *Self, option: BlendOption) void {
     _ = self;
@@ -357,12 +351,13 @@ pub fn setBlendOption(self: *Self, option: BlendOption) void {
         @enumToInt(option.src_alpha),
         @enumToInt(option.dst_alpha),
     );
-    if (option.constant_color) |color| {
-        gl.blendColor(color[0], color[1], color[2], color[3]);
-    }
-    if (option.equation) |eq| {
-        gl.blendEquation(@enumToInt(eq));
-    }
+    gl.blendColor(
+        option.constant_color[0],
+        option.constant_color[1],
+        option.constant_color[2],
+        option.constant_color[3],
+    );
+    gl.blendEquation(@enumToInt(option.equation));
     self.blend_option = option;
     gl.util.checkError();
 }
@@ -370,14 +365,12 @@ pub fn setBlendOption(self: *Self, option: BlendOption) void {
 /// set face culling options
 pub const CullingOption = struct {
     face: CullFace = .back,
-    front: ?FrontFace = null,
+    front: FrontFace = .ccw,
 };
 pub fn setCullingOption(self: *Self, option: CullingOption) void {
     _ = self;
     gl.cullFace(@enumToInt(option.face));
-    if (option.front) |f| {
-        gl.frontFace(@enumToInt(f));
-    }
+    gl.frontFace(@enumToInt(option.front));
     self.culling_option = option;
     gl.util.checkError();
 }
