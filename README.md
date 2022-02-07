@@ -7,7 +7,8 @@ A simple framework intended for game/tool creation.
 * Support image formats: tga/png/jpeg
 * Support audio formats: mp3/ogg (TODO)
 * glTF 2.0 file support
-* 3D physics system (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
+* Various 3D light shading model: Phong/Blinn-Phong/PBR(TODO)
+* Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 * Sprite system (TODO)
 * Particle system (TODO)
 * dear-imgui and extensions(implot/imnodes) integration 
@@ -27,7 +28,7 @@ A simple framework intended for game/tool creation.
 * mesh generation
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/mesh_generation.png)
 
-* phong lighting
+* phong/blinn-phong light shading
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/phong_lighting.png)
 
 * collision test

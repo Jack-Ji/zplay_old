@@ -1,5 +1,6 @@
 /// help wrappers of raw imgui api
-const math = @import("std").math;
+const std = @import("std");
+const math = std.math;
 const c = @import("c.zig");
 const vec2_zero = c.ImVec2{ .x = 0, .y = 0 };
 const vec2_one = c.ImVec2{ .x = 1, .y = 1 };
@@ -335,6 +336,11 @@ pub fn textUnformatted(_text: []const u8) void {
     return c.igTextUnformatted(_text.ptr, _text.ptr + _text.len);
 }
 pub const text = c.igText;
+pub fn ztext(comptime fmt: []const u8, args: anytype) void {
+    var buf = [_]u8{0} ** 128;
+    var info = std.fmt.bufPrintZ(&buf, fmt, args) catch unreachable;
+    text(info);
+}
 pub const textColored = c.igTextColored;
 pub const textDisabled = c.igTextDisabled;
 pub const textWrapped = c.igTextWrapped;

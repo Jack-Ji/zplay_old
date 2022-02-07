@@ -13,8 +13,10 @@ pub const SimpleRenderer = @import("3d/SimpleRenderer.zig");
 /// phong lighting renderer
 pub const PhongRenderer = @import("3d/PhongRenderer.zig");
 
+// blinn phong lighting renderer
+pub const BlinnPhongRenderer = @import("3d/BlinnPhongRenderer.zig");
+
 /// environment mapping renderer
 pub const EnvMappingRenderer = @import("3d/EnvMappingRenderer.zig");
 
-//TODO blinn lighting renderer
 //TODO pbr lighting renderer
