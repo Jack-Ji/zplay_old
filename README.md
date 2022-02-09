@@ -4,15 +4,16 @@ A simple framework intended for game/tool creation.
 ## Features
 * Little dependency, only SDL2 and OpenGL3 are needed
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
-* Support image formats: tga/png/jpeg
-* Support audio formats: mp3/ogg (TODO)
-* glTF 2.0 file support
-* Various 3D light shading model: Phong/Blinn-Phong/PBR(TODO)
+* 3D model loading and rendering (only glTF 2.0 for now)
+* Various 3D shading renderers: Phong/Blinn-Phong/EnvMapping/PBR(TODO)
+* Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
+* Image/Audio asset loading/decoding via [great stb](https://github.com/nothings/stb)
 * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
-* Sprite system (TODO)
-* Particle system (TODO)
-* dear-imgui and extensions(implot/imnodes) integration 
+* Hand-crafted integration of [dear-imgui](https://github.com/ocornut/imgui) and popular extensions(implot/imnodes)
 * NanoVG/NanoSVG integration
+* Particle system (TODO)
+* 2D Sprite system (TODO)
+* Hand-crafted OpenGL wrappers/utilities: GraphicsContext/FrameBuffer/ShaderProgram/VertexArray/Buffer/Texture etc.
 
 # Install
 1. Download and install zig master branch
