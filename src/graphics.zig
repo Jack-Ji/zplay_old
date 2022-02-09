@@ -1,20 +1,23 @@
 /// common graphics types/utilities
 pub const common = @import("graphics/common.zig");
 
-/// generic renderer interface
+/// generic rendering interface
 pub const Renderer = @import("graphics/Renderer.zig");
 
-/// camera
+/// generic camera
 pub const Camera = @import("graphics/Camera.zig");
 
-/// mesh
+/// generic mesh object
 pub const Mesh = @import("graphics/Mesh.zig");
 
-/// material
+/// generic material types
 pub const Material = @import("graphics/Material.zig");
 
-/// texture
+/// various texture types
 pub const texture = @import("graphics/texture.zig");
 
-/// 3d tools
+/// toolkit for 3d scene
 pub const @"3d" = @import("graphics/3d.zig");
+
+/// toolkit for 2d scene
+pub const @"2d" = @import("graphics/2d.zig");
