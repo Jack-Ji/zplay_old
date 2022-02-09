@@ -11,9 +11,9 @@ A simple framework intended for game/tool creation.
 * Image/Audio asset loading/decoding via [great stb](https://github.com/nothings/stb)
 * Particle system (TODO)
 * 2D Sprite system (TODO)
-* Hand-crafted integration of [dear-imgui](https://github.com/ocornut/imgui) and popular extensions(implot/imnodes)
-* Hand-crafted integration of NanoVG/NanoSVG integration
-* Hand-crafted OpenGL wrappers/utilities: GraphicsContext/FrameBuffer/ShaderProgram/VertexArray/Buffer/Texture etc.
+* Hand-crafted integration of [dear-imgui](https://github.com/ocornut/imgui) and popular extensions([implot](https://github.com/epezent/implot)/[imnodes](https://github.com/Nelarius/imnodes))
+* Hand-crafted integration of [NanoVG](https://github.com/memononen/nanovg)/[NanoSVG](https://github.com/memononen/nanosvg)
+* Hand-crafted OpenGL wrappers: GraphicsContext/FrameBuffer/ShaderProgram/VertexArray/Buffer/Texture etc.
 
 # Install
 1. Download and install zig master branch
