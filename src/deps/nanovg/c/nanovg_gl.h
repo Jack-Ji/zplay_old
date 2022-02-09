@@ -1260,9 +1260,6 @@ static void glnvg__renderFlush(void* uptr)
 	if (gl->ncalls > 0) {
     // Backup GL state
     GLuint last_program; glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&last_program);
-#if defined NANOVG_GL3
-    GLint last_polygon_mode[2]; glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
-#endif
     GLboolean last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
     GLuint last_cull_face; glGetIntegerv(GL_CULL_FACE_MODE, (GLint*)&last_cull_face);
     GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
@@ -1285,6 +1282,11 @@ static void glnvg__renderFlush(void* uptr)
     GLuint last_stencil_func_mask; glGetIntegerv(GL_STENCIL_VALUE_MASK, (GLint*)&last_stencil_func_mask);
     GLenum last_active_texture; glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint*)&last_active_texture);
     GLuint last_texture; glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*)&last_texture);
+    GLuint last_array_buffer; glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLint*)&last_array_buffer);
+#if defined NANOVG_GL3
+    GLuint last_vertex_array_object; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, (GLint*)&last_vertex_array_object);
+    GLint last_polygon_mode[2]; glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
+#endif
 
 		// Setup require GL state.
     glnvg__setupRenderState(gl);
@@ -1302,16 +1304,14 @@ static void glnvg__renderFlush(void* uptr)
 				glnvg__triangles(gl, call);
 		}
 
-		glDisableVertexAttribArray(0);
-		glDisableVertexAttribArray(1);
-#if defined NANOVG_GL3
-		glBindVertexArray(0);
-#endif
-		glDisable(GL_CULL_FACE);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glnvg__bindTexture(gl, 0);
 
     // Restore GL state
+#if defined NANOVG_GL3
+    glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
+    glBindVertexArray(last_vertex_array_object);
+#endif
+    glBindBuffer(GL_ARRAY_BUFFER, last_array_buffer);
     glActiveTexture(last_active_texture);
     glBindTexture(GL_TEXTURE_2D, last_texture);
     glStencilFunc(last_stencil_func_func, last_stencil_func_ref, last_stencil_func_mask);
@@ -1326,9 +1326,6 @@ static void glnvg__renderFlush(void* uptr)
     if (last_enable_blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
     glCullFace(last_cull_face);
     if (last_enable_cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
-#if defined NANOVG_GL3
-    glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
-#endif
 		glUseProgram(last_program);
 	}
 
