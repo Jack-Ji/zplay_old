@@ -76,8 +76,8 @@ pub const ImageFlags = packed struct {
 
 var ctx: ?*c.NVGcontext = undefined;
 
-pub fn init(flags: c_int) !void {
-    ctx = c.nvgCreateGL3(flags);
+pub fn init(flags: ?c_int) !void {
+    ctx = c.nvgCreateGL3(flags orelse c.NVG_ANTIALIAS | c.NVG_STENCIL_STROKES);
     if (ctx == null) {
         return error.InitContextFailed;
     }

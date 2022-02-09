@@ -1,4 +1,5 @@
 const std = @import("std");
+const math = std.math;
 const assert = std.debug.assert;
 const zp = @import("zplay");
 const dig = zp.deps.dig;

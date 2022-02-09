@@ -19,7 +19,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // init nanovg context
-    try nvg.init(nvg.c.NVG_ANTIALIAS | nvg.c.NVG_STENCIL_STROKES);
+    try nvg.init(null);
 
     var i: usize = 0;
     var buf: [64]u8 = undefined;

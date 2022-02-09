@@ -1197,64 +1197,97 @@ static GLNVGblend glnvg__blendCompositeOperation(NVGcompositeOperationState op)
 	return blend;
 }
 
+static void glnvg__setupRenderState(GLNVGcontext *gl)
+{
+  glUseProgram(gl->shader.prog);
+
+  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+  //glFrontFace(GL_CCW);
+  glEnable(GL_BLEND);
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_SCISSOR_TEST);
+  glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  glStencilMask(0xffffffff);
+  glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+  glStencilFunc(GL_ALWAYS, 0, 0xffffffff);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+#if NANOVG_GL_USE_STATE_FILTER
+  gl->boundTexture = 0;
+  gl->stencilMask = 0xffffffff;
+  gl->stencilFunc = GL_ALWAYS;
+  gl->stencilFuncRef = 0;
+  gl->stencilFuncMask = 0xffffffff;
+  gl->blendFunc.srcRGB = GL_INVALID_ENUM;
+  gl->blendFunc.srcAlpha = GL_INVALID_ENUM;
+  gl->blendFunc.dstRGB = GL_INVALID_ENUM;
+  gl->blendFunc.dstAlpha = GL_INVALID_ENUM;
+#endif
+
+#if NANOVG_GL_USE_UNIFORMBUFFER
+  // Upload ubo for frag shaders
+  glBindBuffer(GL_UNIFORM_BUFFER, gl->fragBuf);
+  glBufferData(GL_UNIFORM_BUFFER, gl->nuniforms * gl->fragSize, gl->uniforms, GL_STREAM_DRAW);
+#endif
+
+  // Upload vertex data
+#if defined NANOVG_GL3
+  glBindVertexArray(gl->vertArr);
+#endif
+  glBindBuffer(GL_ARRAY_BUFFER, gl->vertBuf);
+  glBufferData(GL_ARRAY_BUFFER, gl->nverts * sizeof(NVGvertex), gl->verts, GL_STREAM_DRAW);
+  glEnableVertexAttribArray(0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(NVGvertex), (const GLvoid*)(size_t)0);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(NVGvertex), (const GLvoid*)(0 + 2*sizeof(float)));
+
+  // Set view and texture just once per frame.
+  glUniform1i(gl->shader.loc[GLNVG_LOC_TEX], 0);
+  glUniform2fv(gl->shader.loc[GLNVG_LOC_VIEWSIZE], 1, gl->view);
+
+#if NANOVG_GL_USE_UNIFORMBUFFER
+  glBindBuffer(GL_UNIFORM_BUFFER, gl->fragBuf);
+#endif
+}
+
 static void glnvg__renderFlush(void* uptr)
 {
 	GLNVGcontext* gl = (GLNVGcontext*)uptr;
 	int i;
 
 	if (gl->ncalls > 0) {
+    // Backup GL state
+    GLuint last_program; glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&last_program);
+#if defined NANOVG_GL3
+    GLint last_polygon_mode[2]; glGetIntegerv(GL_POLYGON_MODE, last_polygon_mode);
+#endif
+    GLboolean last_enable_cull_face = glIsEnabled(GL_CULL_FACE);
+    GLuint last_cull_face; glGetIntegerv(GL_CULL_FACE_MODE, (GLint*)&last_cull_face);
+    GLboolean last_enable_blend = glIsEnabled(GL_BLEND);
+    GLenum last_blend_src_rgb; glGetIntegerv(GL_BLEND_SRC_RGB, (GLint*)&last_blend_src_rgb);
+    GLenum last_blend_dst_rgb; glGetIntegerv(GL_BLEND_DST_RGB, (GLint*)&last_blend_dst_rgb);
+    GLenum last_blend_src_alpha; glGetIntegerv(GL_BLEND_SRC_ALPHA, (GLint*)&last_blend_src_alpha);
+    GLenum last_blend_dst_alpha; glGetIntegerv(GL_BLEND_DST_ALPHA, (GLint*)&last_blend_dst_alpha);
+    GLenum last_blend_equation_rgb; glGetIntegerv(GL_BLEND_EQUATION_RGB, (GLint*)&last_blend_equation_rgb);
+    GLenum last_blend_equation_alpha; glGetIntegerv(GL_BLEND_EQUATION_ALPHA, (GLint*)&last_blend_equation_alpha);
+    GLboolean last_enable_depth_test = glIsEnabled(GL_DEPTH_TEST);
+    GLboolean last_enable_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
+    GLboolean last_color_mask[4]; glGetBooleanv(GL_COLOR_WRITEMASK, last_color_mask);
+    GLboolean last_enable_stencil_test = glIsEnabled(GL_STENCIL_TEST);
+    GLuint last_stencil_mask; glGetIntegerv(GL_STENCIL_WRITEMASK, (GLint*)&last_stencil_mask);
+    GLuint last_stencil_sfail; glGetIntegerv(GL_STENCIL_FAIL, (GLint*)&last_stencil_sfail);
+    GLuint last_stencil_dpfail; glGetIntegerv(GL_STENCIL_PASS_DEPTH_FAIL, (GLint*)&last_stencil_dpfail);
+    GLuint last_stencil_dppass; glGetIntegerv(GL_STENCIL_PASS_DEPTH_PASS, (GLint*)&last_stencil_dppass);
+    GLuint last_stencil_func_func; glGetIntegerv(GL_STENCIL_FUNC, (GLint*)&last_stencil_func_func);
+    GLuint last_stencil_func_ref; glGetIntegerv(GL_STENCIL_REF, (GLint*)&last_stencil_func_ref);
+    GLuint last_stencil_func_mask; glGetIntegerv(GL_STENCIL_VALUE_MASK, (GLint*)&last_stencil_func_mask);
+    GLenum last_active_texture; glGetIntegerv(GL_ACTIVE_TEXTURE, (GLint*)&last_active_texture);
+    GLuint last_texture; glGetIntegerv(GL_TEXTURE_BINDING_2D, (GLint*)&last_texture);
 
 		// Setup require GL state.
-		glUseProgram(gl->shader.prog);
-
-		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
-		glFrontFace(GL_CCW);
-		glEnable(GL_BLEND);
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_SCISSOR_TEST);
-		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-		glStencilMask(0xffffffff);
-		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-		glStencilFunc(GL_ALWAYS, 0, 0xffffffff);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, 0);
-		#if NANOVG_GL_USE_STATE_FILTER
-		gl->boundTexture = 0;
-		gl->stencilMask = 0xffffffff;
-		gl->stencilFunc = GL_ALWAYS;
-		gl->stencilFuncRef = 0;
-		gl->stencilFuncMask = 0xffffffff;
-		gl->blendFunc.srcRGB = GL_INVALID_ENUM;
-		gl->blendFunc.srcAlpha = GL_INVALID_ENUM;
-		gl->blendFunc.dstRGB = GL_INVALID_ENUM;
-		gl->blendFunc.dstAlpha = GL_INVALID_ENUM;
-		#endif
-
-#if NANOVG_GL_USE_UNIFORMBUFFER
-		// Upload ubo for frag shaders
-		glBindBuffer(GL_UNIFORM_BUFFER, gl->fragBuf);
-		glBufferData(GL_UNIFORM_BUFFER, gl->nuniforms * gl->fragSize, gl->uniforms, GL_STREAM_DRAW);
-#endif
-
-		// Upload vertex data
-#if defined NANOVG_GL3
-		glBindVertexArray(gl->vertArr);
-#endif
-		glBindBuffer(GL_ARRAY_BUFFER, gl->vertBuf);
-		glBufferData(GL_ARRAY_BUFFER, gl->nverts * sizeof(NVGvertex), gl->verts, GL_STREAM_DRAW);
-		glEnableVertexAttribArray(0);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(NVGvertex), (const GLvoid*)(size_t)0);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(NVGvertex), (const GLvoid*)(0 + 2*sizeof(float)));
-
-		// Set view and texture just once per frame.
-		glUniform1i(gl->shader.loc[GLNVG_LOC_TEX], 0);
-		glUniform2fv(gl->shader.loc[GLNVG_LOC_VIEWSIZE], 1, gl->view);
-
-#if NANOVG_GL_USE_UNIFORMBUFFER
-		glBindBuffer(GL_UNIFORM_BUFFER, gl->fragBuf);
-#endif
+    glnvg__setupRenderState(gl);
 
 		for (i = 0; i < gl->ncalls; i++) {
 			GLNVGcall* call = &gl->calls[i];
@@ -1275,9 +1308,28 @@ static void glnvg__renderFlush(void* uptr)
 		glBindVertexArray(0);
 #endif
 		glDisable(GL_CULL_FACE);
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glUseProgram(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glnvg__bindTexture(gl, 0);
+
+    // Restore GL state
+    glActiveTexture(last_active_texture);
+    glBindTexture(GL_TEXTURE_2D, last_texture);
+    glStencilFunc(last_stencil_func_func, last_stencil_func_ref, last_stencil_func_mask);
+    glStencilOp(last_stencil_sfail, last_stencil_dpfail, last_stencil_dppass);
+    glStencilMask(last_stencil_mask);
+    if (last_enable_stencil_test) glEnable(GL_STENCIL_TEST); else glDisable(GL_STENCIL_TEST);
+    glColorMask(last_color_mask[0], last_color_mask[1], last_color_mask[2], last_color_mask[3]);
+    if (last_enable_scissor_test) glEnable(GL_SCISSOR_TEST); else glDisable(GL_SCISSOR_TEST);
+    if (last_enable_depth_test) glEnable(GL_DEPTH_TEST); else glDisable(GL_DEPTH_TEST);
+    glBlendEquationSeparate(last_blend_equation_rgb, last_blend_equation_alpha);
+    glBlendFuncSeparate(last_blend_src_rgb, last_blend_dst_rgb, last_blend_src_alpha, last_blend_dst_alpha);
+    if (last_enable_blend) glEnable(GL_BLEND); else glDisable(GL_BLEND);
+    glCullFace(last_cull_face);
+    if (last_enable_cull_face) glEnable(GL_CULL_FACE); else glDisable(GL_CULL_FACE);
+#if defined NANOVG_GL3
+    glPolygonMode(GL_FRONT_AND_BACK, (GLenum)last_polygon_mode[0]);
+#endif
+		glUseProgram(last_program);
 	}
 
 	// Reset calls

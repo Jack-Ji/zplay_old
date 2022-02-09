@@ -2,12 +2,12 @@ const std = @import("std");
 const builtin = @import("builtin");
 
 pub fn build(b: *std.build.Builder) void {
-    const default_abi = if (builtin.os.tag == .windows) .gnu else null; // doesn't require vcruntime
     const mode = b.standardReleaseOptions();
     const target = b.standardTargetOptions(.{
         .default_target = .{
-            .abi = default_abi,
-            .cpu_model = .baseline, // choose compatibility over performance here, make your own choice
+            // prefer compatibility over performance here
+            // make your own choice
+            .cpu_model = .baseline,
         },
     });
 
