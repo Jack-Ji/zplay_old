@@ -9,6 +9,7 @@ pub fn link(
     var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
     if (b.is_release) flags.append("-Os") catch unreachable;
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
+    flags.append("-fno-sanitize=undefined") catch unreachable;
 
     var imgui = b.addStaticLibrary("imgui", null);
     imgui.setTarget(target);
