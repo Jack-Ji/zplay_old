@@ -26,11 +26,18 @@ pub fn init(
     back_pixel_data: []const u8,
     format: Texture.ImageFormat,
     size: u32,
+    need_linearization: bool,
 ) !Self {
     var tex = try Texture.init(allocator, .texture_cube_map);
-    var tex_format: Texture.TextureFormat = switch (format) {
-        .rgb => .rgb,
-        .rgba => .rgba,
+    const tex_format = switch (format) {
+        .rgb => if (need_linearization)
+            Texture.TextureFormat.srgb
+        else
+            Texture.TextureFormat.rgb,
+        .rgba => if (need_linearization)
+            Texture.TextureFormat.srgba
+        else
+            Texture.TextureFormat.rgba,
         else => unreachable,
     };
     tex.setWrappingMode(.s, .clamp_to_edge);
@@ -130,6 +137,7 @@ pub fn fromFilePath(
     bottom_file_path: [:0]const u8,
     front_file_path: [:0]const u8,
     back_file_path: [:0]const u8,
+    need_linearization: bool,
 ) !Self {
     var width: c_int = undefined;
     var height: c_int = undefined;
@@ -247,6 +255,7 @@ pub fn fromFilePath(
             else => unreachable,
         },
         @intCast(u32, width),
+        need_linearization,
     );
 }
 

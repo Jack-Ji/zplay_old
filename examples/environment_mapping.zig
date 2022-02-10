@@ -50,6 +50,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         "assets/skybox/bottom.jpg",
         "assets/skybox/front.jpg",
         "assets/skybox/back.jpg",
+        false,
     );
     skybox_material = Material.init(.{
         .single_cubemap = cubemap,

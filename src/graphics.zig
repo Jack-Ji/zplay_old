@@ -13,6 +13,9 @@ pub const Mesh = @import("graphics/Mesh.zig");
 /// generic material types
 pub const Material = @import("graphics/Material.zig");
 
+/// various post-processing effects
+pub const post_processing = @import("graphics/post_processing.zig");
+
 /// various texture types
 pub const texture = @import("graphics/texture.zig");
 

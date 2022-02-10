@@ -23,6 +23,7 @@ pub const Option = struct {
     min_filer: Texture.FilteringMode = .linear,
     gen_mipmap: bool = false,
     border_color: ?[4]f32 = null,
+    need_linearization: bool = false,
 };
 
 /// init 2d texture from pixel data
@@ -42,14 +43,21 @@ pub fn init(
     if (option.border_color) |c| {
         tex.setBorderColor(c);
     }
+    const tex_format = switch (format) {
+        .rgb => if (option.need_linearization)
+            Texture.TextureFormat.srgb
+        else
+            Texture.TextureFormat.rgb,
+        .rgba => if (option.need_linearization)
+            Texture.TextureFormat.srgba
+        else
+            Texture.TextureFormat.rgba,
+        else => unreachable,
+    };
     tex.updateImageData(
         .texture_2d,
         0,
-        switch (format) {
-            .rgb => .rgb,
-            .rgba => .rgba,
-            else => unreachable,
-        },
+        tex_format,
         width,
         height,
         null,

@@ -256,6 +256,7 @@ fn loadScene() void {
         "assets/skybox/bottom.jpg",
         "assets/skybox/front.jpg",
         "assets/skybox/back.jpg",
+        false,
     ) catch unreachable;
     skybox_material = Material.init(.{ .single_cubemap = cubemap });
 

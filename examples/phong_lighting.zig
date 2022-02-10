@@ -7,6 +7,7 @@ const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
+const Framebuffer = gfx.common.Framebuffer;
 const Texture2D = gfx.texture.Texture2D;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
@@ -16,7 +17,12 @@ const Light = gfx.@"3d".Light;
 const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 const PhongRenderer = gfx.@"3d".PhongRenderer;
 const BlinnPhongRenderer = gfx.@"3d".BlinnPhongRenderer;
+const GammaCorrection = gfx.post_processing.GammaCorrection;
 
+var fb: Framebuffer = undefined;
+var fb_texture: Texture2D = undefined;
+var fb_material: Material = undefined;
+var gamma_correction: GammaCorrection = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
 var blinn_phong_renderer: BlinnPhongRenderer = undefined;
@@ -25,11 +31,13 @@ var light_mesh: Mesh = undefined;
 var light_material: Material = undefined;
 var phong_material: Material = undefined;
 var camera = Camera.fromPositionAndEulerAngles(
-    Vec3.new(2.61, 2.68, -0.65),
+    Vec3.new(3.68, 3.71, 0.29),
     -35.93,
     -48.81,
     null,
 );
+var enable_gamma_correction = true;
+var gamma_value: f32 = 2.2;
 
 const cube_positions = [_]Vec3{
     Vec3.new(0.0, 0.0, 0.0),
@@ -48,6 +56,29 @@ fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 
     try dig.init(ctx.window);
+
+    // allocate framebuffer stuff
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    fb_texture = try Texture2D.init(
+        std.testing.allocator,
+        null,
+        .rgb,
+        width,
+        height,
+        .{},
+    );
+    fb_material = Material.init(.{
+        .single_texture = fb_texture,
+    });
+    fb = try Framebuffer.fromTexture(
+        fb_texture.tex,
+        .{},
+    );
+
+    // init gamma correction
+    gamma_correction = try GammaCorrection.init(std.testing.allocator);
 
     // simple renderer
     simple_renderer = SimpleRenderer.init();
@@ -100,7 +131,9 @@ fn init(ctx: *zp.Context) anyerror!void {
         std.testing.allocator,
         "assets/container2.png",
         false,
-        .{},
+        .{
+            .need_linearization = true,
+        },
     );
     var specular_texture = try Texture2D.fromFilePath(
         std.testing.allocator,
@@ -126,7 +159,8 @@ fn init(ctx: *zp.Context) anyerror!void {
         },
     });
     var unit = phong_material.allocTextureUnit(0);
-    _ = light_material.allocTextureUnit(unit);
+    unit = light_material.allocTextureUnit(unit);
+    _ = fb_material.allocTextureUnit(unit);
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -168,6 +202,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     while (ctx.pollEvent()) |e| {
+        _ = dig.processEvent(e);
         switch (e) {
             .window_event => |we| {
                 switch (we.data) {
@@ -195,65 +230,75 @@ fn loop(ctx: *zp.Context) void {
     var height: u32 = undefined;
     ctx.getWindowSize(&width, &height);
 
-    // clear frame
-    ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.2, 0.2, 1.0 });
-
-    // lighting scene
-    const projection = Mat4.perspective(
-        camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
-    );
-    S.rd.begin(false);
-    for (cube_positions) |pos, i| {
-        const model = Mat4.fromRotation(
-            20 * @intToFloat(f32, i),
-            Vec3.new(1, 0.3, 0.5),
-        ).translate(pos);
-        cube.render(
-            S.rd,
-            model,
-            projection,
-            camera,
-            phong_material,
-        ) catch unreachable;
-    }
-    S.rd.end();
-
-    // draw lights
-    var rd = simple_renderer.renderer();
-    rd.begin(false);
+    // render scene
+    ctx.graphics.useFramebuffer(if (enable_gamma_correction) fb else null);
     {
-        var old_blend_option = ctx.graphics.blend_option;
-        defer ctx.graphics.setBlendOption(old_blend_option);
-        ctx.graphics.setBlendOption(.{
-            .src_rgb = .constant_alpha,
-            .dst_rgb = .one_minus_constant_alpha,
-            .constant_color = [4]f32{ 0, 0, 0, 0.8 },
-        });
-        for (phong_renderer.point_lights.items) |light| {
-            const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-            light_mesh.render(
-                rd,
+        ctx.graphics.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
+
+        // lighting scene
+        const projection = Mat4.perspective(
+            camera.zoom,
+            @intToFloat(f32, width) / @intToFloat(f32, height),
+            0.1,
+            100,
+        );
+        S.rd.begin(false);
+        for (cube_positions) |pos, i| {
+            const model = Mat4.fromRotation(
+                20 * @intToFloat(f32, i),
+                Vec3.new(1, 0.3, 0.5),
+            ).translate(pos);
+            cube.render(
+                S.rd,
                 model,
                 projection,
                 camera,
-                light_material,
+                phong_material,
             ) catch unreachable;
         }
-        for (phong_renderer.spot_lights.items) |light| {
-            const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-            light_mesh.render(
-                rd,
-                model,
-                projection,
-                camera,
-                light_material,
-            ) catch unreachable;
+        S.rd.end();
+
+        // draw lights
+        var rd = simple_renderer.renderer();
+        rd.begin(false);
+        {
+            var old_blend_option = ctx.graphics.blend_option;
+            defer ctx.graphics.setBlendOption(old_blend_option);
+            ctx.graphics.setBlendOption(.{
+                .src_rgb = .constant_alpha,
+                .dst_rgb = .one_minus_constant_alpha,
+                .constant_color = [4]f32{ 0, 0, 0, 0.8 },
+            });
+            for (phong_renderer.point_lights.items) |light| {
+                const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
+                light_mesh.render(
+                    rd,
+                    model,
+                    projection,
+                    camera,
+                    light_material,
+                ) catch unreachable;
+            }
+            for (phong_renderer.spot_lights.items) |light| {
+                const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
+                light_mesh.render(
+                    rd,
+                    model,
+                    projection,
+                    camera,
+                    light_material,
+                ) catch unreachable;
+            }
         }
+        rd.end();
     }
-    rd.end();
+
+    // post gamma correction
+    if (enable_gamma_correction) {
+        ctx.graphics.useFramebuffer(null);
+        ctx.graphics.clear(true, false, false, null);
+        gamma_correction.draw(&ctx.graphics, gamma_value, fb_material);
+    }
 
     dig.beginFrame();
     {
@@ -298,10 +343,23 @@ fn loop(ctx: *zp.Context) void {
                 "shiness of box",
                 &phong_material.data.phong.shiness,
                 .{
+                    .v_speed = 0.1,
                     .v_min = 0.01,
-                    .v_max = 100,
+                    .v_max = 20,
                 },
             );
+            _ = dig.checkbox("gamma correction", &enable_gamma_correction);
+            if (enable_gamma_correction) {
+                _ = dig.dragFloat(
+                    "gamma value",
+                    &gamma_value,
+                    .{
+                        .v_speed = 0.1,
+                        .v_min = 0.01,
+                        .v_max = 10,
+                    },
+                );
+            }
         }
         dig.end();
     }

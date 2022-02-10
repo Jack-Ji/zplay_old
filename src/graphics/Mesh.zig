@@ -193,7 +193,7 @@ pub fn renderInstanced(
 
 /// enable vertex attributes
 /// NOTE: VertexArray should have been activated!
-fn enableAttributes(self: Self, attrs: []const u32) void {
+pub fn enableAttributes(self: Self, attrs: []const u32) void {
     for (attrs) |a| {
         switch (a) {
             Renderer.ATTRIB_LOCATION_POS => {

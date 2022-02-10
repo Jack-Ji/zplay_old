@@ -55,7 +55,7 @@ program: ShaderProgram,
 /// unit cube
 vertex_array: VertexArray,
 
-/// create a simple renderer
+/// init skybox
 pub fn init(allocator: std.mem.Allocator) Self {
     var self = Self{
         .program = ShaderProgram.init(vs, fs, null),
@@ -159,7 +159,6 @@ pub fn draw(
     view.data[3][2] = 0;
     self.program.setUniformByName("u_view", view);
     self.program.setUniformByName("u_project", projection);
-    assert(material.data == .single_cubemap);
     self.program.setUniformByName(
         "u_texture",
         material.data.single_cubemap.tex.getTextureUnit(),
