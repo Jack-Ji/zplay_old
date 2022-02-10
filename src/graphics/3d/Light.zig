@@ -67,6 +67,15 @@ pub fn getPosition(self: Self) ?Vec3 {
     };
 }
 
+/// get light direction
+pub fn getDirection(self: Self) ?Vec3 {
+    return switch (self.data) {
+        .directional => |d| d.direction,
+        .spot => |d| d.direction,
+        else => null,
+    };
+}
+
 /// update light colors
 pub fn updateColors(self: *Self, ambient: ?Vec3, diffuse: ?Vec3, specular: ?Vec3) void {
     switch (self.data) {
