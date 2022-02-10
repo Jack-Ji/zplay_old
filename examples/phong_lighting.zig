@@ -26,14 +26,16 @@ var gamma_correction: GammaCorrection = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
 var blinn_phong_renderer: BlinnPhongRenderer = undefined;
+var plane: Mesh = undefined;
 var cube: Mesh = undefined;
 var light_mesh: Mesh = undefined;
 var light_material: Material = undefined;
-var phong_material: Material = undefined;
+var box_material: Material = undefined;
+var floor_material: Material = undefined;
 var camera = Camera.fromPositionAndEulerAngles(
-    Vec3.new(3.68, 3.71, 0.29),
-    -35.93,
-    -48.81,
+    Vec3.new(2.05, 1.33, -9.69),
+    -12.93,
+    -170.01,
     null,
 );
 var enable_gamma_correction = true;
@@ -122,25 +124,12 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = try blinn_phong_renderer.addLight(point_light);
     _ = try blinn_phong_renderer.addLight(spot_light);
 
-    // generate a cube
+    // generate mesh
+    plane = try Mesh.genPlane(std.testing.allocator, 50, 50, 20, 20);
     cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1);
     light_mesh = try Mesh.genSphere(std.testing.allocator, 0.5, 20, 20);
 
     // material init
-    var diffuse_texture = try Texture2D.fromFilePath(
-        std.testing.allocator,
-        "assets/container2.png",
-        false,
-        .{
-            .need_linearization = true,
-        },
-    );
-    var specular_texture = try Texture2D.fromFilePath(
-        std.testing.allocator,
-        "assets/container2_specular.png",
-        false,
-        .{},
-    );
     light_material = Material.init(.{
         .single_texture = try Texture2D.fromPixelData(
             std.testing.allocator,
@@ -151,14 +140,49 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{},
         ),
     });
-    phong_material = Material.init(.{
+    box_material = Material.init(.{
         .phong = .{
-            .diffuse_map = diffuse_texture,
-            .specular_map = specular_texture,
+            .diffuse_map = try Texture2D.fromFilePath(
+                std.testing.allocator,
+                "assets/container2.png",
+                false,
+                .{
+                    .need_linearization = true,
+                },
+            ),
+            .specular_map = try Texture2D.fromFilePath(
+                std.testing.allocator,
+                "assets/container2_specular.png",
+                false,
+                .{},
+            ),
             .shiness = 10,
         },
     });
-    var unit = phong_material.allocTextureUnit(0);
+    floor_material = Material.init(.{
+        .phong = .{
+            .diffuse_map = try Texture2D.fromFilePath(
+                std.testing.allocator,
+                "assets/wall.jpg",
+                false,
+                .{
+                    .need_linearization = true,
+                    .gen_mipmap = true,
+                },
+            ),
+            .specular_map = try Texture2D.fromPixelData(
+                std.testing.allocator,
+                &.{ 20, 20, 20 },
+                3,
+                1,
+                1,
+                .{},
+            ),
+            .shiness = 0.1,
+        },
+    });
+    var unit = box_material.allocTextureUnit(0);
+    unit = floor_material.allocTextureUnit(unit);
     unit = light_material.allocTextureUnit(unit);
     _ = fb_material.allocTextureUnit(unit);
 
@@ -243,6 +267,13 @@ fn loop(ctx: *zp.Context) void {
             100,
         );
         S.rd.begin(false);
+        plane.render(
+            S.rd,
+            Mat4.fromRotation(-90, Vec3.right()).translate(Vec3.new(0, -4, 0)),
+            projection,
+            camera,
+            floor_material,
+        ) catch unreachable;
         for (cube_positions) |pos, i| {
             const model = Mat4.fromRotation(
                 20 * @intToFloat(f32, i),
@@ -253,7 +284,7 @@ fn loop(ctx: *zp.Context) void {
                 model,
                 projection,
                 camera,
-                phong_material,
+                box_material,
             ) catch unreachable;
         }
         S.rd.end();
@@ -341,7 +372,7 @@ fn loop(ctx: *zp.Context) void {
             }
             _ = dig.dragFloat(
                 "shiness of box",
-                &phong_material.data.phong.shiness,
+                &box_material.data.phong.shiness,
                 .{
                     .v_speed = 0.1,
                     .v_min = 0.01,

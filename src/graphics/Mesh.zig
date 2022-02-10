@@ -270,6 +270,85 @@ pub fn genQuad(
     return mesh;
 }
 
+// generate a plane surface
+pub fn genPlane(
+    allocator: std.mem.Allocator,
+    w: f32,
+    h: f32,
+    sector_count: u32,
+    stack_count: u32,
+) !Self {
+    assert(w > 0 and h > 0 and sector_count > 0 and stack_count > 0);
+    const attrib_count = (sector_count + 1) * (stack_count + 1);
+    var positions = try std.ArrayList(f32).initCapacity(
+        allocator,
+        attrib_count * 3,
+    );
+    var normals = try std.ArrayList(f32).initCapacity(
+        allocator,
+        attrib_count * 3,
+    );
+    var texcoords = try std.ArrayList(f32).initCapacity(
+        allocator,
+        attrib_count * 2,
+    );
+    var indices = try std.ArrayList(u32).initCapacity(
+        allocator,
+        sector_count * stack_count * 6,
+    );
+    var sector_step = w / @intToFloat(f32, sector_count);
+    var stack_step = h / @intToFloat(f32, stack_count);
+
+    // vertex atributes
+    const start_x = -w / 2;
+    const start_y = -h / 2;
+    var i: u32 = 0;
+    while (i <= sector_count) : (i += 1) {
+        var xpos = start_x + sector_step * @intToFloat(f32, i);
+
+        var j: u32 = 0;
+        while (j <= stack_count) : (j += 1) {
+            positions.appendSliceAssumeCapacity(&.{
+                xpos,
+                start_y + stack_step * @intToFloat(f32, j),
+                0,
+            });
+            normals.appendSliceAssumeCapacity(&.{ 0, 0, 1 });
+            texcoords.appendSliceAssumeCapacity(&.{
+                @intToFloat(f32, i),
+                @intToFloat(f32, j),
+            });
+        }
+    }
+
+    // vertex indices
+    i = 0;
+    while (i < sector_count) : (i += 1) {
+        var j: u32 = 0;
+        while (j < stack_count) : (j += 1) {
+            var idx_bl = (stack_count + 1) * i + j; // index of bottom-left
+            var idx_br = (stack_count + 1) * (i + 1) + j; // index of bottom-right
+            var idx_tl = idx_bl + 1; // index of top-left
+            var idx_tr = idx_br + 1; // index of top-right
+            indices.appendSliceAssumeCapacity(&.{ idx_bl, idx_br, idx_tl });
+            indices.appendSliceAssumeCapacity(&.{ idx_tl, idx_br, idx_tr });
+        }
+    }
+
+    var mesh = fromArrays(
+        .triangles,
+        indices,
+        positions,
+        normals,
+        texcoords,
+        null,
+        null,
+        true,
+    );
+    mesh.setup(allocator);
+    return mesh;
+}
+
 // generate a circle
 pub fn genCircle(
     allocator: std.mem.Allocator,
