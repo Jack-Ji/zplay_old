@@ -26,6 +26,7 @@ pub const Option = struct {
     has_depth_stencil: bool = true,
     separate_depth_stencil: bool = false,
     enable_multisample: bool = false,
+    samples: u32 = 4,
 };
 
 pub fn init(
@@ -53,6 +54,7 @@ pub fn init(
     if (option.enable_multisample) {
         self.tex.allocMultisampleData(
             .texture_2d_multisample,
+            option.samples,
             if (option.has_alpha) .rgba else .rgb,
             width,
             height,

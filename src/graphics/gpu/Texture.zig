@@ -945,6 +945,7 @@ pub fn updateImageData(
 pub fn allocMultisampleData(
     self: *Self,
     target: MultisampleTarget,
+    samples: ?u32,
     texture_format: TextureFormat,
     width: u32,
     height: u32,
@@ -956,7 +957,7 @@ pub fn allocMultisampleData(
             assert(target == .texture_2d_multisample or target == .proxy_texture_2d_multisample);
             gl.texImage2DMultisample(
                 @enumToInt(target),
-                4,
+                @intCast(c_int, samples orelse 4),
                 @enumToInt(texture_format),
                 @intCast(c_int, width),
                 @intCast(c_int, height),
@@ -972,48 +973,6 @@ pub fn allocMultisampleData(
     self.format = texture_format;
     self.width = width;
     self.height = height;
-}
-
-/// update multisample data
-pub fn updateMultisampleData(
-    self: Self,
-    target: UpdateTarget,
-    samples: u32,
-    texture_format: TextureFormat,
-    width: u32,
-    height: u32,
-    depth: ?u32,
-    fixed_sample_location: bool,
-) void {
-    switch (self.type) {
-        .texture_2d_multisample => {
-            assert(target == .texture_2d_multisample or target == .proxy_texture_2d_multisample);
-            gl.texImage2DMultisample(
-                @enumToInt(target),
-                samples,
-                @enumToInt(texture_format),
-                width,
-                height,
-                gl.util.boolType(fixed_sample_location),
-            );
-        },
-        .texture_2d_multisample_array => {
-            assert(target == .texture_2d_multisample_array or target == .proxy_texture_2d_multisample_array);
-            gl.texImage3DMultisample(
-                @enumToInt(target),
-                samples,
-                @enumToInt(texture_format),
-                width,
-                height,
-                depth.?,
-                gl.util.boolType(fixed_sample_location),
-            );
-        },
-        else => {
-            panic("invalid operation!", .{});
-        },
-    }
-    gl.util.checkError();
 }
 
 /// update buffer texture data
