@@ -149,10 +149,10 @@ inline fn getProgram(self: *Self) *ShaderProgram {
 fn applyMaterial(self: *Self, material: Material) void {
     switch (material.data) {
         .phong => |m| {
-            self.getProgram().setUniformByName("u_texture", m.diffuse_map.tex.getTextureUnit());
+            self.getProgram().setUniformByName("u_texture", m.diffuse_map.getTextureUnit());
         },
-        .single_texture => |t| {
-            self.getProgram().setUniformByName("u_texture", t.tex.getTextureUnit());
+        .single_texture => |tex| {
+            self.getProgram().setUniformByName("u_texture", tex.getTextureUnit());
         },
         else => {
             std.debug.panic("unsupported material type", .{});

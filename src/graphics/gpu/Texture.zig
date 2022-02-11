@@ -3,9 +3,11 @@ const assert = std.debug.assert;
 const panic = std.debug.panic;
 const zp = @import("../../zplay.zig");
 const gl = zp.deps.gl;
+const stb_image = zp.deps.stb.image;
 const Self = @This();
 
 pub const Error = error{
+    LoadImageError,
     TextureUnitUsed,
 };
 
@@ -150,14 +152,14 @@ pub const TextureUnit = enum(c_uint) {
     fn alloc(unit: Unit, tex: *Self) void {
         if (alloc_map.get(unit)) |t| {
             if (tex == t) return;
-            t.tu = null; // detach unit from old texture
+            t.unit = null; // detach unit from old texture
         }
-        tex.tu = unit;
+        tex.unit = unit;
         alloc_map.set(unit, tex);
     }
     fn free(unit: Unit) void {
         if (alloc_map.get(unit)) |t| {
-            t.tu = null; // detach unit from old texture
+            t.unit = null; // detach unit from old texture
             alloc_map.set(unit, null);
         }
     }
@@ -197,10 +199,10 @@ allocator: std.mem.Allocator,
 id: gl.GLuint = undefined,
 
 /// texture type
-tt: TextureType,
+type: TextureType,
 
 /// texture unit
-tu: ?TextureUnit = null,
+unit: ?TextureUnit = null,
 
 /// internal format
 format: TextureFormat = undefined,
@@ -210,20 +212,542 @@ width: u32 = undefined,
 height: ?u32 = null,
 depth: ?u32 = null,
 
-pub fn init(allocator: std.mem.Allocator, tt: TextureType) !*Self {
+pub fn init(allocator: std.mem.Allocator, _type: TextureType) !*Self {
     const self = try allocator.create(Self);
-    self.tt = tt;
+    self.allocator = allocator;
+    self.type = _type;
     gl.genTextures(1, &self.id);
     gl.util.checkError();
     return self;
 }
 
 pub fn deinit(self: *Self) void {
-    if (self.tu) |u| {
+    if (self.unit) |u| {
         TextureUnit.free(u);
     }
     gl.deleteTextures(1, &self.id);
     gl.util.checkError();
+    self.allocator.destroy(self);
+}
+
+/// advanced texture creation options
+pub const Option = struct {
+    s_wrap: WrappingMode = .repeat,
+    t_wrap: WrappingMode = .repeat,
+    mag_filer: FilteringMode = .linear,
+    min_filer: FilteringMode = .linear,
+    gen_mipmap: bool = false,
+    border_color: ?[4]f32 = null,
+    need_linearization: bool = false,
+};
+
+/// create 2d texture with given size and pixels (could be null)
+pub fn init2DFromPixels(
+    allocator: std.mem.Allocator,
+    pixel_data: ?[]const u8,
+    format: ImageFormat,
+    width: u32,
+    height: u32,
+    option: Option,
+) !*Self {
+    assert(width > 0 and height > 0);
+    if (pixel_data) |data| {
+        assert(data.len == width * height * format.getChannels());
+    }
+    var tex = try init(allocator, .texture_2d);
+    tex.setWrappingMode(.s, option.s_wrap);
+    tex.setWrappingMode(.t, option.t_wrap);
+    tex.setFilteringMode(.minifying, option.min_filer);
+    tex.setFilteringMode(.magnifying, option.mag_filer);
+    if (option.border_color) |c| {
+        tex.setBorderColor(c);
+    }
+    const tex_format = switch (format) {
+        .rgb => if (option.need_linearization)
+            TextureFormat.srgb
+        else
+            TextureFormat.rgb,
+        .rgba => if (option.need_linearization)
+            TextureFormat.srgba
+        else
+            TextureFormat.rgba,
+        else => unreachable,
+    };
+    tex.updateImageData(
+        .texture_2d,
+        0,
+        tex_format,
+        width,
+        height,
+        null,
+        format,
+        u8,
+        if (pixel_data) |data| data.ptr else null,
+        option.gen_mipmap,
+    );
+
+    return tex;
+}
+
+/// create 2d texture with path to image file
+pub fn init2DFromFilePath(
+    allocator: std.mem.Allocator,
+    file_path: [:0]const u8,
+    flip: bool,
+    option: Option,
+) !*Self {
+    var width: c_int = undefined;
+    var height: c_int = undefined;
+    var channels: c_int = undefined;
+
+    stb_image.stbi_set_flip_vertically_on_load(@boolToInt(flip));
+    var image_data = stb_image.stbi_load(
+        file_path.ptr,
+        &width,
+        &height,
+        &channels,
+        0,
+    );
+    if (image_data == null) {
+        return error.LoadImageError;
+    }
+    defer stb_image.stbi_image_free(image_data);
+
+    return init2DFromPixels(
+        allocator,
+        image_data[0..@intCast(u32, width * height * channels)],
+        switch (channels) {
+            3 => .rgb,
+            4 => .rgba,
+            else => std.debug.panic(
+                "unsupported image format: path({s}) width({d}) height({d}) channels({d})",
+                .{ file_path, width, height, channels },
+            ),
+        },
+        @intCast(u32, width),
+        @intCast(u32, height),
+        option,
+    );
+}
+
+/// create 2d texture with image file's data buffer
+pub fn init2DFromFileData(
+    allocator: std.mem.Allocator,
+    data: []const u8,
+    flip: bool,
+    option: Option,
+) !*Self {
+    var width: c_int = undefined;
+    var height: c_int = undefined;
+    var channels: c_int = undefined;
+
+    stb_image.stbi_set_flip_vertically_on_load(@boolToInt(flip));
+    var image_data = stb_image.stbi_load_from_memory(
+        data.ptr,
+        @intCast(c_int, data.len),
+        &width,
+        &height,
+        &channels,
+        0,
+    );
+    if (image_data == null) {
+        return error.LoadImageError;
+    }
+    defer stb_image.stbi_image_free(image_data);
+
+    return init2DFromPixels(
+        allocator,
+        image_data[0..@intCast(u32, width * height * channels)],
+        switch (channels) {
+            3 => .rgb,
+            4 => .rgba,
+            else => std.debug.panic(
+                "unsupported image format: width({d}) height({d}) channels({d})",
+                .{ width, height, channels },
+            ),
+        },
+        @intCast(u32, width),
+        @intCast(u32, height),
+        option,
+    );
+}
+
+/// create cube texture from pixel data
+pub fn initCubeFromPixels(
+    allocator: std.mem.Allocator,
+    right_pixel_data: []const u8,
+    left_pixel_data: []const u8,
+    top_pixel_data: []const u8,
+    bottom_pixel_data: []const u8,
+    front_pixel_data: []const u8,
+    back_pixel_data: []const u8,
+    format: ImageFormat,
+    size: u32,
+    need_linearization: bool,
+) !*Self {
+    assert(right_pixel_data.len == size * size * format.getChannels());
+    assert(left_pixel_data.len == size * size * format.getChannels());
+    assert(top_pixel_data.len == size * size * format.getChannels());
+    assert(bottom_pixel_data.len == size * size * format.getChannels());
+    assert(front_pixel_data.len == size * size * format.getChannels());
+    assert(back_pixel_data.len == size * size * format.getChannels());
+    var tex = try init(allocator, .texture_cube_map);
+    const tex_format = switch (format) {
+        .rgb => if (need_linearization)
+            TextureFormat.srgb
+        else
+            TextureFormat.rgb,
+        .rgba => if (need_linearization)
+            TextureFormat.srgba
+        else
+            TextureFormat.rgba,
+        else => unreachable,
+    };
+    tex.setWrappingMode(.s, .clamp_to_edge);
+    tex.setWrappingMode(.t, .clamp_to_edge);
+    tex.setWrappingMode(.r, .clamp_to_edge);
+    tex.setFilteringMode(.minifying, .linear);
+    tex.setFilteringMode(.magnifying, .linear);
+    tex.updateImageData(
+        .texture_cube_map_positive_x,
+        0,
+        tex_format,
+        size,
+        size,
+        null,
+        format,
+        u8,
+        right_pixel_data.ptr,
+        false,
+    );
+    tex.updateImageData(
+        .texture_cube_map_negative_x,
+        0,
+        tex_format,
+        size,
+        size,
+        null,
+        format,
+        u8,
+        left_pixel_data.ptr,
+        false,
+    );
+    tex.updateImageData(
+        .texture_cube_map_positive_y,
+        0,
+        tex_format,
+        size,
+        size,
+        null,
+        format,
+        u8,
+        top_pixel_data.ptr,
+        false,
+    );
+    tex.updateImageData(
+        .texture_cube_map_negative_y,
+        0,
+        tex_format,
+        size,
+        size,
+        null,
+        format,
+        u8,
+        bottom_pixel_data.ptr,
+        false,
+    );
+    tex.updateImageData(
+        .texture_cube_map_positive_z,
+        0,
+        tex_format,
+        size,
+        size,
+        null,
+        format,
+        u8,
+        front_pixel_data.ptr,
+        false,
+    );
+    tex.updateImageData(
+        .texture_cube_map_negative_z,
+        0,
+        tex_format,
+        size,
+        size,
+        null,
+        format,
+        u8,
+        back_pixel_data.ptr,
+        false,
+    );
+
+    return tex;
+}
+
+/// create cube texture with path to image files
+pub fn initCubeFromFilePaths(
+    allocator: std.mem.Allocator,
+    right_file_path: [:0]const u8,
+    left_file_path: [:0]const u8,
+    top_file_path: [:0]const u8,
+    bottom_file_path: [:0]const u8,
+    front_file_path: [:0]const u8,
+    back_file_path: [:0]const u8,
+    need_linearization: bool,
+) !*Self {
+    var width: c_int = undefined;
+    var height: c_int = undefined;
+    var channels: c_int = undefined;
+    var width1: c_int = undefined;
+    var height1: c_int = undefined;
+    var channels1: c_int = undefined;
+
+    // right side
+    var right_image_data = stb_image.stbi_load(
+        right_file_path.ptr,
+        &width,
+        &height,
+        &channels,
+        0,
+    );
+    if (right_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width == height);
+    defer stb_image.stbi_image_free(right_image_data);
+
+    // left side
+    var left_image_data = stb_image.stbi_load(
+        left_file_path.ptr,
+        &width1,
+        &height1,
+        &channels1,
+        0,
+    );
+    if (left_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width1 == width);
+    assert(height1 == height);
+    assert(channels1 == channels);
+    defer stb_image.stbi_image_free(left_image_data);
+
+    // top side
+    var top_image_data = stb_image.stbi_load(
+        top_file_path.ptr,
+        &width1,
+        &height1,
+        &channels1,
+        0,
+    );
+    if (top_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width1 == width);
+    assert(height1 == height);
+    assert(channels1 == channels);
+    defer stb_image.stbi_image_free(top_image_data);
+
+    // bottom side
+    var bottom_image_data = stb_image.stbi_load(
+        bottom_file_path.ptr,
+        &width1,
+        &height1,
+        &channels1,
+        0,
+    );
+    if (bottom_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width1 == width);
+    assert(height1 == height);
+    assert(channels1 == channels);
+    defer stb_image.stbi_image_free(bottom_image_data);
+
+    // front side
+    var front_image_data = stb_image.stbi_load(
+        front_file_path.ptr,
+        &width1,
+        &height1,
+        &channels1,
+        0,
+    );
+    if (front_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width1 == width);
+    assert(height1 == height);
+    assert(channels1 == channels);
+    defer stb_image.stbi_image_free(front_image_data);
+
+    // back side
+    var back_image_data = stb_image.stbi_load(
+        back_file_path.ptr,
+        &width1,
+        &height1,
+        &channels1,
+        0,
+    );
+    if (back_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width1 == width);
+    assert(height1 == height);
+    assert(channels1 == channels);
+    defer stb_image.stbi_image_free(back_image_data);
+
+    var size = @intCast(u32, width * height * channels);
+    return initCubeFromPixels(
+        allocator,
+        right_image_data[0..size],
+        left_image_data[0..size],
+        top_image_data[0..size],
+        bottom_image_data[0..size],
+        front_image_data[0..size],
+        back_image_data[0..size],
+        switch (channels) {
+            3 => .rgb,
+            4 => .rgba,
+            else => unreachable,
+        },
+        @intCast(u32, width),
+        need_linearization,
+    );
+}
+
+/// create cube texture with given files' data buffer
+pub fn initCubeFromFileData(
+    allocator: std.mem.Allocator,
+    right_data: []const u8,
+    left_data: []const u8,
+    top_data: []const u8,
+    bottom_data: []const u8,
+    front_data: []const u8,
+    back_data: []const u8,
+) !*Self {
+    var width: c_int = undefined;
+    var height: c_int = undefined;
+    var channels: c_int = undefined;
+    var width1: c_int = undefined;
+    var height1: c_int = undefined;
+    var channels1: c_int = undefined;
+
+    // right side
+    var right_image_data = stb_image.stbi_load_from_memory(
+        right_data.ptr,
+        @intCast(c_int, right_data.len),
+        &width,
+        &height,
+        &channels,
+        0,
+    );
+    assert(width == height);
+    if (right_image_data == null) {
+        return error.LoadImageError;
+    }
+    defer stb_image.stbi_image_free(right_image_data);
+
+    // left side
+    var left_image_data = stb_image.stbi_load_from_memory(
+        left_data.ptr,
+        @intCast(c_int, left_data.len),
+        &width1,
+        &height1,
+        &channels1,
+        0,
+    );
+    if (left_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width1 == width);
+    assert(height1 == height);
+    assert(channels1 == channels);
+    defer stb_image.stbi_image_free(left_image_data);
+
+    // top side
+    var top_image_data = stb_image.stbi_load_from_memory(
+        top_data.ptr,
+        @intCast(c_int, top_data.len),
+        &width1,
+        &height1,
+        &channels1,
+        0,
+    );
+    if (top_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width1 == width);
+    assert(height1 == height);
+    assert(channels1 == channels);
+    defer stb_image.stbi_image_free(top_image_data);
+
+    // bottom side
+    var bottom_image_data = stb_image.stbi_load_from_memory(
+        bottom_data.ptr,
+        @intCast(c_int, bottom_data.len),
+        &width1,
+        &height1,
+        &channels1,
+        0,
+    );
+    if (bottom_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width1 == width);
+    assert(height1 == height);
+    assert(channels1 == channels);
+    defer stb_image.stbi_image_free(bottom_image_data);
+
+    // front side
+    var front_image_data = stb_image.stbi_load_from_memory(
+        front_data.ptr,
+        @intCast(c_int, front_data.len),
+        &width1,
+        &height1,
+        &channels1,
+        0,
+    );
+    if (front_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width1 == width);
+    assert(height1 == height);
+    assert(channels1 == channels);
+    defer stb_image.stbi_image_free(front_image_data);
+
+    // back side
+    var back_image_data = stb_image.stbi_load_from_memory(
+        back_data.ptr,
+        @intCast(c_int, back_data.len),
+        &width1,
+        &height1,
+        &channels1,
+        0,
+    );
+    if (back_image_data == null) {
+        return error.LoadImageError;
+    }
+    assert(width1 == width);
+    assert(height1 == height);
+    assert(channels1 == channels);
+    defer stb_image.stbi_image_free(back_image_data);
+
+    var size = @intCast(u32, width * height * channels);
+    return initCubeFromPixels(
+        allocator,
+        right_image_data[0..size],
+        left_image_data[0..size],
+        top_image_data[0..size],
+        bottom_image_data[0..size],
+        front_image_data[0..size],
+        back_image_data[0..size],
+        switch (channels) {
+            3 => .rgb,
+            4 => .rgba,
+            else => unreachable,
+        },
+        @intCast(u32, width),
+    );
 }
 
 /// activate and bind to given texture unit
@@ -232,38 +756,38 @@ pub fn deinit(self: *Self) void {
 /// Maybe we need to look out for performance issue.
 pub fn bindToTextureUnit(self: *Self, unit: TextureUnit) void {
     TextureUnit.alloc(unit, self);
-    gl.activeTexture(@enumToInt(self.tu.?));
+    gl.activeTexture(@enumToInt(self.unit.?));
     defer gl.activeTexture(gl.GL_TEXTURE0);
-    gl.bindTexture(@enumToInt(self.tt), self.id);
+    gl.bindTexture(@enumToInt(self.type), self.id);
     gl.util.checkError();
 }
 
 /// get binded texture unit
 pub fn getTextureUnit(self: Self) i32 {
-    return @intCast(i32, @enumToInt(self.tu.?) - gl.GL_TEXTURE0);
+    return @intCast(i32, @enumToInt(self.unit.?) - gl.GL_TEXTURE0);
 }
 
 /// set texture wrapping mode
 pub fn setWrappingMode(self: Self, coord: WrappingCoord, mode: WrappingMode) void {
-    assert(self.tt == .texture_2d or self.tt == .texture_cube_map);
-    gl.bindTexture(@enumToInt(self.tt), self.id);
-    defer gl.bindTexture(@enumToInt(self.tt), 0);
-    gl.texParameteri(@enumToInt(self.tt), @enumToInt(coord), @enumToInt(mode));
+    assert(self.type == .texture_2d or self.type == .texture_cube_map);
+    gl.bindTexture(@enumToInt(self.type), self.id);
+    defer gl.bindTexture(@enumToInt(self.type), 0);
+    gl.texParameteri(@enumToInt(self.type), @enumToInt(coord), @enumToInt(mode));
     gl.util.checkError();
 }
 
 /// set border color, useful when using `WrappingMode.clamp_to_border`
 pub fn setBorderColor(self: Self, color: [4]f32) void {
-    assert(self.tt == .texture_2d);
-    gl.bindTexture(@enumToInt(self.tt), self.id);
-    defer gl.bindTexture(@enumToInt(self.tt), 0);
-    gl.texParameterfv(@enumToInt(self.tt), gl.GL_TEXTURE_BORDER_COLOR, &color);
+    assert(self.type == .texture_2d);
+    gl.bindTexture(@enumToInt(self.type), self.id);
+    defer gl.bindTexture(@enumToInt(self.type), 0);
+    gl.texParameterfv(@enumToInt(self.type), gl.GL_TEXTURE_BORDER_COLOR, &color);
     gl.util.checkError();
 }
 
 /// set filtering mode
 pub fn setFilteringMode(self: Self, situation: FilteringSituation, mode: FilteringMode) void {
-    assert(self.tt == .texture_2d or self.tt == .texture_cube_map);
+    assert(self.type == .texture_2d or self.type == .texture_cube_map);
     if (situation == .magnifying and
         (mode == .linear_mipmap_nearest or
         mode == .linear_mipmap_linear or
@@ -272,9 +796,9 @@ pub fn setFilteringMode(self: Self, situation: FilteringSituation, mode: Filteri
     {
         panic("meaningless filtering parameters!", .{});
     }
-    gl.bindTexture(@enumToInt(self.tt), self.id);
-    defer gl.bindTexture(@enumToInt(self.tt), 0);
-    gl.texParameteri(@enumToInt(self.tt), @enumToInt(situation), @enumToInt(mode));
+    gl.bindTexture(@enumToInt(self.type), self.id);
+    defer gl.bindTexture(@enumToInt(self.type), 0);
+    gl.texParameteri(@enumToInt(self.type), @enumToInt(situation), @enumToInt(mode));
     gl.util.checkError();
 }
 
@@ -292,9 +816,9 @@ pub fn updateImageData(
     data: ?[*]const T,
     gen_mipmap: bool,
 ) void {
-    gl.bindTexture(@enumToInt(self.tt), self.id);
-    defer gl.bindTexture(@enumToInt(self.tt), 0);
-    switch (self.tt) {
+    gl.bindTexture(@enumToInt(self.type), self.id);
+    defer gl.bindTexture(@enumToInt(self.type), 0);
+    switch (self.type) {
         .texture_1d => {
             assert(target == .texture_1d or target == .proxy_texture_1d);
             gl.texImage1D(
@@ -406,8 +930,8 @@ pub fn updateImageData(
     }
     gl.util.checkError();
 
-    if (self.tt != .texture_rectangle and gen_mipmap) {
-        gl.generateMipmap(@enumToInt(self.tt));
+    if (self.type != .texture_rectangle and gen_mipmap) {
+        gl.generateMipmap(@enumToInt(self.type));
         gl.util.checkError();
     }
 
@@ -425,9 +949,9 @@ pub fn allocMultisampleData(
     width: u32,
     height: u32,
 ) void {
-    gl.bindTexture(@enumToInt(self.tt), self.id);
-    defer gl.bindTexture(@enumToInt(self.tt), 0);
-    switch (self.tt) {
+    gl.bindTexture(@enumToInt(self.type), self.id);
+    defer gl.bindTexture(@enumToInt(self.type), 0);
+    switch (self.type) {
         .texture_2d_multisample => {
             assert(target == .texture_2d_multisample or target == .proxy_texture_2d_multisample);
             gl.texImage2DMultisample(
@@ -461,7 +985,7 @@ pub fn updateMultisampleData(
     depth: ?u32,
     fixed_sample_location: bool,
 ) void {
-    switch (self.tt) {
+    switch (self.type) {
         .texture_2d_multisample => {
             assert(target == .texture_2d_multisample or target == .proxy_texture_2d_multisample);
             gl.texImage2DMultisample(
@@ -498,7 +1022,7 @@ pub fn updateBufferTexture(
     texture_format: TextureFormat,
     vbo: gl.Uint,
 ) void {
-    assert(self.tt == .texture_buffer);
-    gl.texBuffer(@enumToInt(self.tt), @enumToInt(texture_format), vbo);
+    assert(self.type == .texture_buffer);
+    gl.texBuffer(@enumToInt(self.type), @enumToInt(texture_format), vbo);
     gl.util.checkError();
 }

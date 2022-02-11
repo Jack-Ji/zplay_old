@@ -102,7 +102,7 @@ pub fn draw(
     );
     self.program.setUniformByName(
         "u_texture",
-        material.data.single_texture.tex.getTextureUnit(),
+        material.data.single_texture.getTextureUnit(),
     );
 
     // issue draw call

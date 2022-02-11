@@ -5,8 +5,8 @@ const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
+const Texture = gfx.gpu.Texture;
 const VertexArray = gfx.gpu.VertexArray;
-const Texture2D = gfx.texture.Texture2D;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
@@ -39,19 +39,21 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.setAttribute(0, Renderer.ATTRIB_LOCATION_COLOR, 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // create material
-    material = Material.init(.{ .single_texture = try Texture2D.fromPixelData(
-        std.testing.allocator,
-        &.{
-            0,   0,   0,
-            0,   255, 0,
-            0,   0,   255,
-            255, 255, 255,
-        },
-        3,
-        2,
-        2,
-        .{},
-    ) });
+    material = Material.init(.{
+        .single_texture = try Texture.init2DFromPixels(
+            std.testing.allocator,
+            &.{
+                0,   0,   0,
+                0,   255, 0,
+                0,   0,   255,
+                255, 255, 255,
+            },
+            .rgb,
+            2,
+            2,
+            .{},
+        ),
+    }, true);
     _ = material.allocTextureUnit(0);
 }
 

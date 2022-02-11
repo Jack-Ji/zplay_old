@@ -7,8 +7,7 @@ const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
-const TextureUnit = gfx.gpu.Texture.TextureUnit;
-const TextureCube = gfx.texture.TextureCube;
+const Texture = gfx.gpu.Texture;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
 const SimpleRenderer = gfx.@"3d".SimpleRenderer;
@@ -16,7 +15,6 @@ const Model = gfx.@"3d".Model;
 const Skybox = gfx.@"3d".Skybox;
 
 var skybox: Skybox = undefined;
-var cubemap: TextureCube = undefined;
 var skybox_material: Material = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = false;
@@ -248,17 +246,18 @@ fn loadScene() void {
 
     // allocate skybox
     skybox = Skybox.init(std.testing.allocator);
-    cubemap = TextureCube.fromFilePath(
-        std.testing.allocator,
-        "assets/skybox/right.jpg",
-        "assets/skybox/left.jpg",
-        "assets/skybox/top.jpg",
-        "assets/skybox/bottom.jpg",
-        "assets/skybox/front.jpg",
-        "assets/skybox/back.jpg",
-        false,
-    ) catch unreachable;
-    skybox_material = Material.init(.{ .single_cubemap = cubemap });
+    skybox_material = Material.init(.{
+        .single_cubemap = Texture.initCubeFromFilePaths(
+            std.testing.allocator,
+            "assets/skybox/right.jpg",
+            "assets/skybox/left.jpg",
+            "assets/skybox/top.jpg",
+            "assets/skybox/bottom.jpg",
+            "assets/skybox/front.jpg",
+            "assets/skybox/back.jpg",
+            false,
+        ) catch unreachable,
+    }, true);
 
     // load models
     total_vertices = 0;

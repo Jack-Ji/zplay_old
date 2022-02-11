@@ -185,14 +185,14 @@ fn applyMaterial(self: *Self, material: Material) void {
             assert(material.data == .single_cubemap);
             self.getProgram().setUniformByName(
                 "u_texture",
-                material.data.single_cubemap.tex.getTextureUnit(),
+                material.data.single_cubemap.getTextureUnit(),
             );
         },
         .refract => {
             assert(material.data == .refract_mapping);
             self.getProgram().setUniformByName(
                 "u_texture",
-                material.data.refract_mapping.cubemap.tex.getTextureUnit(),
+                material.data.refract_mapping.cubemap.getTextureUnit(),
             );
             self.getProgram().setUniformByName(
                 "u_ratio",

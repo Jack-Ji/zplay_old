@@ -7,9 +7,7 @@ const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
 const Framebuffer = gfx.gpu.Framebuffer;
-const TextureUnit = gfx.gpu.Texture.TextureUnit;
-const Texture2D = gfx.texture.Texture2D;
-const TextureCube = gfx.texture.TextureCube;
+const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
 const Mesh = gfx.Mesh;
 const Material = gfx.Material;
@@ -18,20 +16,17 @@ const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 const Skybox = gfx.@"3d".Skybox;
 
 var skybox: Skybox = undefined;
-var cubemap: TextureCube = undefined;
 var skybox_material: Material = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var rd: Renderer = undefined;
 var transform_array: Renderer.InstanceTransformArray = undefined;
 var fb: Framebuffer = undefined;
 var fb_msaa: Framebuffer = undefined;
-var screen_fb: Framebuffer = undefined;
-var screen_fb_texture: Texture2D = undefined;
-var screen_fb_material: Material = undefined;
 var quad: Mesh = undefined;
 var cube: Mesh = undefined;
 var cube_material: Material = undefined;
 var color_material: Material = undefined;
+var fb_material: Material = undefined;
 var wireframe_mode = false;
 var outlined = false;
 var rotate_cubes = false;
@@ -82,71 +77,56 @@ fn init(ctx: *zp.Context) anyerror!void {
         height,
         .{ .enable_multisample = true },
     );
-    screen_fb_texture = try Texture2D.init(
-        std.testing.allocator,
-        null,
-        .rgb,
-        width,
-        height,
-        .{},
-    );
-    screen_fb_material = Material.init(.{
-        .single_texture = screen_fb_texture,
-    });
-    screen_fb = try Framebuffer.fromTexture(
-        screen_fb_texture.tex,
-        .{},
-    );
 
     // simple renderer
     simple_renderer = SimpleRenderer.init();
     rd = simple_renderer.renderer();
 
-    // transform array
+    // init transform array
     transform_array = Renderer.InstanceTransformArray.init(std.testing.allocator);
 
-    // generate mesh
+    // init meshes
     quad = try Mesh.genQuad(std.testing.allocator, 2, 2);
     cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1);
 
-    // load texture
-    cubemap = try TextureCube.fromFilePath(
-        std.testing.allocator,
-        "assets/skybox/right.jpg",
-        "assets/skybox/left.jpg",
-        "assets/skybox/top.jpg",
-        "assets/skybox/bottom.jpg",
-        "assets/skybox/front.jpg",
-        "assets/skybox/back.jpg",
-        false,
-    );
+    // init materials
     skybox_material = Material.init(.{
-        .single_cubemap = cubemap,
-    });
+        .single_cubemap = try Texture.initCubeFromFilePaths(
+            std.testing.allocator,
+            "assets/skybox/right.jpg",
+            "assets/skybox/left.jpg",
+            "assets/skybox/top.jpg",
+            "assets/skybox/bottom.jpg",
+            "assets/skybox/front.jpg",
+            "assets/skybox/back.jpg",
+            false,
+        ),
+    }, true);
     cube_material = Material.init(.{
-        .single_texture = try Texture2D.fromFilePath(
+        .single_texture = try Texture.init2DFromFilePath(
             std.testing.allocator,
             "assets/wall.jpg",
             false,
             .{},
         ),
-    });
+    }, true);
     color_material = Material.init(.{
-        .single_texture = try Texture2D.fromPixelData(
+        .single_texture = try Texture.init2DFromPixels(
             std.testing.allocator,
             &.{ 0, 255, 0 },
-            3,
+            .rgb,
             1,
             1,
             .{},
         ),
-    });
+    }, true);
+    fb_material = Material.init(.{ .single_texture = fb.tex }, false);
 
     // alloc texture unit
-    var unit = screen_fb_material.allocTextureUnit(0);
-    unit = cube_material.allocTextureUnit(unit);
+    var unit = cube_material.allocTextureUnit(0);
     unit = skybox_material.allocTextureUnit(unit);
-    _ = color_material.allocTextureUnit(unit);
+    unit = color_material.allocTextureUnit(unit);
+    _ = fb_material.allocTextureUnit(unit);
 
     // toggle graphics caps
     ctx.graphics.toggleCapability(.multisample, enable_msaa);
@@ -240,10 +220,9 @@ fn loop(ctx: *zp.Context) void {
     ctx.graphics.useFramebuffer(null);
     {
         // copy pixels
-        Framebuffer.blitData(
-            if (enable_msaa) fb_msaa else fb,
-            screen_fb,
-        );
+        if (enable_msaa) {
+            Framebuffer.blitData(fb_msaa, fb);
+        }
 
         ctx.graphics.setPolygonMode(.fill);
         ctx.graphics.toggleCapability(.depth_test, false);
@@ -255,7 +234,7 @@ fn loop(ctx: *zp.Context) void {
             model,
             Mat4.identity(),
             null,
-            screen_fb_material,
+            fb_material,
         ) catch unreachable;
         rd.end();
     }

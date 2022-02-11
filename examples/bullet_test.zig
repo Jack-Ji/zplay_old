@@ -10,7 +10,7 @@ const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
 const VertexArray = gfx.gpu.VertexArray;
-const Texture2D = gfx.texture.Texture2D;
+const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
 const Material = gfx.Material;
 const Camera = gfx.Camera;
@@ -51,15 +51,15 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // init color_material
     color_material = Material.init(.{
-        .single_texture = try Texture2D.fromPixelData(
+        .single_texture = try Texture.init2DFromPixels(
             std.testing.allocator,
             &.{ 0, 255, 0 },
-            3,
+            .rgb,
             1,
             1,
             .{},
         ),
-    });
+    }, true);
 
     // create scene
     scene = try Scene.init(std.testing.allocator, ctx);
@@ -201,10 +201,10 @@ const Scene = struct {
                 allocator,
                 "assets/world.gltf",
                 false,
-                try Texture2D.fromPixelData(
+                try Texture.init2DFromPixels(
                     allocator,
                     &.{ 128, 128, 128 },
-                    3,
+                    .rgb,
                     1,
                     1,
                     .{},

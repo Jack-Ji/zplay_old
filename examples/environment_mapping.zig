@@ -7,8 +7,7 @@ const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
 const Framebuffer = gfx.gpu.Framebuffer;
-const TextureUnit = gfx.gpu.Texture.TextureUnit;
-const TextureCube = gfx.texture.TextureCube;
+const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
 const Material = gfx.Material;
 const Camera = gfx.Camera;
@@ -17,7 +16,7 @@ const Skybox = gfx.@"3d".Skybox;
 const EnvMappingRenderer = gfx.@"3d".EnvMappingRenderer;
 
 var skybox: Skybox = undefined;
-var cubemap: TextureCube = undefined;
+var cubemap: *Texture = undefined;
 var skybox_material: Material = undefined;
 var refract_air_material: Material = undefined;
 var refract_water_material: Material = undefined;
@@ -42,7 +41,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // allocate materials
-    cubemap = try TextureCube.fromFilePath(
+    cubemap = try Texture.initCubeFromFilePaths(
         std.testing.allocator,
         "assets/skybox/right.jpg",
         "assets/skybox/left.jpg",
@@ -54,37 +53,37 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     skybox_material = Material.init(.{
         .single_cubemap = cubemap,
-    });
+    }, false);
     refract_air_material = Material.init(.{
         .refract_mapping = .{
             .cubemap = cubemap,
             .ratio = 1.0,
         },
-    });
+    }, false);
     refract_water_material = Material.init(.{
         .refract_mapping = .{
             .cubemap = cubemap,
             .ratio = 1.33,
         },
-    });
+    }, false);
     refract_ice_material = Material.init(.{
         .refract_mapping = .{
             .cubemap = cubemap,
             .ratio = 1.309,
         },
-    });
+    }, false);
     refract_glass_material = Material.init(.{
         .refract_mapping = .{
             .cubemap = cubemap,
             .ratio = 1.52,
         },
-    });
+    }, false);
     refract_diamond_material = Material.init(.{
         .refract_mapping = .{
             .cubemap = cubemap,
             .ratio = 2.42,
         },
-    });
+    }, false);
     current_material = skybox_material;
 
     // alloc renderers

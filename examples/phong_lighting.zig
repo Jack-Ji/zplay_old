@@ -8,7 +8,7 @@ const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
 const Framebuffer = gfx.gpu.Framebuffer;
-const Texture2D = gfx.texture.Texture2D;
+const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Mesh = gfx.Mesh;
@@ -20,7 +20,6 @@ const BlinnPhongRenderer = gfx.@"3d".BlinnPhongRenderer;
 const GammaCorrection = gfx.post_processing.GammaCorrection;
 
 var fb: Framebuffer = undefined;
-var fb_texture: Texture2D = undefined;
 var fb_material: Material = undefined;
 var gamma_correction: GammaCorrection = undefined;
 var simple_renderer: SimpleRenderer = undefined;
@@ -82,21 +81,15 @@ fn init(ctx: *zp.Context) anyerror!void {
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(ctx.window, &width, &height);
-    fb_texture = try Texture2D.init(
+    fb = try Framebuffer.init(
         std.testing.allocator,
-        null,
-        .rgb,
         width,
         height,
         .{},
     );
     fb_material = Material.init(.{
-        .single_texture = fb_texture,
-    });
-    fb = try Framebuffer.fromTexture(
-        fb_texture.tex,
-        .{},
-    );
+        .single_texture = fb.tex,
+    }, false);
 
     // init gamma correction
     gamma_correction = try GammaCorrection.init(std.testing.allocator);
@@ -151,18 +144,18 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // material init
     light_material = Material.init(.{
-        .single_texture = try Texture2D.fromPixelData(
+        .single_texture = try Texture.init2DFromPixels(
             std.testing.allocator,
             &.{ 255, 255, 255 },
-            3,
+            .rgb,
             1,
             1,
             .{},
         ),
-    });
+    }, true);
     box_material = Material.init(.{
         .phong = .{
-            .diffuse_map = try Texture2D.fromFilePath(
+            .diffuse_map = try Texture.init2DFromFilePath(
                 std.testing.allocator,
                 "assets/container2.png",
                 false,
@@ -170,7 +163,7 @@ fn init(ctx: *zp.Context) anyerror!void {
                     .need_linearization = true,
                 },
             ),
-            .specular_map = try Texture2D.fromFilePath(
+            .specular_map = try Texture.init2DFromFilePath(
                 std.testing.allocator,
                 "assets/container2_specular.png",
                 false,
@@ -178,10 +171,10 @@ fn init(ctx: *zp.Context) anyerror!void {
             ),
             .shiness = 10,
         },
-    });
+    }, true);
     floor_material = Material.init(.{
         .phong = .{
-            .diffuse_map = try Texture2D.fromFilePath(
+            .diffuse_map = try Texture.init2DFromFilePath(
                 std.testing.allocator,
                 "assets/wall.jpg",
                 false,
@@ -190,17 +183,17 @@ fn init(ctx: *zp.Context) anyerror!void {
                     .gen_mipmap = true,
                 },
             ),
-            .specular_map = try Texture2D.fromPixelData(
+            .specular_map = try Texture.init2DFromPixels(
                 std.testing.allocator,
                 &.{ 20, 20, 20 },
-                3,
+                .rgb,
                 1,
                 1,
                 .{},
             ),
             .shiness = 0.1,
         },
-    });
+    }, true);
     var unit = box_material.allocTextureUnit(0);
     unit = floor_material.allocTextureUnit(unit);
     unit = light_material.allocTextureUnit(unit);

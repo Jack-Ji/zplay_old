@@ -171,11 +171,11 @@ fn applyMaterial(self: *Self, material: Material) void {
     var buf: [64]u8 = undefined;
     self.getProgram().setUniformByName(
         std.fmt.bufPrintZ(&buf, "u_material.diffuse", .{}) catch unreachable,
-        material.data.phong.diffuse_map.tex.getTextureUnit(),
+        material.data.phong.diffuse_map.getTextureUnit(),
     );
     self.getProgram().setUniformByName(
         std.fmt.bufPrintZ(&buf, "u_material.specular", .{}) catch unreachable,
-        material.data.phong.specular_map.tex.getTextureUnit(),
+        material.data.phong.specular_map.getTextureUnit(),
     );
     self.getProgram().setUniformByName(
         std.fmt.bufPrintZ(&buf, "u_material.shiness", .{}) catch unreachable,

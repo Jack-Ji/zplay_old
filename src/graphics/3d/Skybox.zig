@@ -161,7 +161,7 @@ pub fn draw(
     self.program.setUniformByName("u_project", projection);
     self.program.setUniformByName(
         "u_texture",
-        material.data.single_cubemap.tex.getTextureUnit(),
+        material.data.single_cubemap.getTextureUnit(),
     );
 
     // issue draw call

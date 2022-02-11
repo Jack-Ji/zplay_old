@@ -2,11 +2,11 @@ const std = @import("std");
 const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
+const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Mesh = gfx.Mesh;
 const Material = gfx.Material;
-const Texture2D = gfx.texture.Texture2D;
 const gltf = zp.deps.gltf;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
@@ -29,16 +29,16 @@ transforms: std.ArrayList(Mat4) = undefined,
 material_indices: std.ArrayList(u32) = undefined,
 
 /// generated textures
-generated_textures: std.ArrayList(Texture2D) = undefined,
+generated_textures: std.ArrayList(*Texture) = undefined,
 
 /// loaded textures
-loaded_textures: std.ArrayList(Texture2D) = undefined,
+loaded_textures: std.ArrayList(*Texture) = undefined,
 
 /// load gltf model file 
 /// WARNING: Model won't deallocate default texture, 
 ///          cause it might be used somewhere else, 
 ///          user's code knows better what to do with it.
-pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_meshes: bool, default_textre: ?Texture2D) !Self {
+pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_meshes: bool, default_texture: ?*Texture) !Self {
     var data: *gltf.Data = try gltf.loadFile(filename, null);
     defer gltf.free(data);
 
@@ -47,8 +47,8 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
         .meshes = std.ArrayList(Mesh).initCapacity(allocator, 1) catch unreachable,
         .transforms = std.ArrayList(Mat4).initCapacity(allocator, 1) catch unreachable,
         .material_indices = std.ArrayList(u32).initCapacity(allocator, 1) catch unreachable,
-        .generated_textures = std.ArrayList(Texture2D).initCapacity(allocator, 1) catch unreachable,
-        .loaded_textures = std.ArrayList(Texture2D).initCapacity(allocator, 1) catch unreachable,
+        .generated_textures = std.ArrayList(*Texture).initCapacity(allocator, 1) catch unreachable,
+        .loaded_textures = std.ArrayList(*Texture).initCapacity(allocator, 1) catch unreachable,
     };
 
     // load vertex attributes
@@ -84,7 +84,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
         if (image.buffer_view != null) {
             var buffer_data = @ptrCast([*]const u8, image.buffer_view.*.buffer.*.data.?);
             var image_data = buffer_data + image.buffer_view.*.offset;
-            self.loaded_textures.append(try Texture2D.fromFileData(
+            self.loaded_textures.append(try Texture.init2DFromFileData(
                 allocator,
                 image_data[0..image.buffer_view.*.size],
                 false,
@@ -98,7 +98,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
                 "{s}{s}{s}",
                 .{ dirname, std.fs.path.sep_str, image.uri },
             ) catch unreachable;
-            self.loaded_textures.append(try Texture2D.fromFilePath(
+            self.loaded_textures.append(try Texture.init2DFromFilePath(
                 allocator,
                 image_path,
                 false,
@@ -108,11 +108,11 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
     }
 
     // default pixel data
-    if (default_textre == null) {
-        self.generated_textures.append(try Texture2D.fromPixelData(
+    if (default_texture == null) {
+        self.generated_textures.append(try Texture.init2DFromPixels(
             allocator,
             &.{ 255, 255, 255, 255 },
-            4,
+            .rgba,
             1,
             1,
             .{},
@@ -120,14 +120,14 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
     }
 
     // load materials
-    var default_tex = if (default_textre) |tex| tex else self.generated_textures.items[0];
+    var default_tex = if (default_texture) |tex| tex else self.generated_textures.items[0];
     self.materials.append(Material.init(.{
         .phong = .{
             .diffuse_map = default_tex,
             .specular_map = default_tex,
             .shiness = 32,
         },
-    })) catch unreachable;
+    }, false)) catch unreachable;
     i = 0;
     MATERIAL_LOOP: while (i < data.materials_count) : (i += 1) {
         var material = &data.materials[i];
@@ -145,13 +145,13 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
             {
                 self.materials.append(Material.init(.{
                     .single_texture = self.loaded_textures.items[image_idx],
-                })) catch unreachable;
+                }, false)) catch unreachable;
                 continue :MATERIAL_LOOP;
             }
         }
 
         const base_color = pbrm.base_color_factor;
-        self.generated_textures.append(try Texture2D.fromPixelData(
+        self.generated_textures.append(try Texture.init2DFromPixels(
             allocator,
             &.{
                 @floatToInt(u8, base_color[0] * 255),
@@ -159,14 +159,14 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
                 @floatToInt(u8, base_color[2] * 255),
                 @floatToInt(u8, base_color[3] * 255),
             },
-            4,
+            .rgba,
             1,
             1,
             .{},
         )) catch unreachable;
         self.materials.append(Material.init(.{
             .single_texture = self.generated_textures.items[self.generated_textures.items.len - 1],
-        })) catch unreachable;
+        }, false)) catch unreachable;
     }
 
     // TODO load skins

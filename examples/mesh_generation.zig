@@ -5,7 +5,7 @@ const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const gfx = zp.graphics;
-const Texture2D = gfx.texture.Texture2D;
+const Texture = gfx.gpu.Texture;
 const Mesh = gfx.Mesh;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
@@ -50,23 +50,23 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // create picture_material
     default_material = Material.init(.{
-        .single_texture = Texture2D.fromPixelData(
+        .single_texture = Texture.init2DFromPixels(
             std.testing.allocator,
             &.{ 0, 255, 0 },
-            3,
+            .rgb,
             1,
             1,
             .{},
         ) catch unreachable,
-    });
+    }, true);
     picture_material = Material.init(.{
-        .single_texture = Texture2D.fromFilePath(
+        .single_texture = Texture.init2DFromFilePath(
             std.testing.allocator,
             "assets/wall.jpg",
             false,
             .{},
         ) catch unreachable,
-    });
+    }, true);
     var unit = default_material.allocTextureUnit(0);
     _ = picture_material.allocTextureUnit(unit);
 
