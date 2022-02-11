@@ -76,6 +76,26 @@ pub const TextureFormat = enum(c_uint) {
     compressed_rgba = gl.GL_COMPRESSED_RGBA,
     compressed_srgb = gl.GL_COMPRESSED_SRGB,
     compressed_srgb_alpha = gl.GL_COMPRESSED_SRGB_ALPHA,
+
+    pub fn getChannels(self: @This()) u32 {
+        return switch (self) {
+            .red => 1,
+            .rg => 2,
+            .rgb => 3,
+            .rgba => 4,
+            .srgb => 3,
+            .srgba => 4,
+            .depth_component => 1,
+            .depth_stencil => 1,
+            .compressed_red => 1,
+            .compressed_rg => 2,
+            .compressed_rgb => 3,
+            .compressed_rgba => 4,
+            .compressed_srgb => 3,
+            .compressed_srgb_alpha => 4,
+            else => unreachable,
+        };
+    }
 };
 
 pub const ImageFormat = enum(c_uint) {
@@ -96,9 +116,7 @@ pub const ImageFormat = enum(c_uint) {
             .bgr => 3,
             .rgba => 4,
             .bgra => 4,
-            else => {
-                panic("not image format!", .{});
-            },
+            else => unreachable,
         };
     }
 };
@@ -973,6 +991,15 @@ pub fn allocMultisampleData(
     self.format = texture_format;
     self.width = width;
     self.height = height;
+}
+
+/// get pixel data
+pub fn getPixels(self: Self, comptime T: type, pixels: []T) void {
+    assert(pixels.len >= self.width * self.height orelse 1 * self.format.getChannels());
+    gl.bindTexture(@enumToInt(self.type), self.id);
+    defer gl.bindTexture(@enumToInt(self.type), 0);
+    gl.getTexImage(self.type, 0, self.format, gl.util.dataType(T), pixels.ptr);
+    gl.util.checkError();
 }
 
 /// update buffer texture data
