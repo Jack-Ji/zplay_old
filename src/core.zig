@@ -1,6 +1,6 @@
 const std = @import("std");
 const zp = @import("zplay.zig");
-const GraphicsContext = zp.graphics.common.Context;
+const GraphicsContext = zp.graphics.gpu.Context;
 const event = zp.event;
 const sdl = zp.deps.sdl;
 

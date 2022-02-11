@@ -9,7 +9,7 @@ const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
-const VertexArray = gfx.common.VertexArray;
+const VertexArray = gfx.gpu.VertexArray;
 const Texture2D = gfx.texture.Texture2D;
 const Renderer = gfx.Renderer;
 const Material = gfx.Material;
@@ -616,7 +616,8 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
-        .enable_maximized = true,
+        .width = 1600,
+        .height = 900,
         .enable_msaa = true,
     });
 }

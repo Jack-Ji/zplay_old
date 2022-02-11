@@ -1,5 +1,5 @@
-/// common graphics types/utilities
-pub const common = @import("graphics/common.zig");
+/// graphics card types/utilities
+pub const gpu = @import("graphics/gpu.zig");
 
 /// generic rendering interface
 pub const Renderer = @import("graphics/Renderer.zig");

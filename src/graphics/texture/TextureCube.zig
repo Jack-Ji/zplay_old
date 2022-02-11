@@ -2,7 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const stb_image = zp.deps.stb.image;
-const Texture = zp.graphics.common.Texture;
+const Texture = zp.graphics.gpu.Texture;
 const Self = @This();
 
 pub const Error = error{

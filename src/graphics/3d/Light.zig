@@ -1,6 +1,6 @@
 const std = @import("std");
 const zp = @import("../../zplay.zig");
-const ShaderProgram = zp.graphics.common.ShaderProgram;
+const ShaderProgram = zp.graphics.gpu.ShaderProgram;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Self = @This();

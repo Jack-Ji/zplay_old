@@ -1,7 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
-const drawcall = zp.graphics.common.drawcall;
+const drawcall = zp.graphics.gpu.drawcall;
 
 pub const c = @import("c.zig");
 pub const Data = c.cgltf_data;
