@@ -88,7 +88,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         .{},
     );
     fb_material = Material.init(.{
-        .single_texture = fb.tex,
+        .single_texture = fb.tex.?,
     }, false);
 
     // init gamma correction

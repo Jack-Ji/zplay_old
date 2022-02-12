@@ -98,7 +98,7 @@ pub const TextureFormat = enum(c_uint) {
     }
 };
 
-pub const ImageFormat = enum(c_uint) {
+pub const PixelFormat = enum(c_uint) {
     red = gl.GL_RED,
     rg = gl.GL_RG,
     rgb = gl.GL_RGB,
@@ -263,7 +263,7 @@ pub const Option = struct {
 pub fn init2DFromPixels(
     allocator: std.mem.Allocator,
     pixel_data: ?[]const u8,
-    format: ImageFormat,
+    format: PixelFormat,
     width: u32,
     height: u32,
     option: Option,
@@ -399,7 +399,7 @@ pub fn initCubeFromPixels(
     bottom_pixel_data: []const u8,
     front_pixel_data: []const u8,
     back_pixel_data: []const u8,
-    format: ImageFormat,
+    format: PixelFormat,
     size: u32,
     need_linearization: bool,
 ) !*Self {
@@ -829,7 +829,7 @@ pub fn updateImageData(
     width: u32,
     height: ?u32,
     depth: ?u32,
-    image_format: ImageFormat,
+    image_format: PixelFormat,
     comptime T: type,
     data: ?[*]const T,
     gen_mipmap: bool,

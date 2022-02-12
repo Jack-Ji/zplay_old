@@ -75,7 +75,10 @@ fn init(ctx: *zp.Context) anyerror!void {
         std.testing.allocator,
         width,
         height,
-        .{ .enable_multisample = true },
+        .{
+            .multisamples = 4,
+            .compose_depth_stencil = false,
+        },
     );
 
     // simple renderer
@@ -120,7 +123,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{},
         ),
     }, true);
-    fb_material = Material.init(.{ .single_texture = fb.tex }, false);
+    fb_material = Material.init(.{ .single_texture = fb.tex.? }, false);
 
     // alloc texture unit
     var unit = cube_material.allocTextureUnit(0);

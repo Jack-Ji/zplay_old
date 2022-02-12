@@ -10,23 +10,41 @@ pub const FramebufferError = error{
     InvalidTexture,
 };
 
+const ColorType = enum {
+    none,
+    rgb,
+    rgba,
+};
+
+const ValueBufferType = enum {
+    none,
+    renderbuffer,
+    texture,
+};
+
+const ValueBuffer = union(enum) {
+    tex: *Texture,
+    rbo: gl.GLuint,
+};
+
 /// id of framebuffer
 id: gl.GLuint = undefined,
 
 /// color texture
-tex: *Texture = undefined,
-owned: bool = undefined,
+tex: ?*Texture = null,
 
-/// render buffer object, used for depth and stencil
-rbo1: gl.GLuint = 0,
-rbo2: gl.GLuint = 0,
+/// depth or depth/stencil buffer
+depth_stencil: ?ValueBuffer = null,
+
+/// stencil buffer
+stencil: ?ValueBuffer = null,
 
 pub const Option = struct {
-    has_alpha: bool = true,
-    has_depth_stencil: bool = true,
-    separate_depth_stencil: bool = false,
-    enable_multisample: bool = false,
-    samples: u32 = 4,
+    color_type: ColorType = .rgba,
+    depth_type: ValueBufferType = .renderbuffer,
+    stencil_type: ValueBufferType = .renderbuffer,
+    compose_depth_stencil: bool = true,
+    multisamples: ?u32 = null,
 };
 
 pub fn init(
@@ -35,216 +53,253 @@ pub fn init(
     height: u32,
     option: Option,
 ) !Self {
-    var self = Self{
-        .tex = try Texture.init(
-            allocator,
-            if (option.enable_multisample)
-                .texture_2d_multisample
-            else
-                .texture_2d,
-        ),
-        .owned = true,
-    };
+    var self = Self{};
     gl.genFramebuffers(1, &self.id);
     gl.bindFramebuffer(gl.GL_FRAMEBUFFER, self.id);
     defer gl.bindFramebuffer(gl.GL_FRAMEBUFFER, 0);
     gl.util.checkError();
 
-    // attach color texture
-    if (option.enable_multisample) {
-        self.tex.allocMultisampleData(
+    // allocate and attach color texture
+    if (option.color_type != .none) {
+        self.tex = try allocAndAttachTexture(
+            allocator,
+            .color0,
+            width,
+            height,
+            if (option.color_type == .rgb) .rgb else .rgba,
+            if (option.color_type == .rgb) .rgb else .rgba,
+            option.multisamples,
+        );
+    }
+
+    // allocate and attach depth/stencil buffer
+    if (option.compose_depth_stencil and option.depth_type != .none and option.stencil_type != .none) {
+        // use depth buffer's option
+        if (option.depth_type == .renderbuffer) {
+            self.depth_stencil = .{
+                .rbo = allocAndAttachRenderBuffer(
+                    .depth_stencil,
+                    width,
+                    height,
+                    .depth_stencil,
+                    option.multisamples,
+                ),
+            };
+        } else {
+            self.depth_stencil = .{
+                .tex = try allocAndAttachTexture(
+                    allocator,
+                    .depth_stencil,
+                    width,
+                    height,
+                    .depth_stencil,
+                    .depth_stencil,
+                    option.multisamples,
+                ),
+            };
+        }
+    } else {
+        // allocate and attach depth buffer
+        if (option.depth_type != .none) {
+            if (option.depth_type == .renderbuffer) {
+                self.depth_stencil = .{
+                    .rbo = allocAndAttachRenderBuffer(
+                        .depth,
+                        width,
+                        height,
+                        .depth,
+                        option.multisamples,
+                    ),
+                };
+            } else {
+                self.depth_stencil = .{
+                    .tex = try allocAndAttachTexture(
+                        allocator,
+                        .depth,
+                        width,
+                        height,
+                        .depth_component,
+                        .depth_component,
+                        option.multisamples,
+                    ),
+                };
+            }
+        }
+
+        // allocate and attach stencil buffer
+        // only support renderbuffer
+        if (option.stencil_type != .none) {
+            self.stencil = .{
+                .rbo = allocAndAttachRenderBuffer(
+                    .stencil,
+                    width,
+                    height,
+                    .stencil,
+                    option.multisamples,
+                ),
+            };
+        }
+    }
+
+    assert(self.tex != null or self.depth_stencil != null);
+    var status = gl.checkFramebufferStatus(gl.GL_FRAMEBUFFER);
+    gl.util.checkError();
+    if (status != gl.GL_FRAMEBUFFER_COMPLETE) {
+        panic("frame buffer's status is wrong: {x}", .{status});
+    }
+
+    // disable color rendering when necessary
+    if (self.tex == null) {
+        gl.drawBuffer(gl.GL_NONE);
+        gl.readBuffer(gl.GL_NONE);
+        gl.util.checkError();
+    }
+
+    return self;
+}
+
+const AttachmentType = enum(c_int) {
+    color0 = gl.GL_COLOR_ATTACHMENT0,
+    color1 = gl.GL_COLOR_ATTACHMENT1,
+    color2 = gl.GL_COLOR_ATTACHMENT2,
+    color3 = gl.GL_COLOR_ATTACHMENT3,
+    color4 = gl.GL_COLOR_ATTACHMENT4,
+    color5 = gl.GL_COLOR_ATTACHMENT5,
+    color6 = gl.GL_COLOR_ATTACHMENT6,
+    color7 = gl.GL_COLOR_ATTACHMENT7,
+    color8 = gl.GL_COLOR_ATTACHMENT8,
+    color9 = gl.GL_COLOR_ATTACHMENT9,
+    color10 = gl.GL_COLOR_ATTACHMENT10,
+    color11 = gl.GL_COLOR_ATTACHMENT11,
+    color12 = gl.GL_COLOR_ATTACHMENT12,
+    color13 = gl.GL_COLOR_ATTACHMENT13,
+    color14 = gl.GL_COLOR_ATTACHMENT14,
+    color15 = gl.GL_COLOR_ATTACHMENT15,
+    color16 = gl.GL_COLOR_ATTACHMENT16,
+    color17 = gl.GL_COLOR_ATTACHMENT17,
+    color18 = gl.GL_COLOR_ATTACHMENT18,
+    color19 = gl.GL_COLOR_ATTACHMENT19,
+    color20 = gl.GL_COLOR_ATTACHMENT20,
+    color21 = gl.GL_COLOR_ATTACHMENT21,
+    color22 = gl.GL_COLOR_ATTACHMENT22,
+    color23 = gl.GL_COLOR_ATTACHMENT23,
+    color24 = gl.GL_COLOR_ATTACHMENT24,
+    color25 = gl.GL_COLOR_ATTACHMENT25,
+    color26 = gl.GL_COLOR_ATTACHMENT26,
+    color27 = gl.GL_COLOR_ATTACHMENT27,
+    color28 = gl.GL_COLOR_ATTACHMENT28,
+    color29 = gl.GL_COLOR_ATTACHMENT29,
+    color30 = gl.GL_COLOR_ATTACHMENT30,
+    color31 = gl.GL_COLOR_ATTACHMENT31,
+    depth = gl.GL_DEPTH_ATTACHMENT,
+    stencil = gl.GL_STENCIL_ATTACHMENT,
+    depth_stencil = gl.GL_DEPTH_STENCIL_ATTACHMENT,
+};
+
+fn allocAndAttachTexture(
+    allocator: std.mem.Allocator,
+    attachment: AttachmentType,
+    width: u32,
+    height: u32,
+    texture_format: Texture.TextureFormat,
+    pixel_format: Texture.PixelFormat,
+    multisamples: ?u32,
+) !*Texture {
+    var tex = try Texture.init(
+        allocator,
+        if (multisamples != null)
+            .texture_2d_multisample
+        else
+            .texture_2d,
+    );
+
+    if (multisamples) |samples| {
+        tex.allocMultisampleData(
             .texture_2d_multisample,
-            option.samples,
-            if (option.has_alpha) .rgba else .rgb,
+            samples,
+            texture_format,
             width,
             height,
         );
     } else {
-        self.tex.updateImageData(
+        tex.updateImageData(
             .texture_2d,
             0,
-            if (option.has_alpha) .rgba else .rgb,
+            texture_format,
             width,
             height,
             null,
-            if (option.has_alpha) .rgba else .rgb,
+            pixel_format,
             u8,
             null,
             false,
         );
-        self.tex.setFilteringMode(.minifying, .linear);
-        self.tex.setFilteringMode(.magnifying, .linear);
+        tex.setFilteringMode(.minifying, .nearest);
+        tex.setFilteringMode(.magnifying, .nearest);
     }
+
     gl.framebufferTexture2D(
         gl.GL_FRAMEBUFFER,
-        gl.GL_COLOR_ATTACHMENT0,
-        if (option.enable_multisample)
+        @intCast(c_uint, @enumToInt(attachment)),
+        if (multisamples != null)
             gl.GL_TEXTURE_2D_MULTISAMPLE
         else
             gl.GL_TEXTURE_2D,
-        self.tex.id,
+        tex.id,
         0,
     );
     gl.util.checkError();
-
-    // attach depth/stencil
-    if (option.has_depth_stencil) {
-        self.allocDepthStencil(
-            option.separate_depth_stencil,
-            option.enable_multisample,
-        );
-    }
-
-    var status = gl.checkFramebufferStatus(gl.GL_FRAMEBUFFER);
-    gl.util.checkError();
-    if (status != gl.GL_FRAMEBUFFER_COMPLETE) {
-        panic("frame buffer's status is wrong: {x}", .{status});
-    }
-    return self;
+    return tex;
 }
 
-pub fn fromTexture(tex: *Texture, option_: Option) !Self {
-    if ((tex.tt != .texture_2d and tex.tt != .texture_2d_multisample) or
-        (tex.format != .rgb and tex.format != .rgba))
-    {
-        return error.InvalidTexture;
-    }
-    assert(tex.width > 0 and tex.height.? > 0);
-    var option = option_;
-    if (tex.tt == .texture_2d_multisample) {
-        option.enable_multisample = true;
-    }
+const RenderBufferType = enum(c_uint) {
+    depth = gl.GL_DEPTH_COMPONENT,
+    stencil = gl.GL_STENCIL_INDEX,
+    depth_stencil = gl.GL_DEPTH24_STENCIL8,
+};
 
-    var self = Self{
-        .tex = tex,
-        .owned = false,
-    };
-    gl.genFramebuffers(1, &self.id);
-    gl.bindFramebuffer(gl.GL_FRAMEBUFFER, self.id);
-    defer gl.bindFramebuffer(gl.GL_FRAMEBUFFER, 0);
-    gl.util.checkError();
-
-    // attach color texture
-    gl.framebufferTexture2D(
-        gl.GL_FRAMEBUFFER,
-        gl.GL_COLOR_ATTACHMENT0,
-        if (option.enable_multisample)
-            gl.GL_TEXTURE_2D_MULTISAMPLE
-        else
-            gl.GL_TEXTURE_2D,
-        self.tex.id,
-        0,
-    );
-    gl.util.checkError();
-
-    // attach depth/stencil
-    if (option.has_depth_stencil) {
-        self.allocDepthStencil(
-            option.separate_depth_stencil,
-            option.enable_multisample,
-        );
-    }
-
-    var status = gl.checkFramebufferStatus(gl.GL_FRAMEBUFFER);
-    gl.util.checkError();
-    if (status != gl.GL_FRAMEBUFFER_COMPLETE) {
-        panic("frame buffer's status is wrong: {x}", .{status});
-    }
-    return self;
-}
-
-/// attach depth/stencil buffers
-fn allocDepthStencil(
-    self: *Self,
-    separate_stecil_depth: bool,
-    enable_msaa: bool,
-) void {
-    gl.genRenderbuffers(1, &self.rbo1);
+fn allocAndAttachRenderBuffer(
+    attachment: AttachmentType,
+    width: u32,
+    height: u32,
+    _type: RenderBufferType,
+    multisamples: ?u32,
+) gl.GLuint {
+    var id: gl.GLuint = undefined;
+    gl.genRenderbuffers(1, &id);
     defer gl.bindRenderbuffer(gl.GL_RENDERBUFFER, 0);
-    if (separate_stecil_depth) {
-        gl.genRenderbuffers(1, &self.rbo2);
 
-        // depth
-        gl.bindRenderbuffer(gl.GL_RENDERBUFFER, self.rbo1);
-        if (enable_msaa) {
-            gl.renderbufferStorageMultisample(
-                gl.GL_RENDERBUFFER,
-                4,
-                gl.GL_DEPTH_COMPONENT,
-                @intCast(c_int, self.tex.width),
-                @intCast(c_int, self.tex.height.?),
-            );
-        } else {
-            gl.renderbufferStorage(
-                gl.GL_RENDERBUFFER,
-                gl.GL_DEPTH_COMPONENT,
-                @intCast(c_int, self.tex.width),
-                @intCast(c_int, self.tex.height.?),
-            );
-        }
-        gl.framebufferRenderbuffer(
-            gl.GL_FRAMEBUFFER,
-            gl.GL_DEPTH_ATTACHMENT,
+    gl.bindRenderbuffer(gl.GL_RENDERBUFFER, id);
+    if (multisamples) |samples| {
+        gl.renderbufferStorageMultisample(
             gl.GL_RENDERBUFFER,
-            self.rbo1,
-        );
-
-        // stencil
-        gl.bindRenderbuffer(gl.GL_RENDERBUFFER, self.rbo2);
-        if (enable_msaa) {
-            gl.renderbufferStorageMultisample(
-                gl.GL_RENDERBUFFER,
-                4,
-                gl.GL_STENCIL_INDEX,
-                @intCast(c_int, self.tex.width),
-                @intCast(c_int, self.tex.height.?),
-            );
-        } else {
-            gl.renderbufferStorage(
-                gl.GL_RENDERBUFFER,
-                gl.GL_STENCIL_INDEX,
-                @intCast(c_int, self.tex.width),
-                @intCast(c_int, self.tex.height.?),
-            );
-        }
-        gl.framebufferRenderbuffer(
-            gl.GL_FRAMEBUFFER,
-            gl.GL_STENCIL_ATTACHMENT,
-            gl.GL_RENDERBUFFER,
-            self.rbo2,
+            @intCast(c_int, samples),
+            @enumToInt(_type),
+            @intCast(c_int, width),
+            @intCast(c_int, height),
         );
     } else {
-        gl.bindRenderbuffer(gl.GL_RENDERBUFFER, self.rbo1);
-        if (enable_msaa) {
-            gl.renderbufferStorageMultisample(
-                gl.GL_RENDERBUFFER,
-                4,
-                gl.GL_DEPTH24_STENCIL8,
-                @intCast(c_int, self.tex.width),
-                @intCast(c_int, self.tex.height.?),
-            );
-        } else {
-            gl.renderbufferStorage(
-                gl.GL_RENDERBUFFER,
-                gl.GL_DEPTH24_STENCIL8,
-                @intCast(c_int, self.tex.width),
-                @intCast(c_int, self.tex.height.?),
-            );
-        }
-        gl.framebufferRenderbuffer(
-            gl.GL_FRAMEBUFFER,
-            gl.GL_DEPTH_STENCIL_ATTACHMENT,
+        gl.renderbufferStorage(
             gl.GL_RENDERBUFFER,
-            self.rbo1,
+            @enumToInt(_type),
+            @intCast(c_int, width),
+            @intCast(c_int, height),
         );
     }
+
+    assert(attachment == .depth or attachment == .stencil or attachment == .depth_stencil);
+    gl.framebufferRenderbuffer(
+        gl.GL_FRAMEBUFFER,
+        @intCast(c_uint, @enumToInt(attachment)),
+        gl.GL_RENDERBUFFER,
+        id,
+    );
     gl.util.checkError();
+    return id;
 }
 
 pub fn deinit(self: Self) void {
-    if (self.owned) {
-        self.tex.deinit();
-    }
+    self.tex.deinit();
     if (self.rbo1 > 0) {
         gl.deleteRenderbuffers(1, &self.rbo1);
     }
@@ -272,12 +327,12 @@ pub fn blitData(src: Self, dst: Self) void {
     gl.blitFramebuffer(
         0,
         0,
-        @intCast(c_int, src.tex.width),
-        @intCast(c_int, src.tex.height.?),
+        @intCast(c_int, src.tex.?.width),
+        @intCast(c_int, src.tex.?.height.?),
         0,
         0,
-        @intCast(c_int, dst.tex.width),
-        @intCast(c_int, dst.tex.height.?),
+        @intCast(c_int, dst.tex.?.width),
+        @intCast(c_int, dst.tex.?.height.?),
         gl.GL_COLOR_BUFFER_BIT,
         gl.GL_NEAREST,
     );
