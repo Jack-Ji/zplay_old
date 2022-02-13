@@ -27,8 +27,8 @@ pub const Status = enum {
 };
 
 /// current_renderer's vertex attribute locations
-/// NOTE: implementations' vertex shaders should follow this convention, otherwise
-/// Model/Mesh rendering won't be correct.
+/// NOTE: renderer's vertex shader should follow this 
+/// convention if its purpose is rendering Model/Mesh objects.
 pub const ATTRIB_LOCATION_POS = 0;
 pub const ATTRIB_LOCATION_COLOR = 1;
 pub const ATTRIB_LOCATION_NORMAL = 2;

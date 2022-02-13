@@ -5,7 +5,7 @@ A simple framework intended for game/tool creation.
 * Little dependency, only SDL2 and OpenGL3 are needed
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
 * 3D model loading and rendering (only glTF 2.0 for now)
-* Various 3D shading renderers: Phong/Blinn-Phong/EnvMapping/PBR(TODO)
+* Various 3D shading renderers: Blinn-Phong/EnvMapping/PBR(TODO)
 * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
 * Image/Audio asset loading/decoding via [great stb](https://github.com/nothings/stb)

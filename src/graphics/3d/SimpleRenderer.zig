@@ -1,6 +1,5 @@
 const std = @import("std");
 const assert = std.debug.assert;
-const Light = @import("Light.zig");
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
 const drawcall = gfx.gpu.drawcall;

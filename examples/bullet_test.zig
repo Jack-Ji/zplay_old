@@ -15,12 +15,12 @@ const Renderer = gfx.Renderer;
 const Material = gfx.Material;
 const Camera = gfx.Camera;
 const SimpleRenderer = gfx.@"3d".SimpleRenderer;
-const BlinnPhongRenderer = gfx.@"3d".BlinnPhongRenderer;
-const Light = gfx.@"3d".Light;
+const PhongRenderer = gfx.@"3d".PhongRenderer;
+const light = gfx.@"3d".light;
 const Model = gfx.@"3d".Model;
 
 var simple_renderer: SimpleRenderer = undefined;
-var phong_renderer: BlinnPhongRenderer = undefined;
+var phong_renderer: PhongRenderer = undefined;
 var color_material: Material = undefined;
 var wireframe_mode = false;
 var scene: Scene = undefined;
@@ -39,15 +39,16 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // create renderer
     simple_renderer = SimpleRenderer.init();
-    phong_renderer = BlinnPhongRenderer.init(std.testing.allocator);
-    phong_renderer.setDirLight(Light.init(.{
+    phong_renderer = PhongRenderer.init();
+    var dirlight = light.Light{
         .directional = .{
             .ambient = Vec3.new(0.8, 0.8, 0.8),
             .diffuse = Vec3.new(0.5, 0.5, 0.3),
             .specular = Vec3.new(0.1, 0.1, 0.1),
             .direction = Vec3.new(-1, -1, 0),
         },
-    }));
+    };
+    phong_renderer.applyLights(&.{dirlight});
 
     // init color_material
     color_material = Material.init(.{

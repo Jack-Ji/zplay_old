@@ -13,7 +13,7 @@ const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Mesh = gfx.Mesh;
 const Material = gfx.Material;
-const Light = gfx.@"3d".Light;
+const light = gfx.@"3d".light;
 const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 const PhongRenderer = gfx.@"3d".PhongRenderer;
 const BlinnPhongRenderer = gfx.@"3d".BlinnPhongRenderer;
@@ -24,11 +24,9 @@ var fb_material: Material = undefined;
 var gamma_correction: GammaCorrection = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
-var blinn_phong_renderer: BlinnPhongRenderer = undefined;
 var plane: Mesh = undefined;
 var cube: Mesh = undefined;
-var point_light_mesh: Mesh = undefined;
-var spot_light_mesh: Mesh = undefined;
+var light_mesh: Mesh = undefined;
 var light_material: Material = undefined;
 var box_material: Material = undefined;
 var floor_material: Material = undefined;
@@ -71,6 +69,7 @@ var spot_light_attenuation_linear: f32 = 0.02;
 var spot_light_attenuation_quadratic: f32 = 0.01;
 var spot_light_attenuation_cutoff: f32 = 5.9;
 var spot_light_attenuation_outer_cutoff: f32 = 7.1;
+var all_lights: std.ArrayList(light.Light) = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -97,8 +96,9 @@ fn init(ctx: *zp.Context) anyerror!void {
     // simple renderer
     simple_renderer = SimpleRenderer.init();
 
-    // phong renderer
-    var dir_light = Light.init(.{
+    // init lights and phong renderer
+    all_lights = std.ArrayList(light.Light).init(std.testing.allocator);
+    try all_lights.append(.{
         .directional = .{
             .ambient = Vec3.fromSlice(&dir_light_ambient),
             .diffuse = Vec3.fromSlice(&dir_light_diffuse),
@@ -106,7 +106,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .direction = Vec3.fromSlice(&dir_light_direction),
         },
     });
-    var point_light = Light.init(.{
+    try all_lights.append(.{
         .point = .{
             .ambient = Vec3.fromSlice(&point_light_ambient),
             .diffuse = Vec3.fromSlice(&point_light_diffuse),
@@ -115,7 +115,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .quadratic = point_light_attenuation_quadratic,
         },
     });
-    var spot_light = Light.init(.{
+    try all_lights.append(.{
         .spot = .{
             .ambient = Vec3.fromSlice(&spot_light_ambient),
             .diffuse = Vec3.fromSlice(&spot_light_diffuse),
@@ -127,20 +127,15 @@ fn init(ctx: *zp.Context) anyerror!void {
             .outer_cutoff = spot_light_attenuation_outer_cutoff,
         },
     });
-    phong_renderer = PhongRenderer.init(std.testing.allocator);
-    phong_renderer.setDirLight(dir_light);
-    _ = try phong_renderer.addLight(point_light);
-    _ = try phong_renderer.addLight(spot_light);
-    blinn_phong_renderer = BlinnPhongRenderer.init(std.testing.allocator);
-    blinn_phong_renderer.setDirLight(dir_light);
-    _ = try blinn_phong_renderer.addLight(point_light);
-    _ = try blinn_phong_renderer.addLight(spot_light);
+    phong_renderer = PhongRenderer.init();
+    phong_renderer.renderer().begin(false);
+    phong_renderer.applyLights(all_lights.items);
+    phong_renderer.renderer().end();
 
     // generate mesh
     plane = try Mesh.genPlane(std.testing.allocator, 50, 50, 20, 20);
     cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1);
-    point_light_mesh = try Mesh.genSphere(std.testing.allocator, 0.5, 20, 20);
-    spot_light_mesh = try Mesh.genCylinder(std.testing.allocator, 2, 0.5, 0, 10, 10);
+    light_mesh = try Mesh.genSphere(std.testing.allocator, 0.5, 20, 20);
 
     // material init
     light_material = Material.init(.{
@@ -206,11 +201,6 @@ fn init(ctx: *zp.Context) anyerror!void {
 }
 
 fn loop(ctx: *zp.Context) void {
-    const S = struct {
-        var current_renderer: c_int = 1;
-        var rd = blinn_phong_renderer.renderer();
-    };
-
     // camera movement
     const distance = ctx.delta_tick * camera.move_speed;
     if (ctx.isKeyPressed(.w)) {
@@ -279,9 +269,10 @@ fn loop(ctx: *zp.Context) void {
             0.1,
             100,
         );
-        S.rd.begin(false);
+        var rd = phong_renderer.renderer();
+        rd.begin(false);
         plane.render(
-            S.rd,
+            rd,
             Mat4.fromRotation(-90, Vec3.right()).translate(Vec3.new(0, -4, 0)),
             projection,
             camera,
@@ -293,17 +284,17 @@ fn loop(ctx: *zp.Context) void {
                 Vec3.new(1, 0.3, 0.5),
             ).translate(pos);
             cube.render(
-                S.rd,
+                rd,
                 model,
                 projection,
                 camera,
                 box_material,
             ) catch unreachable;
         }
-        S.rd.end();
+        rd.end();
 
         // draw lights
-        var rd = simple_renderer.renderer();
+        rd = simple_renderer.renderer();
         rd.begin(false);
         {
             var old_blend_option = ctx.graphics.blend_option;
@@ -313,19 +304,10 @@ fn loop(ctx: *zp.Context) void {
                 .dst_rgb = .one_minus_constant_alpha,
                 .constant_color = [4]f32{ 0, 0, 0, 0.8 },
             });
-            for (phong_renderer.point_lights.items) |light| {
-                const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-                point_light_mesh.render(
-                    rd,
-                    model,
-                    projection,
-                    camera,
-                    light_material,
-                ) catch unreachable;
-            }
-            for (phong_renderer.spot_lights.items) |light| {
-                const model = Mat4.fromScale(Vec3.set(0.1)).translate(light.getPosition().?);
-                point_light_mesh.render(
+            for (all_lights.items) |d| {
+                if (d.getType() == .directional) continue;
+                const model = Mat4.fromScale(Vec3.set(0.1)).translate(d.getPosition().?);
+                light_mesh.render(
                     rd,
                     model,
                     projection,
@@ -373,17 +355,6 @@ fn loop(ctx: *zp.Context) void {
             });
 
             dig.separator();
-            if (dig.combo_Str(
-                "current renderer",
-                &S.current_renderer,
-                "phong\x00blinn-phong\x00",
-                null,
-            )) {
-                S.rd = if (S.current_renderer == 0)
-                    phong_renderer.renderer()
-                else
-                    blinn_phong_renderer.renderer();
-            }
             _ = dig.checkbox("gamma correction", &enable_gamma_correction);
             if (enable_gamma_correction) {
                 _ = dig.dragFloat(
@@ -418,155 +389,125 @@ fn loop(ctx: *zp.Context) void {
                 },
             );
 
+            var lights_changed = false;
             dig.separator();
             dig.text("Parameters of directional light");
             if (dig.colorEdit3("ambient##1", &dir_light_ambient, null)) {
-                phong_renderer.dir_light.data.directional.ambient =
-                    Vec3.fromSlice(&dir_light_ambient);
-                blinn_phong_renderer.dir_light.data.directional.ambient =
-                    Vec3.fromSlice(&dir_light_ambient);
+                all_lights.items[0].directional.ambient = Vec3.fromSlice(&dir_light_ambient);
+                lights_changed = true;
             }
             if (dig.colorEdit3("diffuse##1", &dir_light_diffuse, null)) {
-                phong_renderer.dir_light.data.directional.diffuse =
-                    Vec3.fromSlice(&dir_light_diffuse);
-                blinn_phong_renderer.dir_light.data.directional.diffuse =
-                    Vec3.fromSlice(&dir_light_diffuse);
+                all_lights.items[0].directional.diffuse = Vec3.fromSlice(&dir_light_diffuse);
+                lights_changed = true;
             }
             if (dig.colorEdit3("specular##1", &dir_light_specular, null)) {
-                phong_renderer.dir_light.data.directional.specular =
-                    Vec3.fromSlice(&dir_light_specular);
-                blinn_phong_renderer.dir_light.data.directional.specular =
-                    Vec3.fromSlice(&dir_light_specular);
+                all_lights.items[0].directional.specular = Vec3.fromSlice(&dir_light_specular);
+                lights_changed = true;
             }
             if (dig.dragFloat3("direction##1", &dir_light_direction, .{
                 .v_speed = 0.01,
                 .v_min = -1,
                 .v_max = 1,
             })) {
-                phong_renderer.dir_light.data.directional.direction =
-                    Vec3.fromSlice(&dir_light_direction);
-                blinn_phong_renderer.dir_light.data.directional.direction =
-                    Vec3.fromSlice(&dir_light_direction);
+                all_lights.items[0].directional.direction = Vec3.fromSlice(&dir_light_direction);
+                lights_changed = true;
             }
 
             dig.separator();
             dig.text("Parameters of point light");
             if (dig.colorEdit3("ambient##2", &point_light_ambient, null)) {
-                phong_renderer.point_lights.items[0].data.point.ambient =
-                    Vec3.fromSlice(&point_light_ambient);
-                blinn_phong_renderer.point_lights.items[0].data.point.ambient =
-                    Vec3.fromSlice(&point_light_ambient);
+                all_lights.items[1].point.ambient = Vec3.fromSlice(&point_light_ambient);
+                lights_changed = true;
             }
             if (dig.colorEdit3("diffuse##2", &point_light_diffuse, null)) {
-                phong_renderer.point_lights.items[0].data.point.diffuse =
-                    Vec3.fromSlice(&point_light_diffuse);
-                blinn_phong_renderer.point_lights.items[0].data.point.diffuse =
-                    Vec3.fromSlice(&point_light_diffuse);
+                all_lights.items[1].point.diffuse = Vec3.fromSlice(&point_light_diffuse);
+                lights_changed = true;
             }
             if (dig.dragFloat3("position##2", &point_light_position, .{
                 .v_speed = 0.01,
                 .v_min = -10,
                 .v_max = 10,
             })) {
-                phong_renderer.point_lights.items[0].data.point.position =
-                    Vec3.fromSlice(&point_light_position);
-                blinn_phong_renderer.point_lights.items[0].data.point.position =
-                    Vec3.fromSlice(&point_light_position);
+                all_lights.items[1].point.position = Vec3.fromSlice(&point_light_position);
+                lights_changed = true;
             }
             if (dig.dragFloat("attenuation linear##2", &point_light_attenuation_linear, .{
                 .v_speed = 0.01,
                 .v_min = 0,
                 .v_max = 10,
             })) {
-                phong_renderer.point_lights.items[0].data.point.linear =
-                    point_light_attenuation_linear;
-                blinn_phong_renderer.point_lights.items[0].data.point.linear =
-                    point_light_attenuation_linear;
+                all_lights.items[1].point.linear = point_light_attenuation_linear;
+                lights_changed = true;
             }
             if (dig.dragFloat("attenuation quadratic##2", &point_light_attenuation_quadratic, .{
                 .v_speed = 0.01,
                 .v_min = 0,
                 .v_max = 10,
             })) {
-                phong_renderer.point_lights.items[0].data.point.quadratic =
-                    point_light_attenuation_quadratic;
-                blinn_phong_renderer.point_lights.items[0].data.point.quadratic =
-                    point_light_attenuation_quadratic;
+                all_lights.items[1].point.quadratic = point_light_attenuation_quadratic;
+                lights_changed = true;
             }
 
             dig.separator();
             dig.text("Parameters of spot light");
             if (dig.colorEdit3("ambient##3", &spot_light_ambient, null)) {
-                phong_renderer.spot_lights.items[0].data.spot.ambient =
-                    Vec3.fromSlice(&spot_light_ambient);
-                blinn_phong_renderer.spot_lights.items[0].data.spot.ambient =
-                    Vec3.fromSlice(&spot_light_ambient);
+                all_lights.items[2].spot.ambient = Vec3.fromSlice(&spot_light_ambient);
+                lights_changed = true;
             }
             if (dig.colorEdit3("diffuse##3", &spot_light_diffuse, null)) {
-                phong_renderer.spot_lights.items[0].data.spot.diffuse =
-                    Vec3.fromSlice(&spot_light_diffuse);
-                blinn_phong_renderer.spot_lights.items[0].data.spot.diffuse =
-                    Vec3.fromSlice(&spot_light_diffuse);
+                all_lights.items[2].spot.diffuse = Vec3.fromSlice(&spot_light_diffuse);
+                lights_changed = true;
             }
             if (dig.dragFloat3("position##3", &spot_light_position, .{
                 .v_speed = 0.01,
                 .v_min = -10,
                 .v_max = 10,
             })) {
-                phong_renderer.spot_lights.items[0].data.spot.position =
-                    Vec3.fromSlice(&spot_light_position);
-                blinn_phong_renderer.spot_lights.items[0].data.spot.position =
-                    Vec3.fromSlice(&spot_light_position);
+                all_lights.items[2].spot.position = Vec3.fromSlice(&spot_light_position);
+                lights_changed = true;
             }
             if (dig.dragFloat3("direction##3", &spot_light_direction, .{
                 .v_speed = 0.01,
                 .v_min = -1,
                 .v_max = 1,
             })) {
-                phong_renderer.spot_lights.items[0].data.spot.direction =
-                    Vec3.fromSlice(&spot_light_direction);
-                blinn_phong_renderer.spot_lights.items[0].data.spot.direction =
-                    Vec3.fromSlice(&spot_light_direction);
+                all_lights.items[2].spot.direction = Vec3.fromSlice(&spot_light_direction);
+                lights_changed = true;
             }
             if (dig.dragFloat("attenuation linear##3", &spot_light_attenuation_linear, .{
                 .v_speed = 0.01,
                 .v_min = 0,
                 .v_max = 10,
             })) {
-                phong_renderer.spot_lights.items[0].data.spot.linear =
-                    spot_light_attenuation_linear;
-                blinn_phong_renderer.spot_lights.items[0].data.spot.linear =
-                    spot_light_attenuation_linear;
+                all_lights.items[2].spot.linear = spot_light_attenuation_linear;
+                lights_changed = true;
             }
             if (dig.dragFloat("attenuation quadratic##3", &spot_light_attenuation_quadratic, .{
                 .v_speed = 0.01,
                 .v_min = 0,
                 .v_max = 10,
             })) {
-                phong_renderer.spot_lights.items[0].data.spot.quadratic =
-                    spot_light_attenuation_quadratic;
-                blinn_phong_renderer.spot_lights.items[0].data.spot.quadratic =
-                    spot_light_attenuation_quadratic;
+                all_lights.items[2].spot.quadratic = spot_light_attenuation_quadratic;
+                lights_changed = true;
             }
             if (dig.dragFloat("attenuation cutoff##3", &spot_light_attenuation_cutoff, .{
                 .v_speed = 0.01,
                 .v_min = 0,
                 .v_max = 20,
             })) {
-                phong_renderer.spot_lights.items[0].data.spot.cutoff =
-                    spot_light_attenuation_cutoff;
-                blinn_phong_renderer.spot_lights.items[0].data.spot.cutoff =
-                    spot_light_attenuation_cutoff;
+                all_lights.items[2].spot.cutoff = spot_light_attenuation_cutoff;
+                lights_changed = true;
             }
             if (dig.dragFloat("attenuation outer cutoff##3", &spot_light_attenuation_outer_cutoff, .{
                 .v_speed = 0.01,
                 .v_min = 0,
                 .v_max = 20,
             })) {
-                phong_renderer.spot_lights.items[0].data.spot.outer_cutoff =
-                    spot_light_attenuation_outer_cutoff;
-                blinn_phong_renderer.spot_lights.items[0].data.spot.outer_cutoff =
-                    spot_light_attenuation_outer_cutoff;
+                all_lights.items[2].spot.outer_cutoff = spot_light_attenuation_outer_cutoff;
+                lights_changed = true;
+            }
+            if (lights_changed) {
+                phong_renderer.applyLights(all_lights.items);
             }
         }
         dig.end();
