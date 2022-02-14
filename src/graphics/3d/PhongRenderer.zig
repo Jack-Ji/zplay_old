@@ -22,32 +22,12 @@ const vertex_attribs = [_]u32{
     Renderer.ATTRIB_LOCATION_TEXTURE1,
 };
 
-const vs =
+const shader_head =
     \\#version 330 core
-    \\layout (location = 0) in vec3 a_pos;
-    \\layout (location = 2) in vec3 a_normal;
-    \\layout (location = 4) in vec2 a_tex1;
     \\
-    \\out vec3 v_pos;
-    \\out vec3 v_normal;
-    \\out vec2 v_tex;
-    \\
-    \\uniform mat4 u_model = mat4(1.0);
-    \\uniform mat4 u_normal = mat4(1.0);
-    \\uniform mat4 u_view = mat4(1.0);
-    \\uniform mat4 u_project = mat4(1.0);
-    \\
-    \\void main()
-    \\{
-    \\    gl_Position = u_project * u_view * u_model * vec4(a_pos, 1.0);
-    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
-    \\    v_normal = mat3(u_normal) * a_normal;
-    \\    v_tex = a_tex1;
-    \\}
 ;
 
-const vs_instanced =
-    \\#version 330 core
+const vs_body = light.ShaderDefinitions ++
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 2) in vec3 a_normal;
     \\layout (location = 4) in vec2 a_tex1;
@@ -57,22 +37,34 @@ const vs_instanced =
     \\out vec3 v_normal;
     \\out vec2 v_tex;
     \\
+    \\#ifdef SHADOW_DRAW
+    \\out vec3 v_frag_in_light_space;
+    \\#endif
+    \\
+    \\uniform mat4 u_model = mat4(1.0);
+    \\uniform mat4 u_normal = mat4(1.0);
     \\uniform mat4 u_view = mat4(1.0);
     \\uniform mat4 u_project = mat4(1.0);
     \\
     \\void main()
     \\{
-    \\    gl_Position = u_project * u_view * a_transform * vec4(a_pos, 1.0);
+    \\#ifdef INSTANCED_DRAW
     \\    v_pos = vec3(a_transform * vec4(a_pos, 1.0));
     \\    v_normal = mat3(transpose(inverse(a_transform))) * a_normal;
+    \\#else
+    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
+    \\    v_normal = mat3(u_normal) * a_normal;
+    \\#endif
+    \\    gl_Position = u_project * u_view * vec4(v_pos, 1.0);
     \\    v_tex = a_tex1;
+    \\#ifdef SHADOW_DRAW
+    \\    v_frag_in_light_space = u_directional_light.space_matrix * vec4(v_pos, 1.0);
+    \\#endif
     \\}
 ;
 
-const fs =
-    \\#version 330 core
+const fs_body = light.ShaderDefinitions ++
     \\out vec4 frag_color;
-    \\
     \\in vec3 v_pos;
     \\in vec3 v_normal;
     \\in vec2 v_tex;
@@ -85,8 +77,6 @@ const fs =
     \\    float shiness;
     \\};
     \\uniform Material u_material;
-    \\
-++ light.ShaderDefinitions ++
     \\
     \\vec3 ambientColor(vec3 light_color,
     \\                  vec3 material_ambient)
@@ -117,7 +107,18 @@ const fs =
     \\    return light_color * (spec * material_specular);
     \\}
     \\
-    \\vec3 applyDirectionalLight(DirectionalLight light, vec3 material_diffuse, vec3 material_specular, float shiness)
+    \\#ifdef SHADOW_DRAW
+    \\uniform sampler2D u_shadow_map;
+    \\float calcShadowValue()
+    \\{
+    \\    
+    \\}
+    \\#endif
+    \\
+    \\vec3 applyDirectionalLight(DirectionalLight light,
+    \\                           vec3 material_diffuse,
+    \\                           vec3 material_specular,
+    \\                           float shiness)
     \\{
     \\    vec3 light_dir = normalize(-light.direction);
     \\    vec3 view_dir = normalize(u_view_pos - v_pos);
@@ -125,11 +126,18 @@ const fs =
     \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
     \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
     \\                                        v_normal, material_specular, shiness);
+    \\#ifdef SHADOW_DRAW
+    \\    vec3 result = ambient_color + (1.0 - shadow) * (diffuse_color + specular_color);
+    \\#else
     \\    vec3 result = ambient_color + diffuse_color + specular_color;
+    \\#endif
     \\    return result;
     \\}
     \\
-    \\vec3 applyPointLight(PointLight light, vec3 material_diffuse, vec3 material_specular, float shiness)
+    \\vec3 applyPointLight(PointLight light,
+    \\                     vec3 material_diffuse,
+    \\                     vec3 material_specular,
+    \\                     float shiness)
     \\{
     \\    vec3 light_dir = normalize(light.position - v_pos);
     \\    vec3 view_dir = normalize(u_view_pos - v_pos);
@@ -141,11 +149,14 @@ const fs =
     \\    vec3 diffuse_color = diffuseColor(light_dir, light.diffuse, v_normal, material_diffuse);
     \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
     \\                                        v_normal, material_specular, shiness);
-    \\    vec3 result = (ambient_color + diffuse_color + specular_color) * attenuation;
-    \\    return result;
+    \\    vec3 result = ambient_color + diffuse_color + specular_color;
+    \\    return result * attenuation;
     \\}
     \\
-    \\vec3 applySpotLight(SpotLight light, vec3 material_diffuse, vec3 material_specular, float shiness)
+    \\vec3 applySpotLight(SpotLight light,
+    \\                    vec3 material_diffuse,
+    \\                    vec3 material_specular,
+    \\                    float shiness)
     \\{
     \\    vec3 light_dir = normalize(light.position - v_pos);
     \\    vec3 view_dir = normalize(u_view_pos - v_pos);
@@ -161,7 +172,6 @@ const fs =
     \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
     \\                                        v_normal, material_specular, shiness);
     \\    vec3 result = ambient_color + (diffuse_color + specular_color) * intensity;
-    \\
     \\    return result * attenuation;
     \\}
     \\
@@ -181,19 +191,37 @@ const fs =
     \\}
 ;
 
+const vs = shader_head ++ vs_body;
+const vs_instanced = shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
+const fs = shader_head ++ fs_body;
+
+const vs_shadow = shader_head ++ "\n#define SHADOW_DRAW\n" ++ vs_body;
+const vs_instanced_shadow = shader_head ++ "\n#define INSTANCED_DRAW\n#define SHADOW_DRAW\n" ++ vs_body;
+const fs_shadow = shader_head ++ "\n#define SHADOW_DRAW\n" ++ fs_body;
+
 /// status of renderer
 status: Renderer.Status = .not_ready,
 
 /// shader programs
 program: ShaderProgram = undefined,
-program_instanced: ShaderProgram,
+program_instanced: ShaderProgram = undefined,
+
+/// renderer features
+pub const Option = struct {
+    has_shadow: bool = true,
+};
 
 /// create a Phong lighting renderer
-pub fn init() Self {
-    return .{
-        .program = ShaderProgram.init(vs, fs, null),
-        .program_instanced = ShaderProgram.init(vs_instanced, fs, null),
-    };
+pub fn init(option: Option) Self {
+    var self = Self{};
+    if (option.has_shadow) {
+        self.program = ShaderProgram.init(vs_shadow, fs_shadow, null);
+        self.program_instanced = ShaderProgram.init(vs_instanced_shadow, fs_shadow, null);
+    } else {
+        self.program = ShaderProgram.init(vs, fs, null);
+        self.program_instanced = ShaderProgram.init(vs_instanced, fs, null);
+    }
+    return self;
 }
 
 /// free resources

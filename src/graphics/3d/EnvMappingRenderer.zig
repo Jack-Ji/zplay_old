@@ -20,10 +20,15 @@ const vertex_attribs = [_]u32{
     Renderer.ATTRIB_LOCATION_NORMAL,
 };
 
-const vs =
+const shader_head =
     \\#version 330 core
+    \\
+;
+
+const vs_body =
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 2) in vec3 a_normal;
+    \\layout (location = 10) in mat4 a_transform;
     \\
     \\out vec3 v_pos;
     \\out vec3 v_normal;
@@ -35,34 +40,19 @@ const vs =
     \\
     \\void main()
     \\{
-    \\    gl_Position = u_project * u_view * u_model * vec4(a_pos, 1.0);
-    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
-    \\    v_normal = mat3(u_normal) * a_normal;
-    \\}
-;
-
-const vs_instanced =
-    \\#version 330 core
-    \\layout (location = 0) in vec3 a_pos;
-    \\layout (location = 2) in vec3 a_normal;
-    \\layout (location = 10) in mat4 a_transform;
-    \\
-    \\out vec3 v_pos;
-    \\out vec3 v_normal;
-    \\
-    \\uniform mat4 u_view = mat4(1.0);
-    \\uniform mat4 u_project = mat4(1.0);
-    \\
-    \\void main()
-    \\{
-    \\    gl_Position = u_project * u_view * a_transform * vec4(a_pos, 1.0);
+    \\#ifdef INSTANCED_DRAW
     \\    v_pos = vec3(a_transform * vec4(a_pos, 1.0));
     \\    v_normal = mat3(transpose(inverse(a_transform))) * a_normal;
+    \\#else
+    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
+    \\    v_normal = mat3(u_normal) * a_normal;
+    \\#endif
+    \\    gl_Position = u_project * u_view * vec4(v_pos, 1.0);
+    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
     \\}
 ;
 
-const reflect_fs =
-    \\#version 330 core
+const fs_body =
     \\out vec4 frag_color;
     \\
     \\in vec3 v_pos;
@@ -71,32 +61,26 @@ const reflect_fs =
     \\uniform vec3 u_view_pos;
     \\uniform samplerCube u_texture;
     \\
-    \\void main()
-    \\{
-    \\    vec3 view_dir = normalize(v_pos - u_view_pos);
-    \\    vec3 reflect_dir = reflect(view_dir, v_normal);
-    \\    frag_color = vec4(texture(u_texture, reflect_dir).rgb, 1.0);
-    \\}
-;
-
-const refract_fs =
-    \\#version 330 core
-    \\out vec4 frag_color;
-    \\
-    \\in vec3 v_pos;
-    \\in vec3 v_normal;
-    \\
-    \\uniform vec3 u_view_pos;
-    \\uniform samplerCube u_texture;
+    \\#ifdef RETRACT_MAPPING
     \\uniform float u_ratio;
+    \\#endif
     \\
     \\void main()
     \\{
     \\    vec3 view_dir = normalize(v_pos - u_view_pos);
-    \\    vec3 refract_dir = refract(view_dir, v_normal, u_ratio);
-    \\    frag_color = vec4(texture(u_texture, refract_dir).rgb, 1.0);
+    \\#ifdef REFLECT_MAPPING
+    \\    vec3 mapping_dir = reflect(view_dir, v_normal);
+    \\#elif defined(RETRACT_MAPPING)
+    \\    vec3 mapping_dir = refract(view_dir, v_normal, u_ratio);
+    \\#endif
+    \\    frag_color = vec4(texture(u_texture, mapping_dir).rgb, 1.0);
     \\}
 ;
+
+const vs = shader_head ++ vs_body;
+const vs_instanced = shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
+const fs_reflect = shader_head ++ "\n#define REFLECT_MAPPING\n" ++ fs_body;
+const fs_retract = shader_head ++ "\n#define RETRACT_MAPPING\n" ++ fs_body;
 
 // environment mapping type
 const Type = enum {
@@ -120,16 +104,16 @@ pub fn init(t: Type) Self {
         .program = ShaderProgram.init(
             vs,
             switch (t) {
-                .reflect => reflect_fs,
-                .refract => refract_fs,
+                .reflect => fs_reflect,
+                .refract => fs_retract,
             },
             null,
         ),
         .program_instanced = ShaderProgram.init(
             vs_instanced,
             switch (t) {
-                .reflect => reflect_fs,
-                .refract => refract_fs,
+                .reflect => fs_reflect,
+                .refract => fs_retract,
             },
             null,
         ),

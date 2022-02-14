@@ -9,11 +9,13 @@ pub const max_point_light_num = 16;
 pub const max_spot_light_num = 16;
 
 pub const ShaderDefinitions =
+    \\
     \\struct DirectionalLight {
     \\    vec3 ambient;
     \\    vec3 diffuse;
     \\    vec3 specular;
     \\    vec3 direction;
+    \\    mat4 space_matrix;
     \\};
     \\uniform DirectionalLight u_directional_light;
     \\
@@ -45,6 +47,7 @@ pub const ShaderDefinitions =
     \\uniform int u_spot_light_count;
     \\#define NR_SPOT_LIGHTS 16
     \\uniform SpotLight u_spot_lights[NR_SPOT_LIGHTS];
+    \\
 ;
 
 /// light type

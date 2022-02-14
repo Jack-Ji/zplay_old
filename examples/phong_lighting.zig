@@ -127,7 +127,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .outer_cutoff = spot_light_attenuation_outer_cutoff,
         },
     });
-    phong_renderer = PhongRenderer.init();
+    phong_renderer = PhongRenderer.init(.{ .has_shadow = false });
     phong_renderer.renderer().begin(false);
     phong_renderer.applyLights(all_lights.items);
     phong_renderer.renderer().end();

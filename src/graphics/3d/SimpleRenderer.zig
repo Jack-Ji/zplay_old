@@ -22,11 +22,16 @@ const vertex_attribs = [_]u32{
     Renderer.ATTRIB_LOCATION_TEXTURE1,
 };
 
-const vs =
+const shader_head =
     \\#version 330 core
+    \\
+;
+
+const vs_body =
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 1) in vec4 a_color;
     \\layout (location = 4) in vec2 a_tex1;
+    \\layout (location = 10) in mat4 a_transform;
     \\
     \\uniform mat4 u_model = mat4(1.0);
     \\uniform mat4 u_view = mat4(1.0);
@@ -38,36 +43,19 @@ const vs =
     \\
     \\void main()
     \\{
-    \\    gl_Position = u_project * u_view * u_model * vec4(a_pos, 1.0);
-    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
-    \\    v_tex = a_tex1;
-    \\    v_color = a_color;
-    \\}
-;
-
-const vs_instanced =
-    \\#version 330 core
-    \\layout (location = 0) in vec3 a_pos;
-    \\layout (location = 1) in vec4 a_color;
-    \\layout (location = 4) in vec2 a_tex1;
-    \\layout (location = 10) in mat4 a_transform;
-    \\
-    \\uniform mat4 u_view = mat4(1.0);
-    \\uniform mat4 u_project = mat4(1.0);
-    \\
-    \\out vec3 v_pos;
-    \\out vec2 v_tex;
-    \\out vec4 v_color;
-    \\
-    \\void main()
-    \\{
-    \\    gl_Position = u_project * u_view * a_transform * vec4(a_pos, 1.0);
+    \\#ifdef INSTANCED_DRAW
     \\    v_pos = vec3(a_transform * vec4(a_pos, 1.0));
+    \\#else
+    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
+    \\#endif
+    \\    gl_Position = u_project * u_view * vec4(v_pos, 1.0);
     \\    v_tex = a_tex1;
     \\    v_color = a_color;
     \\}
 ;
 
+const vs = shader_head ++ vs_body;
+const vs_instanced = shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
 const fs =
     \\#version 330 core
     \\out vec4 frag_color;

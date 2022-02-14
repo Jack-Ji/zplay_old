@@ -39,7 +39,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // create renderer
     simple_renderer = SimpleRenderer.init();
-    phong_renderer = PhongRenderer.init();
+    phong_renderer = PhongRenderer.init(.{ .has_shadow = false });
     var dirlight = light.Light{
         .directional = .{
             .ambient = Vec3.new(0.8, 0.8, 0.8),
