@@ -21,15 +21,15 @@ pub const Error = error{
 };
 
 /// meshes
-meshes: std.ArrayList(Mesh) = undefined,
-transforms: std.ArrayList(Mat4) = undefined,
+meshes: std.ArrayList(Mesh),
+transforms: std.ArrayList(Mat4),
 
 /// materials
-materials: std.ArrayList(Material) = undefined,
-material_indices: std.ArrayList(u32) = undefined,
+materials: std.ArrayList(Material),
+material_indices: std.ArrayList(u32),
 
 /// loaded textures
-textures: std.ArrayList(*Texture) = undefined,
+textures: std.ArrayList(*Texture),
 
 /// init model with raw data
 pub fn fromMeshAndMaterial(
@@ -40,11 +40,11 @@ pub fn fromMeshAndMaterial(
 ) !Self {
     assert(meshes.len == transforms.len and meshes.len == materials.len);
     var self = Self{
-        .meshes = std.ArrayList(Mesh).initCapacity(allocator, meshes.len) catch unreachable,
-        .transforms = std.ArrayList(Mat4).initCapacity(allocator, meshes.len) catch unreachable,
-        .materials = std.ArrayList(Material).initCapacity(allocator, meshes.len) catch unreachable,
-        .material_indices = std.ArrayList(u32).initCapacity(allocator, meshes.len) catch unreachable,
-        .textures = std.ArrayList(*Texture).init(allocator) catch unreachable,
+        .meshes = try std.ArrayList(Mesh).initCapacity(allocator, meshes.len),
+        .transforms = try std.ArrayList(Mat4).initCapacity(allocator, meshes.len),
+        .materials = try std.ArrayList(Material).initCapacity(allocator, meshes.len),
+        .material_indices = try std.ArrayList(u32).initCapacity(allocator, meshes.len),
+        .textures = try std.ArrayList(*Texture).init(allocator),
     };
     self.meshes.appendSliceAssumeCapacity(meshes);
     self.transforms.appendSliceAssumeCapacity(transforms);
@@ -69,11 +69,11 @@ pub fn fromGLTF(
     defer gltf.free(data);
 
     var self = Self{
-        .meshes = std.ArrayList(Mesh).initCapacity(allocator, 1) catch unreachable,
-        .transforms = std.ArrayList(Mat4).initCapacity(allocator, 1) catch unreachable,
-        .materials = std.ArrayList(Material).initCapacity(allocator, 1) catch unreachable,
-        .material_indices = std.ArrayList(u32).initCapacity(allocator, 1) catch unreachable,
-        .textures = std.ArrayList(*Texture).initCapacity(allocator, 1) catch unreachable,
+        .meshes = try std.ArrayList(Mesh).initCapacity(allocator, 1),
+        .transforms = try std.ArrayList(Mat4).initCapacity(allocator, 1),
+        .materials = try std.ArrayList(Material).initCapacity(allocator, 1),
+        .material_indices = try std.ArrayList(u32).initCapacity(allocator, 1),
+        .textures = try std.ArrayList(*Texture).initCapacity(allocator, 1),
     };
 
     // load vertex attributes
