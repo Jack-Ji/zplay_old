@@ -19,10 +19,12 @@ const PhongRenderer = gfx.@"3d".PhongRenderer;
 const BlinnPhongRenderer = gfx.@"3d".BlinnPhongRenderer;
 const GammaCorrection = gfx.post_processing.GammaCorrection;
 
-var fb: Framebuffer = undefined;
+var shadow_fb: Framebuffer = undefined;
+var scene_fb: Framebuffer = undefined;
 var fb_material: Material = undefined;
 var gamma_correction: GammaCorrection = undefined;
-var simple_renderer: SimpleRenderer = undefined;
+var shadow_map_renderer: SimpleRenderer = undefined;
+var light_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
 var plane: Mesh = undefined;
 var cube: Mesh = undefined;
@@ -30,7 +32,9 @@ var light_mesh: Mesh = undefined;
 var light_material: Material = undefined;
 var box_material: Material = undefined;
 var floor_material: Material = undefined;
-var camera = Camera.fromPositionAndEulerAngles(
+var light_view_camera: Camera = undefined;
+var light_view_projection: Mat4 = undefined;
+var view_camera = Camera.fromPositionAndEulerAngles(
     Vec3.new(2.05, 1.33, -9.69),
     -12.93,
     -170.01,
@@ -55,7 +59,7 @@ const cube_positions = [_]Vec3{
 var dir_light_ambient = [_]f32{ 0.1, 0.1, 0.1 };
 var dir_light_diffuse = [_]f32{ 0.1, 0.1, 0.1 };
 var dir_light_specular = [_]f32{ 0.1, 0.1, 0.1 };
-var dir_light_direction = [_]f32{ 0, -1, 0 };
+var dir_light_direction = [_]f32{ -1, -1, 0 };
 var point_light_ambient = [_]f32{ 0.02, 0.02, 0.02 };
 var point_light_diffuse = [_]f32{ 0.5, 0.5, 0.5 };
 var point_light_position = [_]f32{ 1.2, 1, -2 };
@@ -71,6 +75,9 @@ var spot_light_attenuation_cutoff: f32 = 5.9;
 var spot_light_attenuation_outer_cutoff: f32 = 7.1;
 var all_lights: std.ArrayList(light.Light) = undefined;
 
+const shadow_width = 1024;
+const shadow_height = 1024;
+
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 
@@ -80,21 +87,34 @@ fn init(ctx: *zp.Context) anyerror!void {
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(ctx.window, &width, &height);
-    fb = try Framebuffer.init(
+    shadow_fb = try Framebuffer.initForShadowMapping(
+        std.testing.allocator,
+        shadow_width,
+        shadow_height,
+    );
+    scene_fb = try Framebuffer.init(
         std.testing.allocator,
         width,
         height,
         .{},
     );
     fb_material = Material.init(.{
-        .single_texture = fb.tex.?,
+        .single_texture = scene_fb.tex.?,
     }, false);
 
     // init gamma correction
     gamma_correction = try GammaCorrection.init(std.testing.allocator);
 
     // simple renderer
-    simple_renderer = SimpleRenderer.init();
+    var pos = Vec3.new(0, 10, 0);
+    light_view_camera = Camera.fromPositionAndTarget(
+        pos,
+        pos.add(Vec3.fromSlice(&dir_light_direction)),
+        null,
+    );
+    light_view_projection = Mat4.orthographic(-20.0, 20.0, -20.0, 20.0, 0.1, 100.0);
+    shadow_map_renderer = SimpleRenderer.init(.{ .no_draw = true });
+    light_renderer = SimpleRenderer.init(.{});
 
     // init lights and phong renderer
     all_lights = std.ArrayList(light.Light).init(std.testing.allocator);
@@ -104,6 +124,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .diffuse = Vec3.fromSlice(&dir_light_diffuse),
             .specular = Vec3.fromSlice(&dir_light_specular),
             .direction = Vec3.fromSlice(&dir_light_direction),
+            .space_matrix = light_view_projection.mult(light_view_camera.getViewMatrix()),
         },
     });
     try all_lights.append(.{
@@ -127,10 +148,8 @@ fn init(ctx: *zp.Context) anyerror!void {
             .outer_cutoff = spot_light_attenuation_outer_cutoff,
         },
     });
-    phong_renderer = PhongRenderer.init(.{ .has_shadow = false });
-    phong_renderer.renderer().begin(false);
+    phong_renderer = PhongRenderer.init(.{ .has_shadow = true });
     phong_renderer.applyLights(all_lights.items);
-    phong_renderer.renderer().end();
 
     // generate mesh
     plane = try Mesh.genPlane(std.testing.allocator, 50, 50, 20, 20);
@@ -165,6 +184,7 @@ fn init(ctx: *zp.Context) anyerror!void {
                 .{},
             ),
             .shiness = 10,
+            .shadow_map = shadow_fb.depth_stencil.?.tex,
         },
     }, true);
     floor_material = Material.init(.{
@@ -187,6 +207,7 @@ fn init(ctx: *zp.Context) anyerror!void {
                 .{},
             ),
             .shiness = 0.1,
+            .shadow_map = shadow_fb.depth_stencil.?.tex,
         },
     }, true);
     var unit = box_material.allocTextureUnit(0);
@@ -202,30 +223,30 @@ fn init(ctx: *zp.Context) anyerror!void {
 
 fn loop(ctx: *zp.Context) void {
     // camera movement
-    const distance = ctx.delta_tick * camera.move_speed;
+    const distance = ctx.delta_tick * view_camera.move_speed;
     if (ctx.isKeyPressed(.w)) {
-        camera.move(.forward, distance);
+        view_camera.move(.forward, distance);
     }
     if (ctx.isKeyPressed(.s)) {
-        camera.move(.backward, distance);
+        view_camera.move(.backward, distance);
     }
     if (ctx.isKeyPressed(.a)) {
-        camera.move(.left, distance);
+        view_camera.move(.left, distance);
     }
     if (ctx.isKeyPressed(.d)) {
-        camera.move(.right, distance);
+        view_camera.move(.right, distance);
     }
     if (ctx.isKeyPressed(.left)) {
-        camera.rotate(0, -1);
+        view_camera.rotate(0, -1);
     }
     if (ctx.isKeyPressed(.right)) {
-        camera.rotate(0, 1);
+        view_camera.rotate(0, 1);
     }
     if (ctx.isKeyPressed(.up)) {
-        camera.rotate(1, 0);
+        view_camera.rotate(1, 0);
     }
     if (ctx.isKeyPressed(.down)) {
-        camera.rotate(-1, 0);
+        view_camera.rotate(-1, 0);
     }
 
     while (ctx.pollEvent()) |e| {
@@ -257,44 +278,33 @@ fn loop(ctx: *zp.Context) void {
     var height: u32 = undefined;
     ctx.getWindowSize(&width, &height);
 
-    // render scene
-    ctx.graphics.useFramebuffer(if (enable_gamma_correction) fb else null);
+    // 1st render: generate shadow map
+    ctx.graphics.useFramebuffer(shadow_fb);
     {
-        ctx.graphics.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
+        const projection = Mat4.orthographic(-20.0, 20.0, -20.0, 20.0, 0.1, 100.0);
+        ctx.graphics.setViewport(0, 0, shadow_width, shadow_height);
+        defer ctx.graphics.setViewport(0, 0, width, height);
 
-        // lighting scene
+        ctx.graphics.clear(false, true, false, null);
+        renderScene(ctx, shadow_map_renderer.renderer(), light_view_camera, projection, true);
+    }
+
+    // 2nd render: lighting scene
+    ctx.graphics.useFramebuffer(if (enable_gamma_correction) scene_fb else null);
+    {
         const projection = Mat4.perspective(
-            camera.zoom,
+            view_camera.zoom,
             @intToFloat(f32, width) / @intToFloat(f32, height),
             0.1,
             100,
         );
-        var rd = phong_renderer.renderer();
-        rd.begin(false);
-        plane.render(
-            rd,
-            Mat4.fromRotation(-90, Vec3.right()).translate(Vec3.new(0, -4, 0)),
-            projection,
-            camera,
-            floor_material,
-        ) catch unreachable;
-        for (cube_positions) |pos, i| {
-            const model = Mat4.fromRotation(
-                20 * @intToFloat(f32, i),
-                Vec3.new(1, 0.3, 0.5),
-            ).translate(pos);
-            cube.render(
-                rd,
-                model,
-                projection,
-                camera,
-                box_material,
-            ) catch unreachable;
-        }
-        rd.end();
+
+        // lighting scene
+        ctx.graphics.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
+        renderScene(ctx, phong_renderer.renderer(), view_camera, projection, false);
 
         // draw lights
-        rd = simple_renderer.renderer();
+        var rd = light_renderer.renderer();
         rd.begin(false);
         {
             var old_blend_option = ctx.graphics.blend_option;
@@ -311,7 +321,7 @@ fn loop(ctx: *zp.Context) void {
                     rd,
                     model,
                     projection,
-                    camera,
+                    view_camera,
                     light_material,
                 ) catch unreachable;
             }
@@ -319,7 +329,7 @@ fn loop(ctx: *zp.Context) void {
         rd.end();
     }
 
-    // post gamma correction
+    // 3rd render: gamma correction
     if (enable_gamma_correction) {
         ctx.graphics.useFramebuffer(null);
         ctx.graphics.clear(true, false, false, null);
@@ -344,14 +354,14 @@ fn loop(ctx: *zp.Context) void {
         )) {
             dig.text("Press WASD and up/down/left/right key to move around");
             dig.ztext("Current camera's position: {d:.2}, {d:.2}, {d:.2}", .{
-                camera.position.x(),
-                camera.position.y(),
-                camera.position.z(),
+                view_camera.position.x(),
+                view_camera.position.y(),
+                view_camera.position.z(),
             });
             dig.ztext("Current camera's euler angles: {d:.2}, {d:.2}, {d:.2}", .{
-                camera.euler.x(),
-                camera.euler.y() + 90,
-                camera.euler.z(),
+                view_camera.euler.x(),
+                view_camera.euler.y() + 90,
+                view_camera.euler.z(),
             });
 
             dig.separator();
@@ -507,12 +517,52 @@ fn loop(ctx: *zp.Context) void {
                 lights_changed = true;
             }
             if (lights_changed) {
+                light_view_camera = Camera.fromPositionAndTarget(
+                    light_view_camera.position,
+                    light_view_camera.position.add(Vec3.fromSlice(&dir_light_direction)),
+                    null,
+                );
+                all_lights.items[0].directional.space_matrix =
+                    light_view_projection.mult(light_view_camera.getViewMatrix());
                 phong_renderer.applyLights(all_lights.items);
             }
         }
         dig.end();
     }
     dig.endFrame();
+}
+
+fn renderScene(ctx: *zp.Context, rd: Renderer, camera: Camera, projection: Mat4, generating_shadow_map: bool) void {
+    rd.begin(false);
+    plane.render(
+        rd,
+        Mat4.fromRotation(-90, Vec3.right()).translate(Vec3.new(0, -4, 0)),
+        projection,
+        camera,
+        floor_material,
+    ) catch unreachable;
+
+    var old_culling_option = ctx.graphics.culling_option;
+    if (generating_shadow_map) {
+        ctx.graphics.setCullingOption(.{ .face = .front });
+    }
+    for (cube_positions) |pos, i| {
+        const model = Mat4.fromRotation(
+            20 * @intToFloat(f32, i),
+            Vec3.new(1, 0.3, 0.5),
+        ).translate(pos);
+        cube.render(
+            rd,
+            model,
+            projection,
+            camera,
+            box_material,
+        ) catch unreachable;
+    }
+    if (generating_shadow_map) {
+        ctx.graphics.setCullingOption(old_culling_option);
+    }
+    rd.end();
 }
 
 fn quit(ctx: *zp.Context) void {

@@ -4,6 +4,7 @@ const zp = @import("../../zplay.zig");
 const ShaderProgram = zp.graphics.gpu.ShaderProgram;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
+const Mat4 = alg.Mat4;
 
 pub const max_point_light_num = 16;
 pub const max_spot_light_num = 16;
@@ -64,6 +65,7 @@ pub const Light = union(Type) {
         diffuse: Vec3,
         specular: Vec3 = Vec3.one(),
         direction: Vec3,
+        space_matrix: ?Mat4 = null,
     },
     point: struct {
         ambient: Vec3,
@@ -169,6 +171,9 @@ pub fn applyLights(program: *ShaderProgram, lights: []Light) void {
                 program.setUniformByName("u_directional_light.diffuse", d.diffuse);
                 program.setUniformByName("u_directional_light.specular", d.specular);
                 program.setUniformByName("u_directional_light.direction", d.direction);
+                if (d.space_matrix) |m| {
+                    program.setUniformByName("u_directional_light.space_matrix", m);
+                }
                 dir_light_num += 1;
             },
             .point => |d| {

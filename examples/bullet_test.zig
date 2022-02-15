@@ -38,7 +38,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // create renderer
-    simple_renderer = SimpleRenderer.init();
+    simple_renderer = SimpleRenderer.init(.{});
     phong_renderer = PhongRenderer.init(.{ .has_shadow = false });
     var dirlight = light.Light{
         .directional = .{
@@ -478,7 +478,7 @@ const PhysicsDebug = struct {
             .positions = std.ArrayList(f32).init(allocator),
             .colors = std.ArrayList(f32).init(allocator),
             .vertex_array = VertexArray.init(allocator, 2),
-            .simple_renderer = SimpleRenderer.init(),
+            .simple_renderer = SimpleRenderer.init(.{}),
         };
         debug.simple_renderer.mix_factor = 1.0;
         debug.vertex_array.vbos[0].allocData(100 * @sizeOf(Vec3), .stream_draw);

@@ -38,7 +38,7 @@ const vs_body = light.ShaderDefinitions ++
     \\out vec2 v_tex;
     \\
     \\#ifdef SHADOW_DRAW
-    \\out vec3 v_frag_in_light_space;
+    \\out vec4 v_frag_in_light_space;
     \\#endif
     \\
     \\uniform mat4 u_model = mat4(1.0);
@@ -108,10 +108,28 @@ const fs_body = light.ShaderDefinitions ++
     \\}
     \\
     \\#ifdef SHADOW_DRAW
+    \\in vec4 v_frag_in_light_space;
     \\uniform sampler2D u_shadow_map;
-    \\float calcShadowValue()
+    \\float calcShadowValue(vec3 light_dir, vec3 vertex_normal)
     \\{
-    \\    
+    \\    vec3 proj_coords = v_frag_in_light_space.xyz / v_frag_in_light_space.w;
+    \\    proj_coords = proj_coords * 0.5 + 0.5;
+    \\    float current_depth = proj_coords.z;
+    \\    float shadow = 0;
+    \\    if (current_depth <= 1.0) {
+    \\        float bias = max(0.05 * (1.0 - dot(light_dir, vertex_normal)), 0.005);
+    \\        vec2 texture_size = 1.0 / textureSize(u_shadow_map, 0);
+    \\
+    \\        // PCF - percentage-closer filtering
+    \\        for (int x = -1; x <= 1; ++x) {
+    \\            for (int y = -1; y <= 1; ++y) {
+    \\                float closest_depth = texture(u_shadow_map, proj_coords.xy + vec2(x, y) * texture_size).r;
+    \\                shadow += current_depth - bias > closest_depth ? 1.0 : 0.0;
+    \\            }
+    \\        }
+    \\        shadow /= 9.0;
+    \\    }
+    \\    return shadow;
     \\}
     \\#endif
     \\
@@ -127,6 +145,7 @@ const fs_body = light.ShaderDefinitions ++
     \\    vec3 specular_color = specularColor(light_dir, light.specular, view_dir,
     \\                                        v_normal, material_specular, shiness);
     \\#ifdef SHADOW_DRAW
+    \\    float shadow = calcShadowValue(light_dir, v_normal);
     \\    vec3 result = ambient_color + (1.0 - shadow) * (diffuse_color + specular_color);
     \\#else
     \\    vec3 result = ambient_color + diffuse_color + specular_color;
@@ -206,15 +225,19 @@ status: Renderer.Status = .not_ready,
 program: ShaderProgram = undefined,
 program_instanced: ShaderProgram = undefined,
 
+/// rendering options
+has_shadow: bool = undefined,
+
 /// renderer features
 pub const Option = struct {
-    has_shadow: bool = true,
+    has_shadow: bool = false,
 };
 
 /// create a Phong lighting renderer
 pub fn init(option: Option) Self {
     var self = Self{};
-    if (option.has_shadow) {
+    self.has_shadow = option.has_shadow;
+    if (self.has_shadow) {
         self.program = ShaderProgram.init(vs_shadow, fs_shadow, null);
         self.program_instanced = ShaderProgram.init(vs_instanced_shadow, fs_shadow, null);
     } else {
@@ -302,6 +325,12 @@ fn applyMaterial(self: *Self, material: Material) void {
         std.fmt.bufPrintZ(&buf, "u_material.shiness", .{}) catch unreachable,
         material.data.phong.shiness,
     );
+    if (self.has_shadow) {
+        self.getProgram().setUniformByName(
+            "u_shadow_map",
+            material.data.phong.shadow_map.?.getTextureUnit(),
+        );
+    }
 }
 
 /// init common uniform variables

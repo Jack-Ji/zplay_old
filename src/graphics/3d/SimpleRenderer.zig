@@ -54,10 +54,7 @@ const vs_body =
     \\}
 ;
 
-const vs = shader_head ++ vs_body;
-const vs_instanced = shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
-const fs =
-    \\#version 330 core
+const fs_body =
     \\out vec4 frag_color;
     \\
     \\in vec3 v_pos;
@@ -69,26 +66,47 @@ const fs =
     \\
     \\void main()
     \\{
+    \\#ifndef NO_DRAW
     \\    frag_color = mix(texture(u_texture, v_tex), v_color, u_mix_factor);
+    \\#endif
     \\}
 ;
+
+const vs = shader_head ++ vs_body;
+const vs_instanced = shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
+const fs = shader_head ++ fs_body;
+const fs_no_draw = shader_head ++ "\n#define NO_DRAW\n" ++ fs_body;
 
 /// status of renderer
 status: Renderer.Status = .not_ready,
 
 /// shader programs
-program: ShaderProgram,
-program_instanced: ShaderProgram,
+program: ShaderProgram = undefined,
+program_instanced: ShaderProgram = undefined,
 
-/// factor used to mix texture and vertex's colors
-mix_factor: f32 = 0,
+/// rendering options
+mix_factor: f32 = undefined,
+no_draw: bool = undefined,
+
+/// rendering options
+pub const Option = struct {
+    mix_factor: f32 = 0,
+    no_draw: bool = false,
+};
 
 /// create a simple renderer
-pub fn init() Self {
-    return .{
-        .program = ShaderProgram.init(vs, fs, null),
-        .program_instanced = ShaderProgram.init(vs_instanced, fs, null),
-    };
+pub fn init(option: Option) Self {
+    var self = Self{};
+    self.mix_factor = option.mix_factor;
+    self.no_draw = option.no_draw;
+    if (self.no_draw) {
+        self.program = ShaderProgram.init(vs, fs_no_draw, null);
+        self.program_instanced = ShaderProgram.init(vs_instanced, fs_no_draw, null);
+    } else {
+        self.program = ShaderProgram.init(vs, fs, null);
+        self.program_instanced = ShaderProgram.init(vs_instanced, fs, null);
+    }
+    return self;
 }
 
 /// free resources
@@ -162,9 +180,11 @@ fn initCommonUniformVars(
     } else {
         self.getProgram().setUniformByName("u_view", Mat4.identity());
     }
-    self.getProgram().setUniformByName("u_mix_factor", self.mix_factor);
-    if (material) |mr| {
-        self.applyMaterial(mr);
+    if (!self.no_draw) {
+        self.getProgram().setUniformByName("u_mix_factor", self.mix_factor);
+        if (material) |mr| {
+            self.applyMaterial(mr);
+        }
     }
 }
 

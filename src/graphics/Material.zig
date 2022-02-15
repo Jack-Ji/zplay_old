@@ -21,8 +21,9 @@ pub const Type = enum {
 pub const Data = union(Type) {
     phong: struct {
         diffuse_map: *Texture,
-        specular_map: *Texture,
+        specular_map: *Texture = null,
         shiness: f32,
+        shadow_map: ?*Texture = null,
     },
     pbr: struct {},
     refract_mapping: struct {
@@ -50,6 +51,9 @@ pub fn init(data: Data, own_data: bool) Self {
             assert(mr.diffuse_map.type == .texture_2d);
             assert(mr.specular_map.type == .texture_2d);
             assert(mr.shiness >= 0);
+            if (mr.shadow_map) |tex| {
+                assert(tex.type == .texture_2d);
+            }
         },
         .pbr => {},
         .refract_mapping => |mr| {
@@ -72,7 +76,8 @@ pub fn deinit(self: Self) void {
     switch (self.data) {
         .phong => |mr| {
             mr.diffuse_map.deinit();
-            mr.specular_map.deinit();
+            if (mr.specular_map != mr.diffuse_map)
+                mr.specular_map.deinit();
         },
         .pbr => {},
         .refract_mapping => |mr| {
@@ -96,6 +101,10 @@ pub fn allocTextureUnit(self: Self, start_unit: i32) i32 {
             unit += 1;
             mr.specular_map.bindToTextureUnit(Texture.TextureUnit.fromInt(unit));
             unit += 1;
+            if (mr.shadow_map) |tex| {
+                tex.bindToTextureUnit(Texture.TextureUnit.fromInt(unit));
+                unit += 1;
+            }
         },
         .pbr => {},
         .refract_mapping => |mr| {

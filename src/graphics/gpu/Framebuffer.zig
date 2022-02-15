@@ -158,6 +158,22 @@ pub fn init(
     return self;
 }
 
+pub fn initForShadowMapping(
+    allocator: std.mem.Allocator,
+    width: u32,
+    height: u32,
+) !Self {
+    var fb = try init(allocator, width, height, .{
+        .color_type = .none,
+        .depth_type = .texture,
+        .stencil_type = .none,
+    });
+    fb.depth_stencil.?.tex.setWrappingMode(.s, .clamp_to_border);
+    fb.depth_stencil.?.tex.setWrappingMode(.t, .clamp_to_border);
+    fb.depth_stencil.?.tex.setBorderColor(.{ 1.0, 1.0, 1.0, 1.0 });
+    return fb;
+}
+
 const AttachmentType = enum(c_int) {
     color0 = gl.GL_COLOR_ATTACHMENT0,
     color1 = gl.GL_COLOR_ATTACHMENT1,
