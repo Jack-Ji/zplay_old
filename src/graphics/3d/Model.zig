@@ -44,7 +44,7 @@ pub fn fromMeshAndMaterial(
         .transforms = std.ArrayList(Mat4).initCapacity(allocator, meshes.len) catch unreachable,
         .materials = std.ArrayList(Material).initCapacity(allocator, meshes.len) catch unreachable,
         .material_indices = std.ArrayList(u32).initCapacity(allocator, meshes.len) catch unreachable,
-        .textures = std.ArrayList(*Texture).initCapacity(allocator, 1) catch unreachable,
+        .textures = std.ArrayList(*Texture).init(allocator) catch unreachable,
     };
     self.meshes.appendSliceAssumeCapacity(meshes);
     self.transforms.appendSliceAssumeCapacity(transforms);
