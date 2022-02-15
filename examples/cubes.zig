@@ -82,7 +82,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
 
     // simple renderer
-    simple_renderer = SimpleRenderer.init();
+    simple_renderer = SimpleRenderer.init(.{});
     rd = simple_renderer.renderer();
 
     // init transform array

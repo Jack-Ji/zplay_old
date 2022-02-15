@@ -70,6 +70,13 @@ pub fn init(data: Data, own_data: bool) Self {
     return self;
 }
 
+/// copy material, without ownership of textures
+pub fn copy(mr: Self) Self {
+    var self = mr;
+    self.own_data = false;
+    return self;
+}
+
 /// deallocate material
 pub fn deinit(self: Self) void {
     if (!self.own_data) return;

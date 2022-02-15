@@ -20,35 +20,60 @@ pub const Error = error{
     NoRootNode,
 };
 
-/// materials
-materials: std.ArrayList(Material) = undefined,
-
 /// meshes
 meshes: std.ArrayList(Mesh) = undefined,
 transforms: std.ArrayList(Mat4) = undefined,
+
+/// materials
+materials: std.ArrayList(Material) = undefined,
 material_indices: std.ArrayList(u32) = undefined,
 
-/// generated textures
-generated_textures: std.ArrayList(*Texture) = undefined,
-
 /// loaded textures
-loaded_textures: std.ArrayList(*Texture) = undefined,
+textures: std.ArrayList(*Texture) = undefined,
 
-/// load gltf model file 
+/// init model with raw data
+pub fn fromMeshAndMaterial(
+    allocator: std.mem.Allocator,
+    meshes: []Mesh,
+    transforms: []Mat4,
+    materials: []Material,
+) !Self {
+    assert(meshes.len == transforms.len and meshes.len == materials.len);
+    var self = Self{
+        .meshes = std.ArrayList(Mesh).initCapacity(allocator, meshes.len) catch unreachable,
+        .transforms = std.ArrayList(Mat4).initCapacity(allocator, meshes.len) catch unreachable,
+        .materials = std.ArrayList(Material).initCapacity(allocator, meshes.len) catch unreachable,
+        .material_indices = std.ArrayList(u32).initCapacity(allocator, meshes.len) catch unreachable,
+        .textures = std.ArrayList(*Texture).initCapacity(allocator, 1) catch unreachable,
+    };
+    self.meshes.appendSliceAssumeCapacity(meshes);
+    self.transforms.appendSliceAssumeCapacity(transforms);
+    self.materials.appendSliceAssumeCapacity(materials);
+    for (self.meshes) |_, i| {
+        self.material_indices.appendSliceAssumeCapacity(i);
+    }
+    return self;
+}
+
+/// init model with gltf file 
 /// WARNING: Model won't deallocate default texture, 
 ///          cause it might be used somewhere else, 
 ///          user's code knows better what to do with it.
-pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_meshes: bool, default_texture: ?*Texture) !Self {
+pub fn fromGLTF(
+    allocator: std.mem.Allocator,
+    filename: [:0]const u8,
+    merge_meshes: bool,
+    default_texture: ?*Texture,
+) !Self {
     var data: *gltf.Data = try gltf.loadFile(filename, null);
     defer gltf.free(data);
 
     var self = Self{
-        .materials = std.ArrayList(Material).initCapacity(allocator, 1) catch unreachable,
         .meshes = std.ArrayList(Mesh).initCapacity(allocator, 1) catch unreachable,
         .transforms = std.ArrayList(Mat4).initCapacity(allocator, 1) catch unreachable,
+        .materials = std.ArrayList(Material).initCapacity(allocator, 1) catch unreachable,
         .material_indices = std.ArrayList(u32).initCapacity(allocator, 1) catch unreachable,
-        .generated_textures = std.ArrayList(*Texture).initCapacity(allocator, 1) catch unreachable,
-        .loaded_textures = std.ArrayList(*Texture).initCapacity(allocator, 1) catch unreachable,
+        .textures = std.ArrayList(*Texture).initCapacity(allocator, 1) catch unreachable,
     };
 
     // load vertex attributes
@@ -84,7 +109,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
         if (image.buffer_view != null) {
             var buffer_data = @ptrCast([*]const u8, image.buffer_view.*.buffer.*.data.?);
             var image_data = buffer_data + image.buffer_view.*.offset;
-            self.loaded_textures.append(try Texture.init2DFromFileData(
+            self.textures.append(try Texture.init2DFromFileData(
                 allocator,
                 image_data[0..image.buffer_view.*.size],
                 false,
@@ -98,7 +123,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
                 "{s}{s}{s}",
                 .{ dirname, std.fs.path.sep_str, image.uri },
             ) catch unreachable;
-            self.loaded_textures.append(try Texture.init2DFromFilePath(
+            self.textures.append(try Texture.init2DFromFilePath(
                 allocator,
                 image_path,
                 false,
@@ -109,7 +134,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
 
     // default pixel data
     if (default_texture == null) {
-        self.generated_textures.append(try Texture.init2DFromPixels(
+        self.textures.append(try Texture.init2DFromPixels(
             allocator,
             &.{ 255, 255, 255, 255 },
             .rgba,
@@ -120,7 +145,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
     }
 
     // load materials
-    var default_tex = if (default_texture) |tex| tex else self.generated_textures.items[0];
+    var default_tex = if (default_texture) |tex| tex else self.textures.items[0];
     self.materials.append(Material.init(.{
         .phong = .{
             .diffuse_map = default_tex,
@@ -144,14 +169,14 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
                 base_color_texture.texture.*.image.*.uri == image.uri)
             {
                 self.materials.append(Material.init(.{
-                    .single_texture = self.loaded_textures.items[image_idx],
+                    .single_texture = self.textures.items[image_idx],
                 }, false)) catch unreachable;
                 continue :MATERIAL_LOOP;
             }
         }
 
         const base_color = pbrm.base_color_factor;
-        self.generated_textures.append(try Texture.init2DFromPixels(
+        self.textures.append(try Texture.init2DFromPixels(
             allocator,
             &.{
                 @floatToInt(u8, base_color[0] * 255),
@@ -165,7 +190,7 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
             .{},
         )) catch unreachable;
         self.materials.append(Material.init(.{
-            .single_texture = self.generated_textures.items[self.generated_textures.items.len - 1],
+            .single_texture = self.textures.items[self.textures.items.len - 1],
         }, false)) catch unreachable;
     }
 
@@ -181,21 +206,20 @@ pub fn fromGLTF(allocator: std.mem.Allocator, filename: [:0]const u8, merge_mesh
 
 /// deallocate resources
 pub fn deinit(self: Self) void {
-    self.materials.deinit();
     for (self.meshes.items) |m| {
         m.deinit();
     }
     self.meshes.deinit();
     self.transforms.deinit();
+    for (self.materials.items) |mr| {
+        mr.deinit();
+    }
+    self.materials.deinit();
     self.material_indices.deinit();
-    for (self.generated_textures.items) |t| {
+    for (self.textures.items) |t| {
         t.deinit();
     }
-    self.generated_textures.deinit();
-    for (self.loaded_textures.items) |t| {
-        t.deinit();
-    }
-    self.loaded_textures.deinit();
+    self.textures.deinit();
 }
 
 fn parseNode(

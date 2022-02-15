@@ -39,7 +39,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // create renderer
-    simple_renderer = SimpleRenderer.init();
+    simple_renderer = SimpleRenderer.init(.{});
 
     // load scene
     loadScene();

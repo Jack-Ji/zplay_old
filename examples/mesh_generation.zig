@@ -37,7 +37,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // simple renderer
-    simple_renderer = SimpleRenderer.init();
+    simple_renderer = SimpleRenderer.init(.{});
 
     // generate meshes
     quad = try Mesh.genQuad(std.testing.allocator, 1, 1);
