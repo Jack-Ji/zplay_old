@@ -12,7 +12,7 @@ A simple framework intended for game/tool creation.
 * Image/Audio asset loading/decoding via [great stb](https://github.com/nothings/stb)
 * Particle system (TODO)
 * 2D Sprite system (TODO)
-* Hand-crafted integration of [dear-imgui](https://github.com/ocornut/imgui) and popular extensions([implot](https://github.com/epezent/implot)/[imnodes](https://github.com/Nelarius/imnodes))
+* Hand-crafted integration of [dear-imgui](https://github.com/ocornut/imgui) and popular extensions ([implot](https://github.com/epezent/implot)/[imnodes](https://github.com/Nelarius/imnodes))
 * Hand-crafted integration of [NanoVG](https://github.com/memononen/nanovg)/[NanoSVG](https://github.com/memononen/nanosvg)
 * Hand-crafted OpenGL wrappers: GraphicsContext/FrameBuffer/ShaderProgram/VertexArray/Buffer/Texture etc.
 
@@ -32,6 +32,9 @@ A simple framework intended for game/tool creation.
 
 * phong/blinn-phong light shading
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/phong_lighting.png)
+
+* post-processing effects
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/post_processing.png)
 
 * collision test
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/bullet_test.gif)
