@@ -333,7 +333,7 @@ fn loop(ctx: *zp.Context) void {
     if (enable_gamma_correction) {
         ctx.graphics.useFramebuffer(null);
         ctx.graphics.clear(true, false, false, null);
-        gamma_correction.draw(&ctx.graphics, gamma_value, fb_material);
+        gamma_correction.draw(&ctx.graphics, fb_material, gamma_value);
     }
 
     dig.beginFrame();

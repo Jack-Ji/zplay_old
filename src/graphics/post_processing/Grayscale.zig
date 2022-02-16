@@ -35,13 +35,13 @@ const fs =
     \\
     \\in vec2 v_tex;
     \\
-    \\uniform float u_gamma;
     \\uniform sampler2D u_texture;
     \\
     \\void main()
     \\{
     \\    frag_color = texture(u_texture, v_tex);
-    \\    frag_color.rgb = pow(frag_color.rgb, vec3(1.0/u_gamma));
+    \\    float average = 0.2126 * frag_color.r + 0.7152 * frag_color.g + 0.0722 * frag_color.b;
+    \\    frag_color = vec4(average, average, average, 1.0);
     \\}
 ;
 
@@ -79,7 +79,6 @@ pub fn draw(
     self: *Self,
     graphics_context: *Context,
     material: Material,
-    gamma: ?f32,
 ) void {
     const old_depth_test_status = graphics_context.isCapabilityEnabled(.depth_test);
     graphics_context.toggleCapability(.depth_test, false);
@@ -99,10 +98,6 @@ pub fn draw(
     self.program.setUniformByName(
         "u_texture",
         material.data.single_texture.getTextureUnit(),
-    );
-    self.program.setUniformByName(
-        "u_gamma",
-        gamma orelse 2.2,
     );
 
     // issue draw call

@@ -15,6 +15,41 @@ const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const Self = @This();
 
+/// kernel used for convolution computing
+pub const Kernel = struct {
+    data: [9]f32, // row-major
+
+    pub fn initShapen() Kernel {
+        return .{
+            .data = .{
+                -1.0, -1.0, -1.0,
+                -1.0, 9.0,  -1.0,
+                -1.0, -1.0, -1.0,
+            },
+        };
+    }
+
+    pub fn initBlur() Kernel {
+        return .{
+            .data = .{
+                1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0,
+                2.0 / 16.0, 4.0 / 16.0, 2.0 / 16.0,
+                1.0 / 16.0, 2.0 / 16.0, 1.0 / 16.0,
+            },
+        };
+    }
+
+    pub fn initEdgeDetection() Kernel {
+        return .{
+            .data = .{
+                1.0, 1.0,  1.0,
+                1.0, -8.0, 1.0,
+                1.0, 1.0,  1.0,
+            },
+        };
+    }
+};
+
 const vs =
     \\#version 330 core
     \\layout (location = 0) in vec3 a_pos;
@@ -35,13 +70,32 @@ const fs =
     \\
     \\in vec2 v_tex;
     \\
-    \\uniform float u_gamma;
     \\uniform sampler2D u_texture;
+    \\uniform float u_kernel[9];
+    \\
+    \\const float offset = 1.0 / 300.0;
     \\
     \\void main()
     \\{
-    \\    frag_color = texture(u_texture, v_tex);
-    \\    frag_color.rgb = pow(frag_color.rgb, vec3(1.0/u_gamma));
+    \\    vec2 offsets[9] = vec2[](
+    \\        vec2(-offset,  offset), // top-left
+    \\        vec2( 0.0f,    offset), // top-center
+    \\        vec2( offset,  offset), // top-right
+    \\        vec2(-offset,  0.0f),   // center-left
+    \\        vec2( 0.0f,    0.0f),   // center-center
+    \\        vec2( offset,  0.0f),   // center-right
+    \\        vec2(-offset, -offset), // bottom-left
+    \\        vec2( 0.0f,   -offset), // bottom-center
+    \\        vec2( offset, -offset)  // bottom-right
+    \\    );
+    \\
+    \\    vec3 sample_color[9];
+    \\    for (int i = 0; i < 9; ++i)
+    \\        sample_color[i] = vec3(texture(u_texture, v_tex + offsets[i]));
+    \\    vec3 color = vec3(0.0);
+    \\    for (int i = 0; i < 9; ++i)
+    \\        color += sample_color[i] * u_kernel[i];
+    \\    frag_color = vec4(color, 1.0);
     \\}
 ;
 
@@ -79,7 +133,7 @@ pub fn draw(
     self: *Self,
     graphics_context: *Context,
     material: Material,
-    gamma: ?f32,
+    kernel: Kernel,
 ) void {
     const old_depth_test_status = graphics_context.isCapabilityEnabled(.depth_test);
     graphics_context.toggleCapability(.depth_test, false);
@@ -100,10 +154,7 @@ pub fn draw(
         "u_texture",
         material.data.single_texture.getTextureUnit(),
     );
-    self.program.setUniformByName(
-        "u_gamma",
-        gamma orelse 2.2,
-    );
+    self.program.setUniformByName("u_kernel", kernel.data[0..]);
 
     // issue draw call
     drawcall.drawElements(

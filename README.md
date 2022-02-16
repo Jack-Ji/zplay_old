@@ -6,6 +6,7 @@ A simple framework intended for game/tool creation.
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
 * 3D model loading and rendering (only glTF 2.0 for now)
 * Various 3D shading renderers: Blinn-Phong/EnvMapping/PBR(TODO)
+* Ready to use post-processing effects: Blur/Inversion/Grayscale/Gamma Correction/Convolution
 * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
 * Image/Audio asset loading/decoding via [great stb](https://github.com/nothings/stb)

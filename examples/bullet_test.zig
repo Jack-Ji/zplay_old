@@ -478,9 +478,8 @@ const PhysicsDebug = struct {
             .positions = std.ArrayList(f32).init(allocator),
             .colors = std.ArrayList(f32).init(allocator),
             .vertex_array = VertexArray.init(allocator, 2),
-            .simple_renderer = SimpleRenderer.init(.{}),
+            .simple_renderer = SimpleRenderer.init(.{ .mix_factor = 1.0 }),
         };
-        debug.simple_renderer.mix_factor = 1.0;
         debug.vertex_array.vbos[0].allocData(100 * @sizeOf(Vec3), .stream_draw);
         debug.vertex_array.vbos[1].allocData(100 * @sizeOf(Vec4), .stream_draw);
 
