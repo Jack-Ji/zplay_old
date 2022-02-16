@@ -342,6 +342,15 @@ fn parseNode(
     }
 }
 
+/// allocate texture units for materials
+pub fn allocTextureUnit(self: Self, start_unit: i32) i32 {
+    var unit: i32 = start_unit;
+    for (self.materials.items) |mr| {
+        unit = mr.allocTextureUnit(unit);
+    }
+    return unit;
+}
+
 /// draw model using renderer
 pub fn render(
     self: Self,

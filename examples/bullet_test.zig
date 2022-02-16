@@ -296,9 +296,7 @@ const Scene = struct {
         // allocate texture units
         var unit: i32 = 0;
         for (self.objs.items) |obj| {
-            for (obj.model.materials.items) |m| {
-                unit = m.allocTextureUnit(unit);
-            }
+            unit = obj.model.allocTextureUnit(unit);
         }
         _ = color_material.allocTextureUnit(unit);
 

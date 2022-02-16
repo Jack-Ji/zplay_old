@@ -280,15 +280,9 @@ fn loadScene() void {
 
     // allocate texture units
     var unit: i32 = 0;
-    for (dog.materials.items) |m| {
-        unit = m.allocTextureUnit(unit);
-    }
-    for (girl.materials.items) |m| {
-        unit = m.allocTextureUnit(unit);
-    }
-    for (helmet.materials.items) |m| {
-        unit = m.allocTextureUnit(unit);
-    }
+    unit = dog.allocTextureUnit(unit);
+    unit = girl.allocTextureUnit(unit);
+    unit = helmet.allocTextureUnit(unit);
     _ = skybox_material.allocTextureUnit(unit);
     S.loaded = true;
 }
