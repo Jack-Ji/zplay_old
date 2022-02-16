@@ -15,9 +15,6 @@ const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const Self = @This();
 
-/// vertex attribute locations
-pub const ATTRIB_LOCATION_POS = 0;
-
 const vs =
     \\#version 330 core
     \\layout (location = 0) in vec3 a_pos;
@@ -113,7 +110,7 @@ pub fn init(allocator: std.mem.Allocator) Self {
     );
     self.vertex_array.setAttribute(
         0,
-        ATTRIB_LOCATION_POS,
+        0,
         3,
         f32,
         false,

@@ -21,7 +21,7 @@ pub const Type = enum {
 pub const Data = union(Type) {
     phong: struct {
         diffuse_map: *Texture,
-        specular_map: *Texture = null,
+        specular_map: *Texture,
         shiness: f32,
         shadow_map: ?*Texture = null,
     },
@@ -106,8 +106,10 @@ pub fn allocTextureUnit(self: Self, start_unit: i32) i32 {
         .phong => |mr| {
             mr.diffuse_map.bindToTextureUnit(Texture.TextureUnit.fromInt(unit));
             unit += 1;
-            mr.specular_map.bindToTextureUnit(Texture.TextureUnit.fromInt(unit));
-            unit += 1;
+            if (mr.specular_map != mr.diffuse_map) {
+                mr.specular_map.bindToTextureUnit(Texture.TextureUnit.fromInt(unit));
+                unit += 1;
+            }
             if (mr.shadow_map) |tex| {
                 tex.bindToTextureUnit(Texture.TextureUnit.fromInt(unit));
                 unit += 1;

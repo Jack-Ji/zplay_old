@@ -34,8 +34,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.vbos[0].allocInitData(f32, &vertices, .static_draw);
-    vertex_array.setAttribute(0, Renderer.ATTRIB_LOCATION_POS, 3, f32, false, 7 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, Renderer.ATTRIB_LOCATION_COLOR, 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, @enumToInt(Renderer.AttribLocation.position), 3, f32, false, 7 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, @enumToInt(Renderer.AttribLocation.color), 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // create material
     material = Material.init(.{

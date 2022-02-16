@@ -485,7 +485,7 @@ const PhysicsDebug = struct {
         defer debug.vertex_array.disuse();
         debug.vertex_array.setAttribute(
             0,
-            Renderer.ATTRIB_LOCATION_POS,
+            @enumToInt(Renderer.AttribLocation.position),
             3,
             f32,
             false,
@@ -494,7 +494,7 @@ const PhysicsDebug = struct {
         );
         debug.vertex_array.setAttribute(
             1,
-            Renderer.ATTRIB_LOCATION_COLOR,
+            @enumToInt(Renderer.AttribLocation.color),
             4,
             f32,
             false,

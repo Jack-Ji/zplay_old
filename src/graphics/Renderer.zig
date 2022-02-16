@@ -12,31 +12,33 @@ const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
 const Renderer = @This();
 
-/// global pointer to current activated current_renderer
+/// global pointer to current activated renderer
 var current_renderer: ?*anyopaque = null;
 
 /// The type erased pointer to Renderer implementation
 ptr: *anyopaque,
 vtable: *const VTable,
 
-/// current_renderer's status
+/// renderer's status
 pub const Status = enum {
     not_ready,
     ready_to_draw,
     ready_to_draw_instanced,
 };
 
-/// current_renderer's vertex attribute locations
+/// renderer's vertex attribute locations
 /// NOTE: renderer's vertex shader should follow this 
 /// convention if its purpose is rendering Model/Mesh objects.
-pub const ATTRIB_LOCATION_POS = 0;
-pub const ATTRIB_LOCATION_COLOR = 1;
-pub const ATTRIB_LOCATION_NORMAL = 2;
-pub const ATTRIB_LOCATION_TANGENT = 3;
-pub const ATTRIB_LOCATION_TEXTURE1 = 4;
-pub const ATTRIB_LOCATION_TEXTURE2 = 5;
-pub const ATTRIB_LOCATION_TEXTURE3 = 6;
-pub const ATTRIB_LOCATION_INSTANCE_TRANSFORM = 10;
+pub const AttribLocation = enum(c_uint) {
+    position = 0,
+    color = 1,
+    normal = 2,
+    tangent = 3,
+    texture1 = 4,
+    texture2 = 5,
+    texture3 = 6,
+    instance_transform = 10,
+};
 
 /// vbo specially managed for instanced rendering
 pub const InstanceTransformArray = struct {
@@ -73,7 +75,7 @@ pub const InstanceTransformArray = struct {
     /// NOTE: VertexArray should have been activated!
     pub fn enableAttributes(self: Self) void {
         self.buf.setAttribute(
-            ATTRIB_LOCATION_INSTANCE_TRANSFORM,
+            @enumToInt(AttribLocation.instance_transform),
             4,
             f32,
             false,
@@ -82,7 +84,7 @@ pub const InstanceTransformArray = struct {
             1,
         );
         self.buf.setAttribute(
-            ATTRIB_LOCATION_INSTANCE_TRANSFORM + 1,
+            @enumToInt(AttribLocation.instance_transform) + 1,
             4,
             f32,
             false,
@@ -91,7 +93,7 @@ pub const InstanceTransformArray = struct {
             1,
         );
         self.buf.setAttribute(
-            ATTRIB_LOCATION_INSTANCE_TRANSFORM + 2,
+            @enumToInt(AttribLocation.instance_transform) + 2,
             4,
             f32,
             false,
@@ -100,7 +102,7 @@ pub const InstanceTransformArray = struct {
             1,
         );
         self.buf.setAttribute(
-            ATTRIB_LOCATION_INSTANCE_TRANSFORM + 3,
+            @enumToInt(AttribLocation.instance_transform) + 3,
             4,
             f32,
             false,
@@ -112,14 +114,14 @@ pub const InstanceTransformArray = struct {
 };
 
 const VTable = struct {
-    /// begin using current_renderer
+    /// begin using renderer
     beginFn: fn (ptr: *anyopaque, instanced_draw: bool) void,
 
-    /// stop using current_renderer
+    /// stop using renderer
     endFn: fn (ptr: *anyopaque) void,
 
     /// get supported vertex attributes' locations, instance transforms not included
-    getVertexAttribsFn: fn (ptr: *anyopaque) []const u32,
+    getVertexAttribsFn: fn (ptr: *anyopaque) []const AttribLocation,
 
     /// generic rendering
     renderFn: fn (
@@ -155,7 +157,7 @@ pub fn init(
     pointer: anytype,
     comptime beginFn: fn (ptr: @TypeOf(pointer), instanced_draw: bool) void,
     comptime endFn: fn (ptr: @TypeOf(pointer)) void,
-    comptime getVertexAttribsFn: fn (ptr: @TypeOf(pointer)) []const u32,
+    comptime getVertexAttribsFn: fn (ptr: @TypeOf(pointer)) []const AttribLocation,
     comptime renderFn: fn (
         ptr: @TypeOf(pointer),
         vertex_array: VertexArray,
@@ -201,7 +203,7 @@ pub fn init(
             return @call(.{ .modifier = .always_inline }, endFn, .{self});
         }
 
-        fn getVertexAttribsImpl(ptr: *anyopaque) []const u32 {
+        fn getVertexAttribsImpl(ptr: *anyopaque) []const AttribLocation {
             const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
             return @call(.{ .modifier = .always_inline }, getVertexAttribsFn, .{self});
         }
@@ -298,7 +300,7 @@ pub fn end(rd: Renderer) void {
     current_renderer = null;
 }
 
-pub fn getVertexAttribs(rd: Renderer) []const u32 {
+pub fn getVertexAttribs(rd: Renderer) []const AttribLocation {
     return rd.vtable.getVertexAttribsFn(rd.ptr);
 }
 

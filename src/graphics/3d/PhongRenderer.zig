@@ -16,10 +16,10 @@ const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Self = @This();
 
-const vertex_attribs = [_]u32{
-    Renderer.ATTRIB_LOCATION_POS,
-    Renderer.ATTRIB_LOCATION_NORMAL,
-    Renderer.ATTRIB_LOCATION_TEXTURE1,
+const vertex_attribs = [_]Renderer.AttribLocation{
+    .position,
+    .normal,
+    .texture1,
 };
 
 const shader_head =
@@ -303,7 +303,7 @@ fn end(self: *Self) void {
 }
 
 /// get supported attributes
-fn getVertexAttribs(self: *Self) []const u32 {
+fn getVertexAttribs(self: *Self) []const Renderer.AttribLocation {
     _ = self;
     return &vertex_attribs;
 }

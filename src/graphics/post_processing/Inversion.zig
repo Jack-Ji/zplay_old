@@ -58,10 +58,7 @@ pub fn init(allocator: std.mem.Allocator) !Self {
 
     self.quad.vertex_array.?.use();
     defer self.quad.vertex_array.?.disuse();
-    self.quad.enableAttributes(&.{
-        Renderer.ATTRIB_LOCATION_POS,
-        Renderer.ATTRIB_LOCATION_TEXTURE1,
-    });
+    self.quad.enableAttributes(&.{ .position, .texture1 });
 
     return self;
 }

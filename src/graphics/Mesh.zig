@@ -193,35 +193,35 @@ pub fn renderInstanced(
 
 /// enable vertex attributes
 /// NOTE: VertexArray should have been activated!
-pub fn enableAttributes(self: Self, attrs: []const u32) void {
+pub fn enableAttributes(self: Self, attrs: []const Renderer.AttribLocation) void {
     for (attrs) |a| {
         switch (a) {
-            Renderer.ATTRIB_LOCATION_POS => {
-                self.vertex_array.?.setAttribute(vbo_positions, a, 3, f32, false, 0, 0);
+            .position => {
+                self.vertex_array.?.setAttribute(vbo_positions, @enumToInt(a), 3, f32, false, 0, 0);
             },
-            Renderer.ATTRIB_LOCATION_COLOR => {
+            .color => {
                 if (self.colors != null) {
-                    self.vertex_array.?.setAttribute(vbo_colors, a, 4, f32, false, 0, 0);
+                    self.vertex_array.?.setAttribute(vbo_colors, @enumToInt(a), 4, f32, false, 0, 0);
                 }
             },
-            Renderer.ATTRIB_LOCATION_NORMAL => {
+            .normal => {
                 if (self.normals != null) {
-                    self.vertex_array.?.setAttribute(vbo_normals, a, 3, f32, false, 0, 0);
+                    self.vertex_array.?.setAttribute(vbo_normals, @enumToInt(a), 3, f32, false, 0, 0);
                 }
             },
-            Renderer.ATTRIB_LOCATION_TANGENT => {
+            .tangent => {
                 if (self.tangents != null) {
-                    self.vertex_array.?.setAttribute(vbo_tangents, a, 4, f32, false, 0, 0);
+                    self.vertex_array.?.setAttribute(vbo_tangents, @enumToInt(a), 4, f32, false, 0, 0);
                 }
             },
-            Renderer.ATTRIB_LOCATION_TEXTURE1 => {
+            .texture1 => {
                 if (self.texcoords != null) {
-                    self.vertex_array.?.setAttribute(vbo_texcoords, a, 2, f32, false, 0, 0);
+                    self.vertex_array.?.setAttribute(vbo_texcoords, @enumToInt(a), 2, f32, false, 0, 0);
                 }
             },
-            Renderer.ATTRIB_LOCATION_TEXTURE2 => {},
-            Renderer.ATTRIB_LOCATION_TEXTURE3 => {},
-            else => {},
+            .texture2 => {},
+            .texture3 => {},
+            else => unreachable,
         }
     }
 }
