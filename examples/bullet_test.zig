@@ -48,7 +48,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .direction = Vec3.new(-1, -1, 0),
         },
     };
-    phong_renderer.applyLights(&.{dirlight});
+    phong_renderer.lightRenderer().applyLights(&.{dirlight});
 
     // init color_material
     color_material = Material.init(.{

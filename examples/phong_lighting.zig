@@ -149,7 +149,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         },
     });
     phong_renderer = PhongRenderer.init(.{ .has_shadow = true });
-    phong_renderer.applyLights(all_lights.items);
+    phong_renderer.lightRenderer().applyLights(all_lights.items);
 
     // generate mesh
     plane = try Mesh.genPlane(std.testing.allocator, 50, 50, 20, 20);
@@ -524,7 +524,7 @@ fn loop(ctx: *zp.Context) void {
                 );
                 all_lights.items[0].directional.space_matrix =
                     light_view_projection.mult(light_view_camera.getViewMatrix());
-                phong_renderer.applyLights(all_lights.items);
+                phong_renderer.lightRenderer().applyLights(all_lights.items);
             }
         }
         dig.end();

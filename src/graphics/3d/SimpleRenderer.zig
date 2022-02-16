@@ -115,7 +115,7 @@ pub fn deinit(self: *Self) void {
     self.program_instanced.deinit();
 }
 
-/// get renderer
+/// get renderer instance
 pub fn renderer(self: *Self) Renderer {
     return Renderer.init(self, begin, end, getVertexAttribs, render, renderInstanced);
 }

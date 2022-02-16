@@ -15,7 +15,7 @@ const Renderer = @This();
 /// global pointer to current activated current_renderer
 var current_renderer: ?*anyopaque = null;
 
-/// The type erased pointer to the current_renderer implementation
+/// The type erased pointer to Renderer implementation
 ptr: *anyopaque,
 vtable: *const VTable,
 
@@ -111,7 +111,7 @@ pub const InstanceTransformArray = struct {
     }
 };
 
-pub const VTable = struct {
+const VTable = struct {
     /// begin using current_renderer
     beginFn: fn (ptr: *anyopaque, instanced_draw: bool) void,
 

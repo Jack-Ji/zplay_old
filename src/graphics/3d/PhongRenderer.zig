@@ -253,13 +253,18 @@ pub fn deinit(self: *Self) void {
     self.program_instanced.deinit();
 }
 
-/// get renderer
+/// get renderer instance
 pub fn renderer(self: *Self) Renderer {
     return Renderer.init(self, begin, end, getVertexAttribs, render, renderInstanced);
 }
 
+/// get light renderer instance
+pub fn lightRenderer(self: *Self) light.Renderer {
+    return light.Renderer.init(self, applyLights);
+}
+
 /// apply lights to renderer
-pub fn applyLights(self: *Self, lights: []light.Light) void {
+fn applyLights(self: *Self, lights: []light.Light) void {
     var old_status = self.status;
 
     self.begin(true);

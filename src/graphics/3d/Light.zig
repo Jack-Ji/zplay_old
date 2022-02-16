@@ -325,3 +325,48 @@ pub fn applyLights(program: *ShaderProgram, lights: []Light) void {
     program.setUniformByName("u_point_light_count", point_light_num);
     program.setUniformByName("u_spot_light_count", spot_light_num);
 }
+
+/// supplement interface for light shading
+pub const Renderer = struct {
+    /// The type erased pointer to Renderer implementation
+    ptr: *anyopaque,
+    vtable: *const VTable,
+
+    const VTable = struct {
+        /// apply lights to renderer
+        applyLightsFn: fn (ptr: *anyopaque, lights: []Light) void,
+    };
+
+    pub fn init(
+        pointer: anytype,
+        comptime applyLightsFn: fn (ptr: @TypeOf(pointer), lights: []Light) void,
+    ) Renderer {
+        const Ptr = @TypeOf(pointer);
+        const ptr_info = @typeInfo(Ptr);
+
+        assert(ptr_info == .Pointer); // must be a pointer
+        assert(ptr_info.Pointer.size == .One); // must be a single-item pointer
+
+        const alignment = ptr_info.Pointer.alignment;
+
+        const gen = struct {
+            fn applyLightsImpl(ptr: *anyopaque, lights: []Light) void {
+                const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
+                return @call(.{ .modifier = .always_inline }, applyLightsFn, .{ self, lights });
+            }
+
+            const vtable = VTable{
+                .applyLightsFn = applyLightsImpl,
+            };
+        };
+
+        return .{
+            .ptr = pointer,
+            .vtable = &gen.vtable,
+        };
+    }
+
+    pub fn applyLights(rd: Renderer, lights: []Light) void {
+        rd.vtable.applyLightsFn(rd.ptr, lights);
+    }
+};
