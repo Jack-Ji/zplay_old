@@ -129,7 +129,7 @@ fn loop(ctx: *zp.Context) void {
     );
 
     // render scene
-    ctx.graphics.useFramebuffer(fb);
+    Framebuffer.use(fb);
     {
         ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
@@ -146,7 +146,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     // post processing
-    ctx.graphics.useFramebuffer(null);
+    Framebuffer.use(null);
     {
         ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
         switch (pp_selection) {

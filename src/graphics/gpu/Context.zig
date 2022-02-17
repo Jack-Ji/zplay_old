@@ -374,13 +374,3 @@ pub fn setCullingOption(self: *Self, option: CullingOption) void {
     self.culling_option = option;
     gl.util.checkError();
 }
-
-/// enable a framebuffer, use system-allocated by default 
-pub fn useFramebuffer(self: Self, framebuffer: ?Framebuffer) void {
-    _ = self;
-    gl.bindFramebuffer(
-        gl.GL_FRAMEBUFFER,
-        if (framebuffer) |fb| fb.id else 0,
-    );
-    gl.util.checkError();
-}

@@ -279,7 +279,7 @@ fn loop(ctx: *zp.Context) void {
     ctx.getWindowSize(&width, &height);
 
     // 1st render: generate shadow map
-    ctx.graphics.useFramebuffer(shadow_fb);
+    Framebuffer.use(shadow_fb);
     {
         const projection = Mat4.orthographic(-20.0, 20.0, -20.0, 20.0, 0.1, 100.0);
         ctx.graphics.setViewport(0, 0, shadow_width, shadow_height);
@@ -290,7 +290,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     // 2nd render: lighting scene
-    ctx.graphics.useFramebuffer(if (enable_gamma_correction) scene_fb else null);
+    Framebuffer.use(if (enable_gamma_correction) scene_fb else null);
     {
         const projection = Mat4.perspective(
             view_camera.zoom,
@@ -331,7 +331,7 @@ fn loop(ctx: *zp.Context) void {
 
     // 3rd render: gamma correction
     if (enable_gamma_correction) {
-        ctx.graphics.useFramebuffer(null);
+        Framebuffer.use(null);
         ctx.graphics.clear(true, false, false, null);
         gamma_correction.draw(&ctx.graphics, fb_material, gamma_value);
     }

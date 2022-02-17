@@ -10,6 +10,8 @@ pub const FramebufferError = error{
     InvalidTexture,
 };
 
+pub var current_fb: gl.GLuint = 0;
+
 const ColorType = enum {
     none,
     rgb,
@@ -329,7 +331,7 @@ pub fn deinit(self: Self) void {
 /// copy pixel data to other framebuffer
 /// WARNING: after blit operation, default framebuffer will be activated!
 pub fn blitData(src: Self, dst: Self) void {
-    defer gl.bindFramebuffer(gl.GL_FRAMEBUFFER, 0);
+    defer Self.use(null);
     gl.bindFramebuffer(
         gl.GL_READ_FRAMEBUFFER,
         src.id,
@@ -352,5 +354,11 @@ pub fn blitData(src: Self, dst: Self) void {
         gl.GL_COLOR_BUFFER_BIT,
         gl.GL_NEAREST,
     );
+    gl.util.checkError();
+}
+
+pub fn use(framebuffer: ?Self) void {
+    current_fb = if (framebuffer) |fb| fb.id else 0;
+    gl.bindFramebuffer(gl.GL_FRAMEBUFFER, current_fb);
     gl.util.checkError();
 }

@@ -200,7 +200,7 @@ fn loop(ctx: *zp.Context) void {
     ctx.graphics.getDrawableSize(ctx.window, &width, &height);
 
     // render to custom framebuffer
-    ctx.graphics.useFramebuffer(if (enable_msaa) fb_msaa else fb);
+    Framebuffer.use(if (enable_msaa) fb_msaa else fb);
     {
         ctx.graphics.toggleCapability(.depth_test, true);
         ctx.graphics.clear(true, true, true, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
@@ -220,7 +220,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     // draw framebuffer's color texture
-    ctx.graphics.useFramebuffer(null);
+    Framebuffer.use(null);
     {
         // copy pixels
         if (enable_msaa) {
