@@ -3,11 +3,9 @@ const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
 const drawcall = gfx.gpu.drawcall;
-const Context = gfx.gpu.Context;
 const ShaderProgram = gfx.gpu.ShaderProgram;
 const VertexArray = gfx.gpu.VertexArray;
-const Camera = gfx.Camera;
-const Material = gfx.Material;
+const Renderer = gfx.Renderer;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
@@ -127,14 +125,14 @@ pub fn deinit(self: Self) void {
     self.vertex_array.deinit();
 }
 
-/// draw skybox
-pub fn draw(
-    self: *Self,
-    graphics_context: *Context,
-    projection: Mat4,
-    camera: Camera,
-    material: Material,
-) void {
+/// get renderer instance
+pub fn renderer(self: *Self) Renderer {
+    return Renderer.init(self, draw);
+}
+
+/// generic rendering implementation
+pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
+    const graphics_context = input.ctx;
     const old_polygon_mode = graphics_context.polygon_mode;
     graphics_context.setPolygonMode(.fill);
     defer graphics_context.setPolygonMode(old_polygon_mode);
@@ -150,15 +148,15 @@ pub fn draw(
     defer self.vertex_array.disuse();
 
     // set uniforms
-    var view = camera.getViewMatrix();
+    var view = input.camera.?.getViewMatrix();
     view.data[3][0] = 0;
     view.data[3][1] = 0;
     view.data[3][2] = 0;
     self.program.setUniformByName("u_view", view);
-    self.program.setUniformByName("u_project", projection);
+    self.program.setUniformByName("u_project", input.projection.?);
     self.program.setUniformByName(
         "u_texture",
-        material.data.single_cubemap.getTextureUnit(),
+        input.material.?.data.single_cubemap.getTextureUnit(),
     );
 
     // issue draw call

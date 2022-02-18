@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
+const Context = gfx.gpu.Context;
 const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
@@ -351,45 +352,77 @@ pub fn allocTextureUnit(self: Self, start_unit: i32) i32 {
     return unit;
 }
 
-/// draw model using renderer
-pub fn render(
+/// allocate render data
+pub fn appendVertexData(
     self: Self,
-    rd: Renderer,
+    input: *Renderer.Input,
     transform: Mat4,
-    projection: Mat4,
-    camera: ?Camera,
-    material: ?Material,
 ) !void {
     for (self.meshes.items) |m, i| {
-        try m.render(
-            rd,
-            transform.mult(self.transforms.items[i]),
-            projection,
-            camera,
-            if (material) |mr| mr else self.materials.items[self.material_indices.items[i]],
-        );
+        // add vertex data of mesh #i
+        try input.vds.?.append(m.getVertexData(
+            &self.materials.items[self.material_indices.items[i]],
+            Renderer.LocalTransform{
+                .single = transform.mult(self.transforms.items[i]),
+            },
+        ));
     }
 }
 
-/// instanced draw model using renderer
-pub fn renderInstanced(
+/// append render data for instanced rendering
+/// WARNING: user code is responssible for releasing InstanceTransformArray 
+pub fn appendVertexDataInstanced(
     self: Self,
-    rd: Renderer,
-    mesh_transforms: []Renderer.InstanceTransformArray,
-    projection: Mat4,
-    camera: ?Camera,
-    material: ?Material,
-    instance_count: ?u32,
+    allocator: std.mem.Allocator,
+    input: *Renderer.Input,
+    transforms: []Mat4,
 ) !void {
-    assert(mesh_transforms.len == self.meshes.items.len);
+    assert(transforms.len > 0);
+    var temp = try std.ArrayList(allocator).initCapacity(transforms.len);
+    defer temp.deinit();
+
     for (self.meshes.items) |m, i| {
-        try m.renderInstanced(
-            rd,
-            mesh_transforms[i],
-            projection,
-            camera,
-            if (material) |mr| mr else self.materials.items[self.material_indices.items[i]],
-            instance_count,
-        );
+        // compose transform array for mesh #i
+        for (temp.items) |_, j| {
+            temp.items[j] = transforms[j].mult(self.transforms.items[i]);
+        }
+        var trs = Renderer.InstanceTransformArray.init(allocator) catch unreachable;
+        trs.updateTransforms(temp.items) catch unreachable;
+
+        // add vertex data of mesh #i
+        try input.vds.?.append(m.getVertexData(
+            &self.materials.items[self.material_indices.items[i]],
+            Renderer.LocalTransform{ .instanced = trs },
+        ));
+    }
+    return input;
+}
+
+/// properly fill transforms 
+pub fn fillTransforms(
+    self: Self,
+    vds: []Renderer.Input.VertexData,
+    transform: Mat4,
+) void {
+    assert(vds.len == self.meshes.items.len);
+    for (self.meshes.items) |_, i| {
+        vds[i].transform.single = transform.mult(self.transforms.items[i]);
+    }
+}
+
+/// properly fill instanced transform arrays
+pub fn fillInstanceTransformArray(
+    self: Self,
+    vds: []Renderer.Input.VertexData,
+    transforms: []Mat4,
+    temp: []Mat4,
+) !void {
+    assert(vds.len == self.meshes.items.len);
+    assert(transforms.len == temp.len);
+    for (self.meshes.items) |_, i| {
+        for (transforms.items) |tr, j| {
+            temp[j] = tr.mult(self.transforms.items[i]);
+        }
+        try vds[i].transform.instanced.updateTransforms(temp);
     }
 }

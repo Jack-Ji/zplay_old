@@ -13,17 +13,18 @@ const Mesh = gfx.Mesh;
 const Material = gfx.Material;
 const Camera = gfx.Camera;
 const SimpleRenderer = gfx.@"3d".SimpleRenderer;
+const TextureDisplay = gfx.post_processing.TextureDisplay;
 const Skybox = gfx.@"3d".Skybox;
 
+var scene_renderer: SimpleRenderer = undefined;
+var screen_renderer: SimpleRenderer = undefined;
 var skybox: Skybox = undefined;
 var skybox_material: Material = undefined;
-var simple_renderer: SimpleRenderer = undefined;
-var rd: Renderer = undefined;
-var transform_array: Renderer.InstanceTransformArray = undefined;
+var transform_array: *Renderer.InstanceTransformArray = undefined;
 var fb: Framebuffer = undefined;
 var fb_msaa: Framebuffer = undefined;
-var quad: Mesh = undefined;
 var cube: Mesh = undefined;
+var quad: Mesh = undefined;
 var cube_material: Material = undefined;
 var color_material: Material = undefined;
 var fb_material: Material = undefined;
@@ -37,6 +38,8 @@ var camera = Camera.fromPositionAndTarget(
     Vec3.zero(),
     null,
 );
+var scene_render_data: Renderer.Input = undefined;
+var screen_render_data: Renderer.Input = undefined;
 
 const cube_positions = [_]Vec3{
     Vec3.new(0.0, 0.0, 0.0),
@@ -82,15 +85,12 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
 
     // simple renderer
-    simple_renderer = SimpleRenderer.init(.{});
-    rd = simple_renderer.renderer();
-
-    // init transform array
-    transform_array = Renderer.InstanceTransformArray.init(std.testing.allocator);
+    scene_renderer = SimpleRenderer.init(.{});
+    screen_renderer = SimpleRenderer.init(.{});
 
     // init meshes
-    quad = try Mesh.genQuad(std.testing.allocator, 2, 2);
     cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1);
+    quad = try Mesh.genQuad(std.testing.allocator, 2, 2);
 
     // init materials
     skybox_material = Material.init(.{
@@ -130,6 +130,35 @@ fn init(ctx: *zp.Context) anyerror!void {
     unit = skybox_material.allocTextureUnit(unit);
     unit = color_material.allocTextureUnit(unit);
     _ = fb_material.allocTextureUnit(unit);
+
+    // compose renderer's input
+    const projection = Mat4.perspective(
+        45,
+        @intToFloat(f32, width) / @intToFloat(f32, height),
+        0.1,
+        100,
+    );
+    transform_array = try Renderer.InstanceTransformArray.init(std.testing.allocator);
+    var vertex_data = cube.getVertexData(&cube_material, Renderer.LocalTransform{ .instanced = transform_array });
+    scene_render_data = try Renderer.Input.init(
+        std.testing.allocator,
+        &ctx.graphics,
+        &.{vertex_data},
+        projection,
+        &camera,
+        &color_material,
+        null,
+    );
+    vertex_data = quad.getVertexData(&fb_material, null);
+    screen_render_data = try Renderer.Input.init(
+        std.testing.allocator,
+        &ctx.graphics,
+        &.{vertex_data},
+        null,
+        null,
+        null,
+        null,
+    );
 
     // toggle graphics caps
     ctx.graphics.toggleCapability(.multisample, enable_msaa);
@@ -204,22 +233,21 @@ fn loop(ctx: *zp.Context) void {
     {
         ctx.graphics.toggleCapability(.depth_test, true);
         ctx.graphics.clear(true, true, true, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
-        const projection = Mat4.perspective(
-            45,
-            @intToFloat(f32, width) / @intToFloat(f32, height),
-            0.1,
-            100,
-        );
 
         // draw boxes
         ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
-        renderBoxes(ctx, projection, S.frame1);
+        renderBoxes(ctx, S.frame1);
 
         // draw skybox
-        skybox.draw(&ctx.graphics, projection, camera, skybox_material);
+        skybox.draw(.{
+            .ctx = &ctx.graphics,
+            .projection = scene_render_data.projection,
+            .camera = &camera,
+            .material = &skybox_material,
+        }) catch unreachable;
     }
 
-    // draw framebuffer's color texture
+    // final draw
     Framebuffer.use(null);
     {
         // copy pixels
@@ -230,16 +258,8 @@ fn loop(ctx: *zp.Context) void {
         ctx.graphics.setPolygonMode(.fill);
         ctx.graphics.toggleCapability(.depth_test, false);
         ctx.graphics.clear(true, false, false, [4]f32{ 0.3, 0.2, 0.3, 1.0 });
-        var model = Mat4.fromRotation(S.frame2, Vec3.up());
-        rd.begin(false);
-        quad.render(
-            rd,
-            model,
-            Mat4.identity(),
-            null,
-            fb_material,
-        ) catch unreachable;
-        rd.end();
+        screen_render_data.vds.?.items[0].transform.single = Mat4.fromRotation(S.frame2, Vec3.up());
+        screen_renderer.draw(screen_render_data) catch unreachable;
     }
 
     // settings
@@ -272,11 +292,8 @@ fn loop(ctx: *zp.Context) void {
     dig.endFrame();
 }
 
-fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
-    rd.begin(true);
-    defer rd.end();
-
-    // update stencil buffers
+fn renderBoxes(ctx: *zp.Context, frame: f32) void {
+    // draw cubes
     if (outlined) {
         ctx.graphics.setStencilOption(.{
             .test_func = .always,
@@ -291,14 +308,7 @@ fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
         ).translate(pos);
     }
     transform_array.updateTransforms(&cube_transforms) catch unreachable;
-    cube.renderInstanced(
-        rd,
-        transform_array,
-        projection,
-        camera,
-        cube_material,
-        null,
-    ) catch unreachable;
+    scene_renderer.draw(scene_render_data) catch unreachable;
 
     // outline cubes
     // draw scaled up cubes, using single color
@@ -311,14 +321,9 @@ fn renderBoxes(ctx: *zp.Context, projection: Mat4, frame: f32) void {
             tr.* = tr.mult(Mat4.fromScale(Vec3.set(1.01)));
         }
         transform_array.updateTransforms(&cube_transforms) catch unreachable;
-        cube.renderInstanced(
-            rd,
-            transform_array,
-            projection,
-            camera,
-            color_material,
-            null,
-        ) catch unreachable;
+        scene_render_data.vds.?.items[0].material = null;
+        defer scene_render_data.vds.?.items[0].material = &cube_material;
+        scene_renderer.draw(scene_render_data) catch unreachable;
     }
 }
 

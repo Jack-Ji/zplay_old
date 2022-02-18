@@ -13,23 +13,22 @@ const Material = gfx.Material;
 const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
+var render_data: Renderer.Input = undefined;
 var vertex_array: VertexArray = undefined;
 var material: Material = undefined;
 
-const vertices = [_]f32{
-    -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
-    0.5,  -0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
-    0.0,  0.5,  0.0, 0.0, 0.0, 1.0, 1.0,
-};
-
 fn init(ctx: *zp.Context) anyerror!void {
-    _ = ctx;
     std.log.info("game init", .{});
 
     // create renderer
     simple_renderer = SimpleRenderer.init(.{ .mix_factor = 1.0 });
 
     // vertex array
+    const vertices = [_]f32{
+        -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
+        0.5,  -0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
+        0.0,  0.5,  0.0, 0.0, 0.0, 1.0, 1.0,
+    };
     vertex_array = VertexArray.init(std.testing.allocator, 5);
     vertex_array.use();
     defer vertex_array.disuse();
@@ -54,6 +53,16 @@ fn init(ctx: *zp.Context) anyerror!void {
         ),
     }, true);
     _ = material.allocTextureUnit(0);
+
+    // compose renderer's input
+    render_data = try Renderer.Input.init(std.testing.allocator, &ctx.graphics, &.{}, null, null, null, null);
+    const vd = Renderer.Input.VertexData{
+        .element_draw = false,
+        .vertex_array = vertex_array,
+        .count = 3,
+        .material = &material,
+    };
+    try render_data.vds.?.append(vd);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -82,22 +91,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     ctx.graphics.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
-
-    // update color and draw triangle
-    var rd = simple_renderer.renderer();
-    rd.begin(false);
-    rd.render(
-        vertex_array,
-        false,
-        .triangles,
-        0,
-        3,
-        Mat4.identity(),
-        Mat4.identity(),
-        null,
-        material,
-    ) catch unreachable;
-    rd.end();
+    simple_renderer.draw(render_data) catch unreachable;
 }
 
 fn quit(ctx: *zp.Context) void {

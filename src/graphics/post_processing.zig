@@ -1,3 +1,6 @@
+/// simply display texture, nothing fancy
+pub const TextureDisplay = @import("post_processing/TextureDisplay.zig");
+
 /// color inversion
 pub const Inversion = @import("post_processing/Inversion.zig");
 

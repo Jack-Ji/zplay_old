@@ -209,7 +209,7 @@ fn setUniform(self: Self, loc: gl.GLint, v: anytype) void {
         [4]u32 => gl.uniform4uiv(loc, 1, &v),
         comptime_float, f32 => gl.uniform1f(loc, @floatCast(gl.GLfloat, v)),
         []f32 => gl.uniform1fv(loc, v.len, v.ptr),
-        *const [9]f32 => gl.uniform1fv(loc, 9, v),
+        *[9]f32, *const [9]f32 => gl.uniform1fv(loc, 9, v),
         [2]f32 => gl.uniform2fv(loc, 1, &v),
         [3]f32 => gl.uniform3fv(loc, 1, &v),
         [4]f32 => gl.uniform4fv(loc, 1, &v),

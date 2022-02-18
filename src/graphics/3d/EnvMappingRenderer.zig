@@ -4,21 +4,13 @@ const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
 const drawcall = gfx.gpu.drawcall;
 const ShaderProgram = gfx.gpu.ShaderProgram;
-const VertexArray = gfx.gpu.VertexArray;
 const Renderer = gfx.Renderer;
-const Camera = gfx.Camera;
-const Mesh = gfx.Mesh;
 const Material = gfx.Material;
 const alg = zp.deps.alg;
 const Mat4 = alg.Mat4;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Self = @This();
-
-const vertex_attribs = [_]Renderer.AttribLocation{
-    .position,
-    .normal,
-};
 
 const shader_head =
     \\#version 330 core
@@ -88,9 +80,6 @@ const Type = enum {
     refract,
 };
 
-/// status of renderer
-status: Renderer.Status = .not_ready,
-
 /// lighting program
 program: ShaderProgram,
 program_instanced: ShaderProgram,
@@ -129,142 +118,80 @@ pub fn deinit(self: *Self) void {
 
 /// get renderer instance
 pub fn renderer(self: *Self) Renderer {
-    return Renderer.init(self, begin, end, getVertexAttribs, render, renderInstanced);
+    return Renderer.init(self, draw);
 }
 
-/// begin rendering
-fn begin(self: *Self, instanced_draw: bool) void {
-    if (instanced_draw) {
-        self.program_instanced.use();
-        self.status = .ready_to_draw_instanced;
-    } else {
-        self.program.use();
-        self.status = .ready_to_draw;
-    }
-}
-
-/// end rendering
-fn end(self: *Self) void {
-    assert(self.status != .not_ready);
-    self.getProgram().disuse();
-    self.status = .not_ready;
-}
-
-/// get supported attributes
-fn getVertexAttribs(self: *Self) []const Renderer.AttribLocation {
-    _ = self;
-    return &vertex_attribs;
-}
-
-// get current using shader program
-inline fn getProgram(self: *Self) *ShaderProgram {
-    assert(self.status != .not_ready);
-    return if (self.status == .ready_to_draw) &self.program else &self.program_instanced;
-}
-
-/// use material data
-fn applyMaterial(self: *Self, material: Material) void {
-    switch (self.type) {
-        .reflect => {
-            assert(material.data == .single_cubemap);
-            self.getProgram().setUniformByName(
-                "u_texture",
-                material.data.single_cubemap.getTextureUnit(),
-            );
-        },
-        .refract => {
-            assert(material.data == .refract_mapping);
-            self.getProgram().setUniformByName(
-                "u_texture",
-                material.data.refract_mapping.cubemap.getTextureUnit(),
-            );
-            self.getProgram().setUniformByName(
-                "u_ratio",
-                1.0 / material.data.refract_mapping.ratio,
-            );
-        },
-    }
-}
-
-/// init common uniform variables
-fn initCommonUniformVars(
-    self: *Self,
-    projection: ?Mat4,
-    camera: ?Camera,
-    material: ?Material,
-) void {
-    self.getProgram().setUniformByName("u_project", projection.?);
-    self.getProgram().setUniformByName("u_view", camera.?.getViewMatrix());
-    self.getProgram().setUniformByName("u_view_pos", camera.?.position);
-    self.applyMaterial(material.?);
-}
-
-/// render geometries
-fn render(
-    self: *Self,
-    vertex_array: VertexArray,
-    use_elements: bool,
-    primitive: drawcall.PrimitiveType,
-    offset: u32,
-    count: u32,
-    transform: Mat4,
-    projection: ?Mat4,
-    camera: ?Camera,
-    material: ?Material,
-) !void {
-    assert(self.status == .ready_to_draw);
-    vertex_array.use();
-    defer vertex_array.disuse();
+/// generic rendering implementation
+pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
+    assert(input.vds.?.items.len > 0);
+    var is_instanced_drawing = input.vds.?.items[0].transform == .instanced;
+    var prog = if (is_instanced_drawing) &self.program_instanced else &self.program;
+    prog.use();
+    defer prog.disuse();
 
     // set uniforms
-    self.initCommonUniformVars(projection, camera, material);
-    self.program.setUniformByName("u_model", transform);
-    self.program.setUniformByName("u_normal", transform.inv().transpose());
+    prog.setUniformByName("u_project", input.projection.?);
+    prog.setUniformByName("u_view", input.camera.?.getViewMatrix());
+    prog.setUniformByName("u_view_pos", input.camera.?.position);
 
-    if (use_elements) {
-        drawcall.drawElements(primitive, offset, count, u32);
-    } else {
-        drawcall.drawBuffer(primitive, offset, count);
-    }
-}
+    // render vertex data one by one
+    var current_material: *Material = undefined;
+    for (input.vds.?.items) |vd| {
+        vd.vertex_array.use();
+        defer vd.vertex_array.disuse();
 
-pub fn renderInstanced(
-    self: *Self,
-    vertex_array: VertexArray,
-    use_elements: bool,
-    primitive: drawcall.PrimitiveType,
-    offset: u32,
-    count: u32,
-    transforms: Renderer.InstanceTransformArray,
-    projection: ?Mat4,
-    camera: ?Camera,
-    material: ?Material,
-    instance_count: u32,
-) anyerror!void {
-    assert(self.status == .ready_to_draw_instanced);
-    vertex_array.use();
-    defer vertex_array.disuse();
+        // apply material
+        var mr: *Material = input.material orelse vd.material.?;
+        if (mr != current_material) {
+            switch (self.type) {
+                .reflect => {
+                    assert(mr.data == .single_cubemap);
+                    prog.setUniformByName(
+                        "u_texture",
+                        mr.data.single_cubemap.getTextureUnit(),
+                    );
+                },
+                .refract => {
+                    assert(mr.data == .refract_mapping);
+                    prog.setUniformByName(
+                        "u_texture",
+                        mr.data.refract_mapping.cubemap.getTextureUnit(),
+                    );
+                    prog.setUniformByName(
+                        "u_ratio",
+                        1.0 / mr.data.refract_mapping.ratio,
+                    );
+                },
+            }
+        }
 
-    // enable instance transforms attribute
-    transforms.enableAttributes();
-
-    // set uniforms
-    self.initCommonUniformVars(projection, camera, material);
-
-    if (use_elements) {
-        drawcall.drawElementsInstanced(
-            primitive,
-            offset,
-            count,
-            u32,
-            instance_count,
-        );
-    } else {
-        drawcall.drawBufferInstanced(
-            primitive,
-            offset,
-            count,
-            instance_count,
-        );
+        // send draw command
+        if (is_instanced_drawing) {
+            vd.transform.instanced.enableAttributes();
+            if (vd.element_draw) {
+                drawcall.drawElementsInstanced(
+                    vd.primitive,
+                    vd.offset,
+                    vd.count,
+                    u32,
+                    vd.transform.instanced.count,
+                );
+            } else {
+                drawcall.drawBufferInstanced(
+                    vd.primitive,
+                    vd.offset,
+                    vd.count,
+                    vd.transform.instanced.count,
+                );
+            }
+        } else {
+            prog.setUniformByName("u_model", vd.transform.single);
+            prog.setUniformByName("u_normal", vd.transform.single.inv().transpose());
+            if (vd.element_draw) {
+                drawcall.drawElements(vd.primitive, vd.offset, vd.count, u32);
+            } else {
+                drawcall.drawBuffer(vd.primitive, vd.offset, vd.count);
+            }
+        }
     }
 }

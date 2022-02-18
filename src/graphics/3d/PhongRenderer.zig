@@ -5,22 +5,13 @@ const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
 const drawcall = gfx.gpu.drawcall;
 const ShaderProgram = gfx.gpu.ShaderProgram;
-const VertexArray = gfx.gpu.VertexArray;
 const Renderer = gfx.Renderer;
-const Camera = gfx.Camera;
-const Mesh = gfx.Mesh;
 const Material = gfx.Material;
 const alg = zp.deps.alg;
 const Mat4 = alg.Mat4;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Self = @This();
-
-const vertex_attribs = [_]Renderer.AttribLocation{
-    .position,
-    .normal,
-    .texture1,
-};
 
 const shader_head =
     \\#version 330 core
@@ -218,9 +209,6 @@ const vs_shadow = shader_head ++ "\n#define SHADOW_DRAW\n" ++ vs_body;
 const vs_instanced_shadow = shader_head ++ "\n#define INSTANCED_DRAW\n#define SHADOW_DRAW\n" ++ vs_body;
 const fs_shadow = shader_head ++ "\n#define SHADOW_DRAW\n" ++ fs_body;
 
-/// status of renderer
-status: Renderer.Status = .not_ready,
-
 /// shader programs
 program: ShaderProgram = undefined,
 program_instanced: ShaderProgram = undefined,
@@ -255,7 +243,7 @@ pub fn deinit(self: *Self) void {
 
 /// get renderer instance
 pub fn renderer(self: *Self) Renderer {
-    return Renderer.init(self, begin, end, getVertexAttribs, render, renderInstanced);
+    return Renderer.init(self, draw);
 }
 
 /// get light renderer instance
@@ -264,54 +252,14 @@ pub fn lightRenderer(self: *Self) light.Renderer {
 }
 
 /// apply lights to renderer
-fn applyLights(self: *Self, lights: []light.Light) void {
-    var old_status = self.status;
+pub fn applyLights(self: *Self, lights: []light.Light) void {
+    self.program.use();
+    light.applyLights(&self.program, lights);
+    self.program.disuse();
 
-    self.begin(true);
-    light.applyLights(self.getProgram(), lights);
-    self.end();
-
-    self.begin(false);
-    light.applyLights(self.getProgram(), lights);
-    self.end();
-
-    // recover renderer's status
-    switch (old_status) {
-        .ready_to_draw => self.begin(false),
-        .ready_to_draw_instanced => self.begin(true),
-        else => {},
-    }
-}
-
-/// begin rendering
-fn begin(self: *Self, instanced_draw: bool) void {
-    // enable program
-    if (instanced_draw) {
-        self.program_instanced.use();
-        self.status = .ready_to_draw_instanced;
-    } else {
-        self.program.use();
-        self.status = .ready_to_draw;
-    }
-}
-
-/// end rendering
-fn end(self: *Self) void {
-    assert(self.status != .not_ready);
-    self.getProgram().disuse();
-    self.status = .not_ready;
-}
-
-/// get supported attributes
-fn getVertexAttribs(self: *Self) []const Renderer.AttribLocation {
-    _ = self;
-    return &vertex_attribs;
-}
-
-// get current using shader program
-inline fn getProgram(self: *Self) *ShaderProgram {
-    assert(self.status != .not_ready);
-    return if (self.status == .ready_to_draw) &self.program else &self.program_instanced;
+    self.program_instanced.use();
+    light.applyLights(&self.program_instanced, lights);
+    self.program_instanced.disuse();
 }
 
 /// use material data
@@ -338,85 +286,77 @@ fn applyMaterial(self: *Self, material: Material) void {
     }
 }
 
-/// init common uniform variables
-fn initCommonUniformVars(
-    self: *Self,
-    projection: ?Mat4,
-    camera: ?Camera,
-    material: ?Material,
-) void {
-    self.getProgram().setUniformByName("u_project", projection.?);
-    self.getProgram().setUniformByName("u_view", camera.?.getViewMatrix());
-    self.getProgram().setUniformByName("u_view_pos", camera.?.position);
-    self.applyMaterial(material.?);
-}
-
-/// render geometries
-fn render(
-    self: *Self,
-    vertex_array: VertexArray,
-    use_elements: bool,
-    primitive: drawcall.PrimitiveType,
-    offset: u32,
-    count: u32,
-    transform: Mat4,
-    projection: ?Mat4,
-    camera: ?Camera,
-    material: ?Material,
-) !void {
-    assert(self.status == .ready_to_draw);
-    vertex_array.use();
-    defer vertex_array.disuse();
+/// generic rendering implementation
+pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
+    assert(input.vds.?.items.len > 0);
+    var is_instanced_drawing = input.vds.?.items[0].transform == .instanced;
+    var prog = if (is_instanced_drawing) &self.program_instanced else &self.program;
+    prog.use();
+    defer prog.disuse();
 
     // set uniforms
-    self.initCommonUniformVars(projection, camera, material);
-    self.getProgram().setUniformByName("u_model", transform);
-    self.getProgram().setUniformByName("u_normal", transform.inv().transpose());
+    prog.setUniformByName("u_project", input.projection.?);
+    prog.setUniformByName("u_view", input.camera.?.getViewMatrix());
+    prog.setUniformByName("u_view_pos", input.camera.?.position);
 
-    if (use_elements) {
-        drawcall.drawElements(primitive, offset, count, u32);
-    } else {
-        drawcall.drawBuffer(primitive, offset, count);
-    }
-}
+    // render vertex data one by one
+    var current_material: *Material = undefined;
+    for (input.vds.?.items) |vd| {
+        vd.vertex_array.use();
+        defer vd.vertex_array.disuse();
 
-pub fn renderInstanced(
-    self: *Self,
-    vertex_array: VertexArray,
-    use_elements: bool,
-    primitive: drawcall.PrimitiveType,
-    offset: u32,
-    count: u32,
-    transforms: Renderer.InstanceTransformArray,
-    projection: ?Mat4,
-    camera: ?Camera,
-    material: ?Material,
-    instance_count: u32,
-) anyerror!void {
-    assert(self.status == .ready_to_draw_instanced);
-    vertex_array.use();
-    defer vertex_array.disuse();
+        // apply material
+        var mr: *Material = input.material orelse vd.material.?;
+        if (mr != current_material) {
+            assert(mr.data == .phong);
+            var buf: [64]u8 = undefined;
+            prog.setUniformByName(
+                std.fmt.bufPrintZ(&buf, "u_material.diffuse", .{}) catch unreachable,
+                mr.data.phong.diffuse_map.getTextureUnit(),
+            );
+            prog.setUniformByName(
+                std.fmt.bufPrintZ(&buf, "u_material.specular", .{}) catch unreachable,
+                mr.data.phong.specular_map.getTextureUnit(),
+            );
+            prog.setUniformByName(
+                std.fmt.bufPrintZ(&buf, "u_material.shiness", .{}) catch unreachable,
+                mr.data.phong.shiness,
+            );
+            if (self.has_shadow) {
+                prog.setUniformByName(
+                    "u_shadow_map",
+                    mr.data.phong.shadow_map.?.getTextureUnit(),
+                );
+            }
+        }
 
-    // enable instance transforms attribute
-    transforms.enableAttributes();
-
-    // set uniforms
-    self.initCommonUniformVars(projection, camera, material);
-
-    if (use_elements) {
-        drawcall.drawElementsInstanced(
-            primitive,
-            offset,
-            count,
-            u32,
-            instance_count,
-        );
-    } else {
-        drawcall.drawBufferInstanced(
-            primitive,
-            offset,
-            count,
-            instance_count,
-        );
+        // send draw command
+        if (is_instanced_drawing) {
+            vd.transform.instanced.enableAttributes();
+            if (vd.element_draw) {
+                drawcall.drawElementsInstanced(
+                    vd.primitive,
+                    vd.offset,
+                    vd.count,
+                    u32,
+                    vd.transform.instanced.count,
+                );
+            } else {
+                drawcall.drawBufferInstanced(
+                    vd.primitive,
+                    vd.offset,
+                    vd.count,
+                    vd.transform.instanced.count,
+                );
+            }
+        } else {
+            prog.setUniformByName("u_model", vd.transform.single);
+            prog.setUniformByName("u_normal", vd.transform.single.inv().transpose());
+            if (vd.element_draw) {
+                drawcall.drawElements(vd.primitive, vd.offset, vd.count, u32);
+            } else {
+                drawcall.drawBuffer(vd.primitive, vd.offset, vd.count);
+            }
+        }
     }
 }

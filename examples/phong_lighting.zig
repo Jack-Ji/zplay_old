@@ -42,6 +42,8 @@ var view_camera = Camera.fromPositionAndEulerAngles(
 );
 var enable_gamma_correction = true;
 var gamma_value: f32 = 2.2;
+var render_data_scene: Renderer.Input = undefined;
+var render_data_light: Renderer.Input = undefined;
 
 const cube_positions = [_]Vec3{
     Vec3.new(0.0, 0.0, 0.0),
@@ -149,7 +151,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         },
     });
     phong_renderer = PhongRenderer.init(.{ .has_shadow = true });
-    phong_renderer.lightRenderer().applyLights(all_lights.items);
+    phong_renderer.applyLights(all_lights.items);
 
     // generate mesh
     plane = try Mesh.genPlane(std.testing.allocator, 50, 50, 20, 20);
@@ -214,6 +216,59 @@ fn init(ctx: *zp.Context) anyerror!void {
     unit = floor_material.allocTextureUnit(unit);
     unit = light_material.allocTextureUnit(unit);
     _ = fb_material.allocTextureUnit(unit);
+
+    // compose renderer's input
+    const projection = Mat4.perspective(
+        view_camera.zoom,
+        @intToFloat(f32, width) / @intToFloat(f32, height),
+        0.1,
+        100,
+    );
+    render_data_scene = try Renderer.Input.init(
+        std.testing.allocator,
+        &ctx.graphics,
+        &.{},
+        null,
+        null,
+        null,
+        null,
+    );
+    try render_data_scene.vds.?.append(plane.getVertexData(
+        &floor_material,
+        Renderer.LocalTransform{
+            .single = Mat4.fromRotation(-90, Vec3.right())
+                .translate(Vec3.new(0, -4, 0)),
+        },
+    ));
+    for (cube_positions) |cpos, i| {
+        try render_data_scene.vds.?.append(cube.getVertexData(
+            &box_material,
+            Renderer.LocalTransform{
+                .single = Mat4.fromRotation(
+                    20 * @intToFloat(f32, i),
+                    Vec3.new(1, 0.3, 0.5),
+                ).translate(cpos),
+            },
+        ));
+    }
+    render_data_light = try Renderer.Input.init(
+        std.testing.allocator,
+        &ctx.graphics,
+        &.{},
+        projection,
+        &view_camera,
+        null,
+        null,
+    );
+    for (all_lights.items) |d| {
+        if (d.getType() == .directional) continue;
+        try render_data_light.vds.?.append(light_mesh.getVertexData(
+            &light_material,
+            Renderer.LocalTransform{
+                .single = Mat4.fromScale(Vec3.set(0.1)).translate(d.getPosition().?),
+            },
+        ));
+    }
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -281,31 +336,26 @@ fn loop(ctx: *zp.Context) void {
     // 1st render: generate shadow map
     Framebuffer.use(shadow_fb);
     {
-        const projection = Mat4.orthographic(-20.0, 20.0, -20.0, 20.0, 0.1, 100.0);
         ctx.graphics.setViewport(0, 0, shadow_width, shadow_height);
         defer ctx.graphics.setViewport(0, 0, width, height);
 
         ctx.graphics.clear(false, true, false, null);
-        renderScene(ctx, shadow_map_renderer.renderer(), light_view_camera, projection, true);
+        render_data_scene.projection =
+            Mat4.orthographic(-20.0, 20.0, -20.0, 20.0, 0.1, 100.0);
+        render_data_scene.camera = &light_view_camera;
+        shadow_map_renderer.draw(render_data_scene) catch unreachable;
     }
 
     // 2nd render: lighting scene
     Framebuffer.use(if (enable_gamma_correction) scene_fb else null);
     {
-        const projection = Mat4.perspective(
-            view_camera.zoom,
-            @intToFloat(f32, width) / @intToFloat(f32, height),
-            0.1,
-            100,
-        );
-
-        // lighting scene
         ctx.graphics.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
-        renderScene(ctx, phong_renderer.renderer(), view_camera, projection, false);
+
+        render_data_scene.projection = render_data_light.projection;
+        render_data_scene.camera = &view_camera;
+        phong_renderer.draw(render_data_scene) catch unreachable;
 
         // draw lights
-        var rd = light_renderer.renderer();
-        rd.begin(false);
         {
             var old_blend_option = ctx.graphics.blend_option;
             defer ctx.graphics.setBlendOption(old_blend_option);
@@ -314,26 +364,19 @@ fn loop(ctx: *zp.Context) void {
                 .dst_rgb = .one_minus_constant_alpha,
                 .constant_color = [4]f32{ 0, 0, 0, 0.8 },
             });
-            for (all_lights.items) |d| {
-                if (d.getType() == .directional) continue;
-                const model = Mat4.fromScale(Vec3.set(0.1)).translate(d.getPosition().?);
-                light_mesh.render(
-                    rd,
-                    model,
-                    projection,
-                    view_camera,
-                    light_material,
-                ) catch unreachable;
-            }
+            light_renderer.draw(render_data_light) catch unreachable;
         }
-        rd.end();
     }
 
     // 3rd render: gamma correction
     if (enable_gamma_correction) {
         Framebuffer.use(null);
         ctx.graphics.clear(true, false, false, null);
-        gamma_correction.draw(&ctx.graphics, fb_material, gamma_value);
+        gamma_correction.draw(.{
+            .ctx = &ctx.graphics,
+            .material = &fb_material,
+            .custom = &gamma_value,
+        }) catch unreachable;
     }
 
     dig.beginFrame();
@@ -524,45 +567,21 @@ fn loop(ctx: *zp.Context) void {
                 );
                 all_lights.items[0].directional.space_matrix =
                     light_view_projection.mult(light_view_camera.getViewMatrix());
-                phong_renderer.lightRenderer().applyLights(all_lights.items);
+                phong_renderer.applyLights(all_lights.items);
+                var idx: u32 = 0;
+                for (all_lights.items) |d| {
+                    if (d.getType() == .directional) continue;
+                    render_data_light.vds.?.items[idx].transform =
+                        Renderer.LocalTransform{
+                        .single = Mat4.fromScale(Vec3.set(0.1)).translate(d.getPosition().?),
+                    };
+                    idx += 1;
+                }
             }
         }
         dig.end();
     }
     dig.endFrame();
-}
-
-fn renderScene(ctx: *zp.Context, rd: Renderer, camera: Camera, projection: Mat4, generating_shadow_map: bool) void {
-    rd.begin(false);
-    plane.render(
-        rd,
-        Mat4.fromRotation(-90, Vec3.right()).translate(Vec3.new(0, -4, 0)),
-        projection,
-        camera,
-        floor_material,
-    ) catch unreachable;
-
-    var old_culling_option = ctx.graphics.culling_option;
-    if (generating_shadow_map) {
-        ctx.graphics.setCullingOption(.{ .face = .front });
-    }
-    for (cube_positions) |pos, i| {
-        const model = Mat4.fromRotation(
-            20 * @intToFloat(f32, i),
-            Vec3.new(1, 0.3, 0.5),
-        ).translate(pos);
-        cube.render(
-            rd,
-            model,
-            projection,
-            camera,
-            box_material,
-        ) catch unreachable;
-    }
-    if (generating_shadow_map) {
-        ctx.graphics.setCullingOption(old_culling_option);
-    }
-    rd.end();
 }
 
 fn quit(ctx: *zp.Context) void {

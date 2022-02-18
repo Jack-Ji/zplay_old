@@ -97,31 +97,6 @@ pub fn fromArrays(
     return mesh;
 }
 
-/// setup vertex array's data
-pub fn setup(self: *Self, allocator: std.mem.Allocator) void {
-    self.vertex_array = VertexArray.init(allocator, vbo_num);
-    self.vertex_array.?.use();
-    self.vertex_array.?.vbos[vbo_indices].allocInitData(u32, self.indices.items, .static_draw);
-    Buffer.Target.element_array_buffer.setBinding(
-        self.vertex_array.?.vbos[vbo_indices].id,
-    ); // keep element buffer binded, which is demanded by vao
-    self.vertex_array.?.vbos[vbo_positions].allocInitData(f32, self.positions.items, .static_draw);
-    if (self.normals) |ns| {
-        self.vertex_array.?.vbos[vbo_normals].allocInitData(f32, ns.items, .static_draw);
-    }
-    if (self.texcoords) |ts| {
-        self.vertex_array.?.vbos[vbo_texcoords].allocInitData(f32, ts.items, .static_draw);
-    }
-    if (self.colors) |cs| {
-        self.vertex_array.?.vbos[vbo_colors].allocInitData(f32, cs.items, .static_draw);
-    }
-    if (self.tangents) |ts| {
-        self.vertex_array.?.vbos[vbo_tangents].allocInitData(f32, ts.items, .static_draw);
-    }
-    self.vertex_array.?.disuse();
-    Buffer.Target.element_array_buffer.setBinding(0);
-}
-
 /// free resources
 pub fn deinit(self: Self) void {
     if (self.vertex_array) |va| {
@@ -137,93 +112,52 @@ pub fn deinit(self: Self) void {
     }
 }
 
-/// draw mesh using renderer
-pub fn render(
-    self: Self,
-    rd: Renderer,
-    transform: Mat4,
-    projection: Mat4,
-    camera: ?Camera,
-    material: ?Material,
-) !void {
+/// setup vertex attribtes for rendering
+pub fn setup(self: *Self, allocator: std.mem.Allocator) void {
+    self.vertex_array = VertexArray.init(allocator, vbo_num);
     self.vertex_array.?.use();
-    self.enableAttributes(rd.getVertexAttribs());
-    self.vertex_array.?.disuse();
-
-    try rd.render(
-        self.vertex_array.?,
-        true,
-        self.primitive_type,
-        0,
-        @intCast(u32, self.indices.items.len),
-        transform,
-        projection,
-        camera,
-        material,
-    );
-}
-
-/// instanced draw mesh using renderer
-pub fn renderInstanced(
-    self: Self,
-    rd: Renderer,
-    transforms: Renderer.InstanceTransformArray,
-    projection: Mat4,
-    camera: ?Camera,
-    material: ?Material,
-    instance_count: ?u32,
-) !void {
-    self.vertex_array.?.use();
-    self.enableAttributes(rd.getVertexAttribs());
-    self.vertex_array.?.disuse();
-
-    try rd.renderInstanced(
-        self.vertex_array.?,
-        true,
-        self.primitive_type,
-        0,
-        @intCast(u32, self.indices.items.len),
-        transforms,
-        projection,
-        camera,
-        material,
-        instance_count,
-    );
-}
-
-/// enable vertex attributes
-/// NOTE: VertexArray should have been activated!
-pub fn enableAttributes(self: Self, attrs: []const Renderer.AttribLocation) void {
-    for (attrs) |a| {
-        switch (a) {
-            .position => {
-                self.vertex_array.?.setAttribute(vbo_positions, @enumToInt(a), 3, f32, false, 0, 0);
-            },
-            .color => {
-                if (self.colors != null) {
-                    self.vertex_array.?.setAttribute(vbo_colors, @enumToInt(a), 4, f32, false, 0, 0);
-                }
-            },
-            .normal => {
-                if (self.normals != null) {
-                    self.vertex_array.?.setAttribute(vbo_normals, @enumToInt(a), 3, f32, false, 0, 0);
-                }
-            },
-            .tangent => {
-                if (self.tangents != null) {
-                    self.vertex_array.?.setAttribute(vbo_tangents, @enumToInt(a), 4, f32, false, 0, 0);
-                }
-            },
-            .texture1 => {
-                if (self.texcoords != null) {
-                    self.vertex_array.?.setAttribute(vbo_texcoords, @enumToInt(a), 2, f32, false, 0, 0);
-                }
-            },
-            .texture2 => {},
-            .texture3 => {},
-            else => unreachable,
-        }
+    self.vertex_array.?.vbos[vbo_indices].allocInitData(u32, self.indices.items, .static_draw);
+    Buffer.Target.element_array_buffer.setBinding(
+        self.vertex_array.?.vbos[vbo_indices].id,
+    ); // keep element buffer binded, which is demanded by vao
+    self.vertex_array.?.vbos[vbo_positions].allocInitData(f32, self.positions.items, .static_draw);
+    self.vertex_array.?.setAttribute(vbo_positions, @enumToInt(Renderer.AttribLocation.position), 3, f32, false, 0, 0);
+    if (self.normals) |ns| {
+        self.vertex_array.?.vbos[vbo_normals].allocInitData(f32, ns.items, .static_draw);
+        self.vertex_array.?.setAttribute(vbo_normals, @enumToInt(Renderer.AttribLocation.normal), 3, f32, false, 0, 0);
     }
+    if (self.texcoords) |ts| {
+        self.vertex_array.?.vbos[vbo_texcoords].allocInitData(f32, ts.items, .static_draw);
+        self.vertex_array.?.setAttribute(vbo_texcoords, @enumToInt(Renderer.AttribLocation.texture1), 2, f32, false, 0, 0);
+    }
+    if (self.colors) |cs| {
+        self.vertex_array.?.vbos[vbo_colors].allocInitData(f32, cs.items, .static_draw);
+        self.vertex_array.?.setAttribute(vbo_colors, @enumToInt(Renderer.AttribLocation.color), 4, f32, false, 0, 0);
+    }
+    if (self.tangents) |ts| {
+        self.vertex_array.?.vbos[vbo_tangents].allocInitData(f32, ts.items, .static_draw);
+        self.vertex_array.?.setAttribute(vbo_tangents, @enumToInt(Renderer.AttribLocation.tangent), 4, f32, false, 0, 0);
+    }
+    self.vertex_array.?.disuse();
+    Buffer.Target.element_array_buffer.setBinding(0);
+}
+
+/// get vertex data
+pub fn getVertexData(
+    self: Self,
+    material: ?*Material,
+    transform: ?Renderer.LocalTransform,
+) Renderer.Input.VertexData {
+    var vd = Renderer.Input.VertexData{
+        .vertex_array = self.vertex_array.?,
+        .primitive = self.primitive_type,
+        .count = @intCast(u32, self.indices.items.len),
+        .material = material,
+    };
+    if (transform) |tr| {
+        vd.transform = tr;
+    }
+    return vd;
 }
 
 // generate a quad

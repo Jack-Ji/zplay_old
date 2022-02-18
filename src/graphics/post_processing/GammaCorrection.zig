@@ -3,10 +3,8 @@ const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
 const drawcall = gfx.gpu.drawcall;
-const Context = gfx.gpu.Context;
 const ShaderProgram = gfx.gpu.ShaderProgram;
 const Renderer = gfx.Renderer;
-const Material = gfx.Material;
 const Mesh = gfx.Mesh;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
@@ -53,16 +51,10 @@ quad: Mesh,
 
 /// init gmma-correction instance
 pub fn init(allocator: std.mem.Allocator) !Self {
-    var self = Self{
+    return Self{
         .program = ShaderProgram.init(vs, fs, null),
         .quad = try Mesh.genQuad(allocator, 2, 2),
     };
-
-    self.quad.vertex_array.?.use();
-    defer self.quad.vertex_array.?.disuse();
-    self.quad.enableAttributes(&.{ .position, .texture1 });
-
-    return self;
 }
 
 /// free resources
@@ -71,13 +63,14 @@ pub fn deinit(self: Self) void {
     self.quad.deinit();
 }
 
-/// draw texture with gamma correction
-pub fn draw(
-    self: *Self,
-    graphics_context: *Context,
-    material: Material,
-    gamma: ?f32,
-) void {
+/// get renderer instance
+pub fn renderer(self: *Self) Renderer {
+    return Renderer.init(self, draw);
+}
+
+/// generic rendering implementation
+pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
+    const graphics_context = input.ctx;
     const old_depth_test_status = graphics_context.isCapabilityEnabled(.depth_test);
     graphics_context.toggleCapability(.depth_test, false);
     defer graphics_context.toggleCapability(.depth_test, old_depth_test_status);
@@ -95,11 +88,12 @@ pub fn draw(
     // set uniforms
     self.program.setUniformByName(
         "u_texture",
-        material.data.single_texture.getTextureUnit(),
+        input.material.?.data.single_texture.getTextureUnit(),
     );
+    const gamma = if (input.custom) |ptr| @ptrCast(*align(1) const f32, ptr).* else 2.2;
     self.program.setUniformByName(
         "u_gamma",
-        gamma orelse 2.2,
+        gamma,
     );
 
     // issue draw call

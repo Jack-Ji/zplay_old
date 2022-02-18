@@ -1,4 +1,5 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const zp = @import("zplay");
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
@@ -9,19 +10,15 @@ const Texture = gfx.gpu.Texture;
 const Mesh = gfx.Mesh;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
+const Renderer = gfx.Renderer;
 const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = true;
 var perspective_mode = true;
 var use_texture = false;
-var quad: Mesh = undefined;
-var circle: Mesh = undefined;
-var cube: Mesh = undefined;
-var sphere: Mesh = undefined;
-var cylinder: Mesh = undefined;
-var prim: Mesh = undefined;
-var cone: Mesh = undefined;
+var meshes: std.ArrayList(Mesh) = undefined;
+var positions: std.ArrayList(Vec3) = undefined;
 var default_material: Material = undefined;
 var picture_material: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
@@ -29,6 +26,9 @@ var camera = Camera.fromPositionAndTarget(
     Vec3.zero(),
     null,
 );
+var proj_persp: alg.Mat4 = undefined;
+var proj_ortho: alg.Mat4 = undefined;
+var render_data: Renderer.Input = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -40,13 +40,23 @@ fn init(ctx: *zp.Context) anyerror!void {
     simple_renderer = SimpleRenderer.init(.{});
 
     // generate meshes
-    quad = try Mesh.genQuad(std.testing.allocator, 1, 1);
-    circle = try Mesh.genCircle(std.testing.allocator, 0.5, 50);
-    cube = try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2);
-    sphere = try Mesh.genSphere(std.testing.allocator, 0.7, 36, 18);
-    cylinder = try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0.5, 2, 36);
-    prim = try Mesh.genCylinder(std.testing.allocator, 1, 0.3, 0.3, 1, 3);
-    cone = try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0, 1, 36);
+    meshes = std.ArrayList(Mesh).init(std.testing.allocator);
+    positions = std.ArrayList(Vec3).init(std.testing.allocator);
+    try meshes.append(try Mesh.genQuad(std.testing.allocator, 1, 1));
+    try meshes.append(try Mesh.genCircle(std.testing.allocator, 0.5, 50));
+    try meshes.append(try Mesh.genCube(std.testing.allocator, 0.5, 0.7, 2));
+    try meshes.append(try Mesh.genSphere(std.testing.allocator, 0.7, 36, 18));
+    try meshes.append(try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0.5, 2, 36));
+    try meshes.append(try Mesh.genCylinder(std.testing.allocator, 1, 0.3, 0.3, 1, 3));
+    try meshes.append(try Mesh.genCylinder(std.testing.allocator, 1, 0.5, 0, 1, 36));
+    try positions.append(Vec3.new(-2.0, 1.2, 0));
+    try positions.append(Vec3.new(-0.5, 1.2, 0));
+    try positions.append(Vec3.new(1.0, 1.2, 0));
+    try positions.append(Vec3.new(-2.2, -1.2, 0));
+    try positions.append(Vec3.new(-0.4, -1.2, 0));
+    try positions.append(Vec3.new(1.1, -1.2, 0));
+    try positions.append(Vec3.new(2.3, -1.2, 0));
+    assert(meshes.items.len == positions.items.len);
 
     // create picture_material
     default_material = Material.init(.{
@@ -69,6 +79,37 @@ fn init(ctx: *zp.Context) anyerror!void {
     }, true);
     var unit = default_material.allocTextureUnit(0);
     _ = picture_material.allocTextureUnit(unit);
+
+    // compose renderer's input
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    proj_persp = alg.Mat4.perspective(
+        camera.zoom,
+        @intToFloat(f32, width) / @intToFloat(f32, height),
+        0.1,
+        100,
+    );
+    proj_ortho = alg.Mat4.orthographic(
+        -3,
+        3,
+        -3,
+        3,
+        0,
+        100,
+    );
+    render_data = try Renderer.Input.init(
+        std.testing.allocator,
+        &ctx.graphics,
+        &.{},
+        if (perspective_mode) proj_persp else proj_ortho,
+        &camera,
+        if (use_texture) &picture_material else &default_material,
+        null,
+    );
+    for (meshes.items) |m| {
+        try render_data.vds.?.append(m.getVertexData(null, null));
+    }
 
     // init graphics context params
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -111,88 +152,18 @@ fn loop(ctx: *zp.Context) void {
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(ctx.window, &width, &height);
-
-    // start drawing
     ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
-    var projection: alg.Mat4 = undefined;
-    if (perspective_mode) {
-        projection = alg.Mat4.perspective(
-            camera.zoom,
-            @intToFloat(f32, width) / @intToFloat(f32, height),
-            0.1,
-            100,
-        );
-    } else {
-        projection = alg.Mat4.orthographic(
-            -3,
-            3,
-            -3,
-            3,
-            0,
-            100,
-        );
-    }
+    // start render
     S.axis = alg.Mat4.fromRotation(1, Vec3.new(-1, 1, -1)).multByVec4(S.axis);
-
-    var rd = simple_renderer.renderer();
-    rd.begin(false);
-    {
-        const model = alg.Mat4.fromRotation(
-            S.frame,
-            Vec3.new(S.axis.x(), S.axis.y(), S.axis.z()),
-        );
-        quad.render(
-            rd,
-            model.translate(Vec3.new(-2.0, 1.2, 0)),
-            projection,
-            camera,
-            if (use_texture) picture_material else default_material,
-        ) catch unreachable;
-        circle.render(
-            rd,
-            model.translate(Vec3.new(-0.5, 1.2, 0)),
-            projection,
-            camera,
-            if (use_texture) picture_material else default_material,
-        ) catch unreachable;
-        cube.render(
-            rd,
-            model.translate(Vec3.new(1.0, 1.2, 0)),
-            projection,
-            camera,
-            if (use_texture) picture_material else default_material,
-        ) catch unreachable;
-        sphere.render(
-            rd,
-            model.translate(Vec3.new(-2.2, -1.2, 0)),
-            projection,
-            camera,
-            if (use_texture) picture_material else default_material,
-        ) catch unreachable;
-        cylinder.render(
-            rd,
-            model.translate(Vec3.new(-0.4, -1.2, 0)),
-            projection,
-            camera,
-            if (use_texture) picture_material else default_material,
-        ) catch unreachable;
-        prim.render(
-            rd,
-            model.translate(Vec3.new(1.1, -1.2, 0)),
-            projection,
-            camera,
-            if (use_texture) picture_material else default_material,
-        ) catch unreachable;
-        cone.render(
-            rd,
-            model.translate(Vec3.new(2.3, -1.2, 0)),
-            projection,
-            camera,
-            if (use_texture) picture_material else default_material,
-        ) catch unreachable;
+    const model = alg.Mat4.fromRotation(
+        S.frame,
+        Vec3.new(S.axis.x(), S.axis.y(), S.axis.z()),
+    );
+    for (render_data.vds.?.items) |*d, i| {
+        d.transform.single = model.translate(positions.items[i]);
     }
-    rd.end();
+    simple_renderer.draw(render_data) catch unreachable;
 
     // settings
     dig.beginFrame();
@@ -214,8 +185,12 @@ fn loop(ctx: *zp.Context) void {
             if (dig.checkbox("wireframe", &wireframe_mode)) {
                 ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
             }
-            _ = dig.checkbox("perspective", &perspective_mode);
-            _ = dig.checkbox("texture", &use_texture);
+            if (dig.checkbox("perspective", &perspective_mode)) {
+                render_data.projection = if (perspective_mode) proj_persp else proj_ortho;
+            }
+            if (dig.checkbox("texture", &use_texture)) {
+                render_data.material = if (use_texture) &picture_material else &default_material;
+            }
         }
         dig.end();
     }

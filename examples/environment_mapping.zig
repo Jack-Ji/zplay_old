@@ -22,8 +22,7 @@ var refract_water_material: Material = undefined;
 var refract_ice_material: Material = undefined;
 var refract_glass_material: Material = undefined;
 var refract_diamond_material: Material = undefined;
-var current_renderer: Renderer = undefined;
-var current_material: Material = undefined;
+var current_scene_renderer: Renderer = undefined;
 var reflect_renderer: EnvMappingRenderer = undefined;
 var refract_renderer: EnvMappingRenderer = undefined;
 var model: Model = undefined;
@@ -32,6 +31,8 @@ var camera = Camera.fromPositionAndTarget(
     Vec3.zero(),
     null,
 );
+var render_data_scene: Renderer.Input = undefined;
+var render_data_skybox: Renderer.Input = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -83,19 +84,43 @@ fn init(ctx: *zp.Context) anyerror!void {
             .ratio = 2.42,
         },
     }, false);
-    current_material = skybox_material;
+    _ = skybox_material.allocTextureUnit(0);
 
     // alloc renderers
     skybox = Skybox.init(std.testing.allocator);
     reflect_renderer = EnvMappingRenderer.init(.reflect);
     refract_renderer = EnvMappingRenderer.init(.refract);
-    current_renderer = reflect_renderer.renderer();
+    current_scene_renderer = reflect_renderer.renderer();
 
     // load model
     model = try Model.fromGLTF(std.testing.allocator, "assets/SciFiHelmet/SciFiHelmet.gltf", false, null);
 
-    // alloc texture unit
-    _ = skybox_material.allocTextureUnit(0);
+    // compose renderer's input
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    const projection = alg.Mat4.perspective(
+        camera.zoom,
+        @intToFloat(f32, width) / @intToFloat(f32, height),
+        0.1,
+        100,
+    );
+    render_data_scene = try Renderer.Input.init(
+        std.testing.allocator,
+        &ctx.graphics,
+        &.{},
+        projection,
+        &camera,
+        &skybox_material,
+        null,
+    );
+    try model.appendVertexData(&render_data_scene, Mat4.identity());
+    render_data_skybox = .{
+        .ctx = &ctx.graphics,
+        .projection = projection,
+        .camera = &camera,
+        .material = &skybox_material,
+    };
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
@@ -166,27 +191,15 @@ fn loop(ctx: *zp.Context) void {
     ctx.graphics.getDrawableSize(ctx.window, &width, &height);
     ctx.graphics.clear(true, true, true, [4]f32{ 0.2, 0.3, 0.3, 1.0 });
 
-    // draw model
-    const projection = alg.Mat4.perspective(
-        camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
-    );
-    current_renderer.begin(false);
-    model.render(
-        current_renderer,
+    // render scene
+    model.fillTransforms(
+        render_data_scene.vds.?.items,
         Mat4.fromTranslate(Vec3.new(0.0, 0, 0))
             .scale(Vec3.set(0.6))
             .mult(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
-        projection,
-        camera,
-        current_material,
-    ) catch unreachable;
-    current_renderer.end();
-
-    // draw skybox
-    skybox.draw(&ctx.graphics, projection, camera, skybox_material);
+    );
+    current_scene_renderer.draw(render_data_scene) catch unreachable;
+    skybox.draw(render_data_skybox) catch unreachable;
 
     // rendering settings
     dig.beginFrame();
@@ -213,24 +226,24 @@ fn loop(ctx: *zp.Context) void {
                 null,
             );
             if (S.current_mapping == 1) {
-                current_renderer = refract_renderer.renderer();
+                current_scene_renderer = refract_renderer.renderer();
                 _ = dig.combo_Str(
                     "refract ratio",
                     &S.refract_material,
                     "air\x00water\x00ice\x00glass\x00diamond",
                     null,
                 );
-                current_material = switch (S.refract_material) {
-                    0 => refract_air_material,
-                    1 => refract_water_material,
-                    2 => refract_ice_material,
-                    3 => refract_glass_material,
-                    4 => refract_diamond_material,
+                render_data_scene.material = switch (S.refract_material) {
+                    0 => &refract_air_material,
+                    1 => &refract_water_material,
+                    2 => &refract_ice_material,
+                    3 => &refract_glass_material,
+                    4 => &refract_diamond_material,
                     else => unreachable,
                 };
             } else {
-                current_renderer = reflect_renderer.renderer();
-                current_material = skybox_material; // reflect material is same as skybox
+                current_scene_renderer = reflect_renderer.renderer();
+                render_data_scene.material = &skybox_material; // reflect material is same as skybox
             }
         }
         dig.end();
