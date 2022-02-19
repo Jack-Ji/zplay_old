@@ -251,6 +251,6 @@ pub fn run(g: Game) !void {
         g.loopFn(&context);
 
         // swap buffers
-        context.graphics.swap(context.window);
+        context.graphics.swap();
     }
 }

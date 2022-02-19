@@ -183,6 +183,15 @@ pub const Input = struct {
         return self;
     }
 
+    /// create a copy of renderer's input
+    pub fn clone(self: Input) !Input {
+        var cloned = self;
+        if (self.vds) |ds| {
+            clone.vds = try ds.clone();
+        }
+        return cloned;
+    }
+
     /// only free vds's memory, won't touch anything else
     pub fn deinit(self: Input) void {
         if (self.vds) |d| d.deinit();
@@ -228,5 +237,14 @@ pub fn init(
 }
 
 pub fn draw(rd: Renderer, input: Input) anyerror!void {
+    if (std.debug.runtime_safety) {
+        if (input.vds) |ds| {
+            for (ds.items) |d| {
+                if (d.transform == .instanced) {
+                    assert(d.transform.instanced.count > 0);
+                }
+            }
+        }
+    }
     return rd.vtable.drawFn(rd.ptr, input);
 }

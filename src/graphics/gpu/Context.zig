@@ -102,6 +102,9 @@ pub const FrontFace = enum(c_uint) {
     cw = gl.GL_CW, // clockwise ordering
 };
 
+/// related window
+window: sdl.Window,
+
 /// opengl context
 gl_ctx: sdl.gl.Context,
 
@@ -178,6 +181,7 @@ pub fn init(window: sdl.Window, api: Api) !Self {
         @panic("load opengl functions failed!");
     }
     var self = Self{
+        .window = window,
         .gl_ctx = gl_ctx,
     };
     self.setPolygonMode(.fill);
@@ -194,16 +198,14 @@ pub fn deinit(self: Self) void {
 }
 
 /// swap buffer, rendering take effect here 
-pub fn swap(self: Self, window: sdl.Window) void {
-    _ = self;
-    sdl.gl.swapWindow(window);
+pub fn swap(self: Self) void {
+    sdl.gl.swapWindow(self.window);
 }
 
 /// get size of drawable place
-pub fn getDrawableSize(self: Self, window: sdl.Window, w: *u32, h: *u32) void {
-    _ = self;
+pub fn getDrawableSize(self: Self, w: *u32, h: *u32) void {
     sdl.c.SDL_GL_GetDrawableSize(
-        window.ptr,
+        self.window.ptr,
         @ptrCast(*c_int, w),
         @ptrCast(*c_int, h),
     );

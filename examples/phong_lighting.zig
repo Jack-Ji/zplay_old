@@ -7,9 +7,11 @@ const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
+const GraphicsContext = gfx.gpu.Context;
 const Framebuffer = gfx.gpu.Framebuffer;
 const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
+const render_pass = gfx.render_pass;
 const Camera = gfx.Camera;
 const Mesh = gfx.Mesh;
 const Material = gfx.Material;
@@ -44,6 +46,9 @@ var enable_gamma_correction = true;
 var gamma_value: f32 = 2.2;
 var render_data_scene: Renderer.Input = undefined;
 var render_data_light: Renderer.Input = undefined;
+var render_data_screen: Renderer.Input = undefined;
+var render_pipeline_gc: render_pass.Pipeline = undefined;
+var render_pipeline: render_pass.Pipeline = undefined;
 
 const cube_positions = [_]Vec3{
     Vec3.new(0.0, 0.0, 0.0),
@@ -88,7 +93,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     // allocate framebuffer stuff
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    ctx.graphics.getDrawableSize(&width, &height);
     shadow_fb = try Framebuffer.initForShadowMapping(
         std.testing.allocator,
         shadow_width,
@@ -269,11 +274,118 @@ fn init(ctx: *zp.Context) anyerror!void {
             },
         ));
     }
+    render_data_screen = try Renderer.Input.init(
+        std.testing.allocator,
+        &ctx.graphics,
+        &.{},
+        null,
+        null,
+        &fb_material,
+        &gamma_value,
+    );
+    render_pipeline_gc = try render_pass.Pipeline.init(
+        std.testing.allocator,
+        &[_]render_pass.RenderPass{
+            .{
+                .fb = shadow_fb,
+                .beforeFn = beforeShadowMapGeneration,
+                .afterFn = afterShadowMapGeneration,
+                .rd = shadow_map_renderer.renderer(),
+                .data = &render_data_scene,
+            },
+            .{
+                .fb = scene_fb,
+                .beforeFn = beforeSceneRendering1,
+                .rd = phong_renderer.renderer(),
+                .data = &render_data_scene,
+            },
+            .{
+                .fb = scene_fb,
+                .beforeFn = beforeSceneRendering2,
+                .afterFn = afterSceneRendering2,
+                .rd = light_renderer.renderer(),
+                .data = &render_data_light,
+            },
+            .{
+                .beforeFn = beforeScreenRendering,
+                .rd = gamma_correction.renderer(),
+                .data = &render_data_screen,
+            },
+        },
+    );
+    render_pipeline = try render_pass.Pipeline.init(
+        std.testing.allocator,
+        &[_]render_pass.RenderPass{
+            .{
+                .fb = shadow_fb,
+                .beforeFn = beforeShadowMapGeneration,
+                .afterFn = afterShadowMapGeneration,
+                .rd = shadow_map_renderer.renderer(),
+                .data = &render_data_scene,
+            },
+            .{
+                .beforeFn = beforeSceneRendering1,
+                .rd = phong_renderer.renderer(),
+                .data = &render_data_scene,
+            },
+            .{
+                .beforeFn = beforeSceneRendering2,
+                .afterFn = afterSceneRendering2,
+                .rd = light_renderer.renderer(),
+                .data = &render_data_light,
+            },
+        },
+    );
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
     ctx.graphics.toggleCapability(.blend, true);
     ctx.graphics.toggleCapability(.cull_face, true);
+}
+
+fn beforeShadowMapGeneration(ctx: *GraphicsContext, custom: ?*anyopaque) void {
+    _ = custom;
+    ctx.setViewport(0, 0, shadow_width, shadow_height);
+    ctx.clear(false, true, false, null);
+    render_data_scene.projection =
+        Mat4.orthographic(-20.0, 20.0, -20.0, 20.0, 0.1, 100.0);
+    render_data_scene.camera = &light_view_camera;
+}
+
+fn afterShadowMapGeneration(ctx: *GraphicsContext, custom: ?*anyopaque) void {
+    _ = custom;
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    ctx.getDrawableSize(&width, &height);
+    ctx.setViewport(0, 0, width, height);
+}
+
+fn beforeSceneRendering1(ctx: *GraphicsContext, custom: ?*anyopaque) void {
+    _ = custom;
+    ctx.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
+    render_data_scene.projection = render_data_light.projection;
+    render_data_scene.camera = &view_camera;
+}
+
+var old_blend_option: GraphicsContext.BlendOption = undefined;
+fn beforeSceneRendering2(ctx: *GraphicsContext, custom: ?*anyopaque) void {
+    _ = custom;
+    old_blend_option = ctx.blend_option;
+    ctx.setBlendOption(.{
+        .src_rgb = .constant_alpha,
+        .dst_rgb = .one_minus_constant_alpha,
+        .constant_color = [4]f32{ 0, 0, 0, 0.8 },
+    });
+}
+
+fn afterSceneRendering2(ctx: *GraphicsContext, custom: ?*anyopaque) void {
+    _ = custom;
+    ctx.setBlendOption(old_blend_option);
+}
+
+fn beforeScreenRendering(ctx: *GraphicsContext, custom: ?*anyopaque) void {
+    _ = custom;
+    ctx.clear(true, false, false, null);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -329,58 +441,18 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.getWindowSize(&width, &height);
-
-    // 1st render: generate shadow map
-    Framebuffer.use(shadow_fb);
-    {
-        ctx.graphics.setViewport(0, 0, shadow_width, shadow_height);
-        defer ctx.graphics.setViewport(0, 0, width, height);
-
-        ctx.graphics.clear(false, true, false, null);
-        render_data_scene.projection =
-            Mat4.orthographic(-20.0, 20.0, -20.0, 20.0, 0.1, 100.0);
-        render_data_scene.camera = &light_view_camera;
-        shadow_map_renderer.draw(render_data_scene) catch unreachable;
-    }
-
-    // 2nd render: lighting scene
-    Framebuffer.use(if (enable_gamma_correction) scene_fb else null);
-    {
-        ctx.graphics.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
-
-        render_data_scene.projection = render_data_light.projection;
-        render_data_scene.camera = &view_camera;
-        phong_renderer.draw(render_data_scene) catch unreachable;
-
-        // draw lights
-        {
-            var old_blend_option = ctx.graphics.blend_option;
-            defer ctx.graphics.setBlendOption(old_blend_option);
-            ctx.graphics.setBlendOption(.{
-                .src_rgb = .constant_alpha,
-                .dst_rgb = .one_minus_constant_alpha,
-                .constant_color = [4]f32{ 0, 0, 0, 0.8 },
-            });
-            light_renderer.draw(render_data_light) catch unreachable;
-        }
-    }
-
-    // 3rd render: gamma correction
+    // render the scene
     if (enable_gamma_correction) {
-        Framebuffer.use(null);
-        ctx.graphics.clear(true, false, false, null);
-        gamma_correction.draw(.{
-            .ctx = &ctx.graphics,
-            .material = &fb_material,
-            .custom = &gamma_value,
-        }) catch unreachable;
+        render_pipeline_gc.run() catch unreachable;
+    } else {
+        render_pipeline.run() catch unreachable;
     }
 
     dig.beginFrame();
     {
+        var width: u32 = undefined;
+        var height: u32 = undefined;
+        ctx.getWindowSize(&width, &height);
         dig.setNextWindowPos(
             .{ .x = @intToFloat(f32, width) - 30, .y = 50 },
             .{

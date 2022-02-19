@@ -12,28 +12,78 @@ const Mat4 = alg.Mat4;
 
 /// render-pass
 pub const RenderPass = struct {
+    const Self = @This();
+
     /// frame buffer of the render-pass
     fb: ?FrameBuffer = null,
 
-    /// viewport setting of the render-pass
-    vp: ?Viewport = null,
+    /// do some work before rendering
+    beforeFn: ?fn (ctx: *Context, custom: ?*anyopaque) void = null,
+
+    /// do some work after rendering
+    afterFn: ?fn (ctx: *Context, custom: ?*anyopaque) void = null,
 
     /// renderer of the render-pass
     rd: Renderer,
 
     /// input of renderer
-    data: Renderer.Input,
+    data: *const Renderer.Input,
+
+    /// custom data
+    custom: ?*anyopaque = null,
+
+    /// execute render pass
+    pub fn run(self: Self) anyerror!void {
+        // set current frame buffer
+        var fb_changed = false;
+        if (self.fb) |f| {
+            if (FrameBuffer.current_fb != f.id) {
+                FrameBuffer.use(f);
+                fb_changed = true;
+            }
+        } else if (FrameBuffer.current_fb != 0) {
+            FrameBuffer.use(null);
+            fb_changed = true;
+        }
+
+        if (self.beforeFn) |f| {
+            f(self.data.ctx, self.custom);
+        } else if (std.debug.runtime_safety) {
+            if (fb_changed) {
+                std.log.warn("New framebuffer is used without any preparing job, probably something is wrong, please double check!", .{});
+            }
+        }
+        defer if (self.afterFn) |f| f(self.data.ctx, self.custom);
+
+        try self.rd.draw(self.data.*);
+    }
 };
 
 /// pipeline (composed render-passes)
 pub const Pipeline = struct {
-    passes: std.ArrayList(RenderPass),
-};
+    const Self = @This();
 
-/// viewport settings 
-pub const Viewport = struct {
-    xpos: u32,
-    ypos: u32,
-    width: u32,
-    height: u32,
+    passes: std.ArrayList(RenderPass),
+
+    /// create pipeline
+    pub fn init(allocator: std.mem.Allocator, passes: []RenderPass) !Self {
+        var self = Self{
+            .passes = try std.ArrayList(RenderPass)
+                .initCapacity(allocator, std.math.max(passes.len, 1)),
+        };
+        self.passes.appendSliceAssumeCapacity(passes);
+        return self;
+    }
+
+    /// destroy pipeline
+    pub fn deinit(self: Self) void {
+        self.passes.deinit();
+    }
+
+    /// execute render pass
+    pub fn run(self: Self) anyerror!void {
+        for (self.passes.items) |p| {
+            try p.run();
+        }
+    }
 };
