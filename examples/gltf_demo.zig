@@ -106,7 +106,7 @@ fn loop(ctx: *zp.Context) void {
 
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    ctx.graphics.getDrawableSize(&width, &height);
 
     // start drawing
     ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
@@ -271,7 +271,7 @@ fn loadScene(ctx: *zp.Context) void {
     // compose renderer's input
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    ctx.graphics.getDrawableSize(&width, &height);
     const projection = Mat4.perspective(
         camera.zoom,
         @intToFloat(f32, width) / @intToFloat(f32, height),

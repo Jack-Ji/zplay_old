@@ -50,7 +50,7 @@ fn loop(ctx: *zp.Context) void {
     var fwidth: u32 = undefined;
     var fheight: u32 = undefined;
     ctx.getWindowSize(&width, &height);
-    ctx.graphics.getDrawableSize(ctx.window, &fwidth, &fheight);
+    ctx.graphics.getDrawableSize(&fwidth, &fheight);
     ctx.graphics.setViewport(0, 0, fwidth, fheight);
     ctx.graphics.clear(true, true, true, [_]f32{ 0.3, 0.3, 0.32, 1.0 });
 

@@ -83,7 +83,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     // compose renderer's input
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    ctx.graphics.getDrawableSize(&width, &height);
     proj_persp = alg.Mat4.perspective(
         camera.zoom,
         @intToFloat(f32, width) / @intToFloat(f32, height),
@@ -151,7 +151,7 @@ fn loop(ctx: *zp.Context) void {
 
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    ctx.graphics.getDrawableSize(&width, &height);
     ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     // start render

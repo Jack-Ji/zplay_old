@@ -125,7 +125,7 @@ fn loop(ctx: *zp.Context) void {
 
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    ctx.graphics.getDrawableSize(&width, &height);
     ctx.graphics.clear(true, true, true, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     // render world
@@ -177,7 +177,7 @@ const Scene = struct {
     fn init(allocator: std.mem.Allocator, ctx: *zp.Context) !Scene {
         var width: u32 = undefined;
         var height: u32 = undefined;
-        ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+        ctx.graphics.getDrawableSize(&width, &height);
 
         var self = Scene{
             .world = bt.worldCreate(),
@@ -359,7 +359,7 @@ const Scene = struct {
     fn update(self: Scene, ctx: *zp.Context, rd: Renderer) !void {
         var width: u32 = undefined;
         var height: u32 = undefined;
-        ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+        ctx.graphics.getDrawableSize(&width, &height);
         const mouse_state = ctx.getMouseState();
 
         // calc projection matrix

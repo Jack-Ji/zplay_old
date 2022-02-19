@@ -55,7 +55,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     // create framebuffer
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    ctx.graphics.getDrawableSize(&width, &height);
     fb = try Framebuffer.init(std.testing.allocator, width, height, .{});
 
     // create renderer
@@ -151,7 +151,7 @@ fn loop(ctx: *zp.Context) void {
 
     var width: u32 = undefined;
     var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(ctx.window, &width, &height);
+    ctx.graphics.getDrawableSize(&width, &height);
 
     // render scene
     Framebuffer.use(fb);

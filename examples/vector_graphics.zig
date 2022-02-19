@@ -80,7 +80,7 @@ fn loop(ctx: *zp.Context) void {
     var fwidth: u32 = undefined;
     var fheight: u32 = undefined;
     ctx.getWindowSize(&width, &height);
-    ctx.graphics.getDrawableSize(ctx.window, &fwidth, &fheight);
+    ctx.graphics.getDrawableSize(&fwidth, &fheight);
     var mouse_state = ctx.getMouseState();
     var xpos = @intToFloat(f32, mouse_state.x);
     var ypos = @intToFloat(f32, mouse_state.y);
