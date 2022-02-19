@@ -17,7 +17,7 @@ const TextureDisplay = gfx.post_processing.TextureDisplay;
 const Skybox = gfx.@"3d".Skybox;
 
 var scene_renderer: SimpleRenderer = undefined;
-var screen_renderer: SimpleRenderer = undefined;
+var screen_renderer: TextureDisplay = undefined;
 var skybox: Skybox = undefined;
 var skybox_material: Material = undefined;
 var transform_array: *Renderer.InstanceTransformArray = undefined;
@@ -39,7 +39,6 @@ var camera = Camera.fromPositionAndTarget(
     null,
 );
 var scene_render_data: Renderer.Input = undefined;
-var screen_render_data: Renderer.Input = undefined;
 
 const cube_positions = [_]Vec3{
     Vec3.new(0.0, 0.0, 0.0),
@@ -86,7 +85,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // simple renderer
     scene_renderer = SimpleRenderer.init(.{});
-    screen_renderer = SimpleRenderer.init(.{});
+    screen_renderer = try TextureDisplay.init(std.testing.allocator);
 
     // init meshes
     cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1);
@@ -150,15 +149,6 @@ fn init(ctx: *zp.Context) anyerror!void {
         null,
     );
     vertex_data = quad.getVertexData(&fb_material, null);
-    screen_render_data = try Renderer.Input.init(
-        std.testing.allocator,
-        &ctx.graphics,
-        &.{vertex_data},
-        null,
-        null,
-        null,
-        null,
-    );
 
     // toggle graphics caps
     ctx.graphics.toggleCapability(.multisample, enable_msaa);
@@ -255,11 +245,13 @@ fn loop(ctx: *zp.Context) void {
             Framebuffer.blitData(fb_msaa, fb);
         }
 
-        ctx.graphics.setPolygonMode(.fill);
-        ctx.graphics.toggleCapability(.depth_test, false);
         ctx.graphics.clear(true, false, false, [4]f32{ 0.3, 0.2, 0.3, 1.0 });
-        screen_render_data.vds.?.items[0].transform.single = Mat4.fromRotation(S.frame2, Vec3.up());
-        screen_renderer.draw(screen_render_data) catch unreachable;
+        var transform = Mat4.fromRotation(S.frame2, Vec3.forward());
+        screen_renderer.draw(.{
+            .ctx = &ctx.graphics,
+            .material = &fb_material,
+            .custom = &transform,
+        }) catch unreachable;
     }
 
     // settings

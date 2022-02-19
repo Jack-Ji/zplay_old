@@ -4,9 +4,10 @@ A simple framework intended for game/tool creation.
 ## Features
 * Little dependency, only SDL2 and OpenGL3 are needed
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
+* Flexible render-passes pipeline, greatly simplify rendering code
 * 3D model loading and rendering (only glTF 2.0 for now)
 * Various 3D shading renderers: Blinn-Phong/EnvMapping/PBR(TODO)
-* Ready to use post-processing effects: Blur/Inversion/Grayscale/Gamma Correction/Convolution
+* Ready to use post-processing effects: Blur/Inversion/Grayscale/Gamma-Correction/Convolution
 * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
 * Image/Audio asset loading/decoding via [great stb](https://github.com/nothings/stb)
@@ -14,7 +15,7 @@ A simple framework intended for game/tool creation.
 * 2D Sprite system (TODO)
 * Hand-crafted integration of [dear-imgui](https://github.com/ocornut/imgui) and popular extensions ([implot](https://github.com/epezent/implot)/[imnodes](https://github.com/Nelarius/imnodes))
 * Hand-crafted integration of [NanoVG](https://github.com/memononen/nanovg)/[NanoSVG](https://github.com/memononen/nanosvg)
-* Hand-crafted OpenGL wrappers: GraphicsContext/FrameBuffer/ShaderProgram/VertexArray/Buffer/Texture etc.
+* Hand-crafted OpenGL wrappers: GraphicsContext/FrameBuffer/ShaderProgram/VertexArray/Buffer/Texture
 
 # Install
 1. Download and install zig master branch

@@ -20,9 +20,11 @@ const vs =
     \\
     \\out vec2 v_tex;
     \\
+    \\uniform mat4 u_transform;
+    \\
     \\void main()
     \\{
-    \\    gl_Position = vec4(a_pos, 1.0);
+    \\    gl_Position = u_transform * vec4(a_pos, 1.0);
     \\    v_tex = a_tex;
     \\}
 ;
@@ -88,6 +90,8 @@ pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
         "u_texture",
         input.material.?.data.single_texture.getTextureUnit(),
     );
+    const transform = if (input.custom) |ptr| @ptrCast(*align(1) const Mat4, ptr).* else Mat4.identity();
+    self.program.setUniformByName("u_transform", transform);
 
     // issue draw call
     drawcall.drawElements(
