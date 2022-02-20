@@ -4,10 +4,19 @@ A simple framework intended for game/tool creation.
 ## Features
 * Little dependency, only SDL2 and OpenGL3 are needed
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
+* Abstracted graphics renderer interface, we have following renderers:
+    * A simple mesh renderer
+    * Blinn-Phong renderer (support directional/point/spot light)
+    * Environment mapping renderer
+    * Skybox renderer
+    * PBR renderer (TODO)
+    * Various post-processing effect renderers:
+        * Grayscale
+        * Gamma-Correction
+        * Color-inversion
+        * Convolution (sharpen/blur/edge-detect etc)
 * Flexible render-passes pipeline, greatly simplify rendering code
 * 3D model loading and rendering (only glTF 2.0 for now)
-* Various 3D shading renderers: Blinn-Phong/EnvMapping/PBR(TODO)
-* Ready to use post-processing effects: Blur/Inversion/Grayscale/Gamma-Correction/Convolution
 * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
 * Image/Audio asset loading/decoding via [great stb](https://github.com/nothings/stb)
