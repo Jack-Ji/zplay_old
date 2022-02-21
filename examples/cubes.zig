@@ -188,7 +188,7 @@ fn init(ctx: *zp.Context) anyerror!void {
                 .data = &render_data_skybox,
             },
             .{
-                //.beforeFn = beforeScreenRendering,
+                .beforeFn = beforeScreenRendering,
                 .rd = screen_renderer.renderer(),
                 .data = &render_data_screen,
             },

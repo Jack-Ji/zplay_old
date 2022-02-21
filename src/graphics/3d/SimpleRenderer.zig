@@ -13,11 +13,6 @@ const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const Self = @This();
 
-const shader_head =
-    \\#version 330 core
-    \\
-;
-
 const vs_body =
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 1) in vec4 a_color;
@@ -63,10 +58,10 @@ const fs_body =
     \\}
 ;
 
-const vs = shader_head ++ vs_body;
-const vs_instanced = shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
-const fs = shader_head ++ fs_body;
-const fs_no_draw = shader_head ++ "\n#define NO_DRAW\n" ++ fs_body;
+const vs = Renderer.shader_head ++ vs_body;
+const vs_instanced = Renderer.shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
+const fs = Renderer.shader_head ++ fs_body;
+const fs_no_draw = Renderer.shader_head ++ "\n#define NO_DRAW\n" ++ fs_body;
 
 /// shader programs
 program: ShaderProgram = undefined,

@@ -17,6 +17,12 @@ const Renderer = @This();
 ptr: *anyopaque,
 vtable: *const VTable,
 
+/// common shader head
+pub const shader_head =
+    \\#version 330 core
+    \\
+;
+
 /// renderer's vertex attribute locations
 /// NOTE: renderer's vertex shader should follow this 
 /// convention if its purpose is rendering Model/Mesh objects.

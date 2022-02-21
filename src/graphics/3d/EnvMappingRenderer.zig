@@ -12,11 +12,6 @@ const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Self = @This();
 
-const shader_head =
-    \\#version 330 core
-    \\
-;
-
 const vs_body =
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 2) in vec3 a_normal;
@@ -69,10 +64,10 @@ const fs_body =
     \\}
 ;
 
-const vs = shader_head ++ vs_body;
-const vs_instanced = shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
-const fs_reflect = shader_head ++ "\n#define REFLECT_MAPPING\n" ++ fs_body;
-const fs_retract = shader_head ++ "\n#define RETRACT_MAPPING\n" ++ fs_body;
+const vs = Renderer.shader_head ++ vs_body;
+const vs_instanced = Renderer.shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
+const fs_reflect = Renderer.shader_head ++ "\n#define REFLECT_MAPPING\n" ++ fs_body;
+const fs_retract = Renderer.shader_head ++ "\n#define RETRACT_MAPPING\n" ++ fs_body;
 
 // environment mapping type
 const Type = enum {

@@ -13,8 +13,7 @@ const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const Self = @This();
 
-const vs =
-    \\#version 330 core
+const vs = Renderer.shader_head ++
     \\layout (location = 0) in vec3 a_pos;
     \\
     \\uniform mat4 u_view;
@@ -30,8 +29,7 @@ const vs =
     \\}
 ;
 
-const fs =
-    \\#version 330 core
+const fs = Renderer.shader_head ++
     \\out vec4 frag_color;
     \\
     \\in vec3 v_tex;

@@ -13,11 +13,6 @@ const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
 const Self = @This();
 
-const shader_head =
-    \\#version 330 core
-    \\
-;
-
 const vs_body = light.ShaderDefinitions ++
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 2) in vec3 a_normal;
@@ -201,13 +196,13 @@ const fs_body = light.ShaderDefinitions ++
     \\}
 ;
 
-const vs = shader_head ++ vs_body;
-const vs_instanced = shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
-const fs = shader_head ++ fs_body;
+const vs = Renderer.shader_head ++ vs_body;
+const vs_instanced = Renderer.shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
+const fs = Renderer.shader_head ++ fs_body;
 
-const vs_shadow = shader_head ++ "\n#define SHADOW_DRAW\n" ++ vs_body;
-const vs_instanced_shadow = shader_head ++ "\n#define INSTANCED_DRAW\n#define SHADOW_DRAW\n" ++ vs_body;
-const fs_shadow = shader_head ++ "\n#define SHADOW_DRAW\n" ++ fs_body;
+const vs_shadow = Renderer.shader_head ++ "\n#define SHADOW_DRAW\n" ++ vs_body;
+const vs_instanced_shadow = Renderer.shader_head ++ "\n#define INSTANCED_DRAW\n#define SHADOW_DRAW\n" ++ vs_body;
+const fs_shadow = Renderer.shader_head ++ "\n#define SHADOW_DRAW\n" ++ fs_body;
 
 /// shader programs
 program: ShaderProgram = undefined,
