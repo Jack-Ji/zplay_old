@@ -234,10 +234,10 @@ fn parseNode(
     // load transform matrix
     var transform = Mat4.identity();
     if (node.has_matrix > 0) {
-        transform = Mat4.fromSlice(&node.matrix).mult(transform);
+        transform = Mat4.fromSlice(&node.matrix).mul(transform);
     } else {
         if (node.has_scale > 0) {
-            transform = Mat4.fromScale(Vec3.fromSlice(&node.scale)).mult(transform);
+            transform = Mat4.fromScale(Vec3.fromSlice(&node.scale)).mul(transform);
         }
         if (node.has_rotation > 0) {
             var quat = Quat.new(
@@ -246,13 +246,13 @@ fn parseNode(
                 node.rotation[1],
                 node.rotation[2],
             );
-            transform = quat.toMat4().mult(transform);
+            transform = quat.toMat4().mul(transform);
         }
         if (node.has_translation > 0) {
-            transform = Mat4.fromTranslate(Vec3.fromSlice(&node.translation)).mult(transform);
+            transform = Mat4.fromTranslate(Vec3.fromSlice(&node.translation)).mul(transform);
         }
     }
-    transform = parent_transform.mult(transform);
+    transform = parent_transform.mul(transform);
 
     // load meshes
     if (node.mesh != null) {
@@ -363,7 +363,7 @@ pub fn appendVertexData(
         try input.vds.?.append(m.getVertexData(
             &self.materials.items[self.material_indices.items[i]],
             Renderer.LocalTransform{
-                .single = transform.mult(self.transforms.items[i]),
+                .single = transform.mul(self.transforms.items[i]),
             },
         ));
     }
@@ -384,7 +384,7 @@ pub fn appendVertexDataInstanced(
     for (self.meshes.items) |m, i| {
         // compose transform array for mesh #i
         for (temp.items) |_, j| {
-            temp.items[j] = transforms[j].mult(self.transforms.items[i]);
+            temp.items[j] = transforms[j].mul(self.transforms.items[i]);
         }
         var trs = Renderer.InstanceTransformArray.init(allocator) catch unreachable;
         trs.updateTransforms(temp.items) catch unreachable;
@@ -406,7 +406,7 @@ pub fn fillTransforms(
 ) void {
     assert(vds.len == self.meshes.items.len);
     for (self.meshes.items) |_, i| {
-        vds[i].transform.single = transform.mult(self.transforms.items[i]);
+        vds[i].transform.single = transform.mul(self.transforms.items[i]);
     }
 }
 
@@ -421,7 +421,7 @@ pub fn fillInstanceTransformArray(
     assert(transforms.len == temp.len);
     for (self.meshes.items) |_, i| {
         for (transforms.items) |tr, j| {
-            temp[j] = tr.mult(self.transforms.items[i]);
+            temp[j] = tr.mul(self.transforms.items[i]);
         }
         try vds[i].transform.instanced.updateTransforms(temp);
     }

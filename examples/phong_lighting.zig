@@ -131,7 +131,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .diffuse = Vec3.fromSlice(&dir_light_diffuse),
             .specular = Vec3.fromSlice(&dir_light_specular),
             .direction = Vec3.fromSlice(&dir_light_direction),
-            .space_matrix = light_view_projection.mult(light_view_camera.getViewMatrix()),
+            .space_matrix = light_view_projection.mul(light_view_camera.getViewMatrix()),
         },
     });
     try all_lights.append(.{
@@ -638,7 +638,7 @@ fn loop(ctx: *zp.Context) void {
                     null,
                 );
                 all_lights.items[0].directional.space_matrix =
-                    light_view_projection.mult(light_view_camera.getViewMatrix());
+                    light_view_projection.mul(light_view_camera.getViewMatrix());
                 phong_renderer.applyLights(all_lights.items);
                 var idx: u32 = 0;
                 for (all_lights.items) |d| {

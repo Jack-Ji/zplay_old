@@ -155,7 +155,7 @@ fn loop(ctx: *zp.Context) void {
     ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 
     // start render
-    S.axis = alg.Mat4.fromRotation(1, Vec3.new(-1, 1, -1)).multByVec4(S.axis);
+    S.axis = alg.Mat4.fromRotation(1, Vec3.new(-1, 1, -1)).mulByVec4(S.axis);
     const model = alg.Mat4.fromRotation(
         S.frame,
         Vec3.new(S.axis.x(), S.axis.y(), S.axis.z()),

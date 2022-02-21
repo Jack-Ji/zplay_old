@@ -114,19 +114,19 @@ fn loop(ctx: *zp.Context) void {
         render_data_scene.vds.?.items[0..dog.meshes.items.len],
         Mat4.fromTranslate(Vec3.new(-2.0, -0.7, 0))
             .scale(Vec3.set(0.7))
-            .mult(Mat4.fromRotation(ctx.tick * 50, Vec3.up())),
+            .mul(Mat4.fromRotation(ctx.tick * 50, Vec3.up())),
     );
     girl.fillTransforms(
         render_data_scene.vds.?.items[dog.meshes.items.len .. dog.meshes.items.len + girl.meshes.items.len],
         Mat4.fromTranslate(Vec3.new(2.0, -1.2, 0))
             .scale(Vec3.set(0.7))
-            .mult(Mat4.fromRotation(ctx.tick * 100, Vec3.up())),
+            .mul(Mat4.fromRotation(ctx.tick * 100, Vec3.up())),
     );
     helmet.fillTransforms(
         render_data_scene.vds.?.items[dog.meshes.items.len + girl.meshes.items.len ..],
         Mat4.fromTranslate(Vec3.new(0.0, 0, 0))
             .scale(Vec3.set(0.7))
-            .mult(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
+            .mul(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
     );
     simple_renderer.draw(render_data_scene) catch unreachable;
     skybox.draw(render_data_skybox) catch unreachable;

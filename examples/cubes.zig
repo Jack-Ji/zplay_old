@@ -264,7 +264,7 @@ fn beforeSceneRenderingOutlined2(ctx: *GraphicsContext, custom: ?*anyopaque) voi
         .test_ref = 1,
     });
     for (cube_transforms) |*tr| {
-        tr.* = tr.mult(Mat4.fromScale(Vec3.set(1.01)));
+        tr.* = tr.mul(Mat4.fromScale(Vec3.set(1.01)));
     }
     cubes_transform_array.updateTransforms(&cube_transforms) catch unreachable;
     render_data_scene.vds.?.items[0].material = &color_material;

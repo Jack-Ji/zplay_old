@@ -424,7 +424,7 @@ const Scene = struct {
             }
             try obj.model.render(
                 rd,
-                bt.convertTransformToMat4(tr).mult(Mat4.fromScale(obj.size)),
+                bt.convertTransformToMat4(tr).mul(Mat4.fromScale(obj.size)),
                 projection,
                 camera,
                 null,
@@ -446,8 +446,8 @@ const Scene = struct {
                 try obj.model.render(
                     srd,
                     bt.convertTransformToMat4(tr)
-                        .mult(Mat4.fromScale(Vec3.set(1.05)))
-                        .mult(Mat4.fromScale(obj.size)),
+                        .mul(Mat4.fromScale(Vec3.set(1.05)))
+                        .mul(Mat4.fromScale(obj.size)),
                     projection,
                     camera,
                     color_material,
