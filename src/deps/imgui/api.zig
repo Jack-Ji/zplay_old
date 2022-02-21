@@ -123,7 +123,7 @@ pub fn setWindowSize_Vec2(size: c.ImVec2, cond: c.ImGuiCond) void {
 pub fn setWindowCollapsed_Bool(collapsed: bool, cond: c.ImGuiCond) void {
     return c.igSetWindowCollapsed_Bool(collapsed, cond);
 }
-pub const setWindowFocus_Nil = c.igSetWindowFocus_Nil;
+pub const setWindowFocus = c.igSetWindowFocus_Nil;
 pub fn setWindowFontScale(scale: f32) void {
     return c.igSetWindowFontScale(scale);
 }
@@ -1114,7 +1114,7 @@ pub const setItemAllowOverlap = c.igSetItemAllowOverlap;
 pub const getMainViewport = c.igGetMainViewport;
 
 // Miscellaneous Utilities
-pub fn isRectVisible_Nil(size: c.ImVec2) bool {
+pub fn isRectVisible(size: c.ImVec2) bool {
     return c.igIsRectVisible_Nil(size);
 }
 pub fn isRectVisible_Vec2(rect_min: c.ImVec2, rect_max: c.ImVec2) bool {
@@ -1122,8 +1122,8 @@ pub fn isRectVisible_Vec2(rect_min: c.ImVec2, rect_max: c.ImVec2) bool {
 }
 pub const getTime = c.igGetTime;
 pub const getFrameCount = c.igGetFrameCount;
-pub const getBackgroundDrawList_Nil = c.igGetBackgroundDrawList_Nil;
-pub const getForegroundDrawList_Nil = c.igGetForegroundDrawList_Nil;
+pub const getBackgroundDrawList = c.igGetBackgroundDrawList_Nil;
+pub const getForegroundDrawList = c.igGetForegroundDrawList_Nil;
 pub const getDrawListSharedData = c.igGetDrawListSharedData;
 pub fn getStyleColorName(idx: c.ImGuiCol) [*c]const u8 {
     return c.igGetStyleColorName(idx);
@@ -2106,7 +2106,7 @@ pub const internal = struct {
     }
 
     // Settings
-    pub const markIniSettingsDirty_Nil = c.igMarkIniSettingsDirty_Nil;
+    pub const markIniSettingsDirty = c.igMarkIniSettingsDirty_Nil;
     pub fn markIniSettingsDirty_WindowPtr(window: ?*c.ImGuiWindow) void {
         return c.igMarkIniSettingsDirty_WindowPtr(window);
     }

@@ -107,7 +107,8 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .width = 1600,
+        .height = 900,
         .enable_resizable = true,
-        .enable_maximized = true,
     });
 }
