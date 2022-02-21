@@ -55,14 +55,20 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = material.allocTextureUnit(0);
 
     // compose renderer's input
-    render_data = try Renderer.Input.init(std.testing.allocator, &ctx.graphics, &.{}, null, null, null, null);
-    const vd = Renderer.Input.VertexData{
-        .element_draw = false,
-        .vertex_array = vertex_array,
-        .count = 3,
-        .material = &material,
-    };
-    try render_data.vds.?.append(vd);
+    render_data = try Renderer.Input.init(
+        std.testing.allocator,
+        &ctx.graphics,
+        &[_]Renderer.Input.VertexData{.{
+            .element_draw = false,
+            .vertex_array = vertex_array,
+            .count = 3,
+            .material = &material,
+        }},
+        null,
+        null,
+        null,
+        null,
+    );
 }
 
 fn loop(ctx: *zp.Context) void {

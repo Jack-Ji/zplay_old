@@ -147,14 +147,13 @@ fn init(ctx: *zp.Context) anyerror!void {
         100,
     );
     cubes_transform_array = try Renderer.InstanceTransformArray.init(std.testing.allocator);
-    var vertex_data = cube.getVertexData(
-        &cube_material,
-        Renderer.LocalTransform{ .instanced = cubes_transform_array },
-    );
     render_data_scene = try Renderer.Input.init(
         std.testing.allocator,
         &ctx.graphics,
-        &.{vertex_data},
+        &[_]Renderer.Input.VertexData{cube.getVertexData(
+            &cube_material,
+            Renderer.LocalTransform{ .instanced = cubes_transform_array },
+        )},
         projection,
         &camera,
         null,
