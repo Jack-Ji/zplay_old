@@ -73,6 +73,7 @@ pub fn link(
         @import("build/nanovg.zig"),
         @import("build/nanosvg.zig"),
         @import("build/bullet.zig"),
+        @import("build/chipmunk.zig"),
     };
     inline for (deps) |d| {
         d.link(b, exe, target, root_path);
