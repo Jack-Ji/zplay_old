@@ -4,8 +4,11 @@ pub usingnamespace @import("core.zig");
 /// system events
 pub const event = @import("event.zig");
 
-/// rendering facilities
+/// graphics module
 pub const graphics = @import("graphics.zig");
+
+/// physics module
+pub const physics = @import("physics.zig");
 
 /// 3rd party libraries
 pub const deps = struct {

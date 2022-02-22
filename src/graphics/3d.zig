@@ -1,9 +1,6 @@
 /// model (glTF 2.0)
 pub const Model = @import("3d/Model.zig");
 
-/// 3d scene
-pub const Scene = @import("3d/Scene.zig");
-
 /// 3d light manager
 pub const light = @import("3d/light.zig");
 

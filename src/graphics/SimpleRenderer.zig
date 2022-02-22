@@ -126,18 +126,20 @@ pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
 
         // apply material
         if (!self.no_draw) {
-            var mr: *Material = vd.material orelse input.material.?;
-            if (mr != current_material) {
-                switch (mr.data) {
-                    .phong => |m| {
-                        prog.setUniformByName("u_texture", m.diffuse_map.getTextureUnit());
-                    },
-                    .single_texture => |tex| {
-                        prog.setUniformByName("u_texture", tex.getTextureUnit());
-                    },
-                    else => {
-                        std.debug.panic("unsupported material type", .{});
-                    },
+            var material = vd.material orelse input.material;
+            if (material) |mr| {
+                if (mr != current_material) {
+                    switch (mr.data) {
+                        .phong => |m| {
+                            prog.setUniformByName("u_texture", m.diffuse_map.getTextureUnit());
+                        },
+                        .single_texture => |tex| {
+                            prog.setUniformByName("u_texture", tex.getTextureUnit());
+                        },
+                        else => {
+                            std.debug.panic("unsupported material type", .{});
+                        },
+                    }
                 }
             }
         }
