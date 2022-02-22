@@ -13,7 +13,7 @@ const Camera = gfx.Camera;
 const Mesh = gfx.Mesh;
 const Material = gfx.Material;
 const post_processing = gfx.post_processing;
-const SimpleRenderer = gfx.@"3d".SimpleRenderer;
+const SimpleRenderer = gfx.SimpleRenderer;
 
 var fb: Framebuffer = undefined;
 var fb_material: Material = undefined;

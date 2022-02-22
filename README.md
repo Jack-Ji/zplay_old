@@ -4,24 +4,25 @@ A simple framework intended for game/tool creation.
 ## Features
 * Little dependency, only SDL2 and OpenGL3 are needed
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
-* Abstracted graphics renderer interface, we have following renderers:
+* Abstracted graphics renderer interface, available renderers:
     * A simple mesh renderer
-    * Blinn-Phong renderer (support directional/point/spot light)
+    * Blinn-Phong renderer (directional/point/spot light)
     * Environment mapping renderer
     * Skybox renderer
     * PBR renderer (TODO)
-    * Various post-processing effect renderers:
+    * Post-processing effect renderers:
         * Grayscale
         * Gamma-Correction
         * Color-inversion
         * Convolution (sharpen/blur/edge-detect etc)
 * Flexible render-passes pipeline, greatly simplify rendering code
 * 3D model loading and rendering (only glTF 2.0 for now)
+* Particle system (TODO)
+* SpriteBatch system (TODO)
+* 2D physics (TODO)
 * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
 * Image/Audio asset loading/decoding via [great stb](https://github.com/nothings/stb)
-* Particle system (TODO)
-* 2D Sprite system (TODO)
 * Hand-crafted integration of [dear-imgui](https://github.com/ocornut/imgui) and popular extensions ([implot](https://github.com/epezent/implot)/[imnodes](https://github.com/Nelarius/imnodes))
 * Hand-crafted integration of [NanoVG](https://github.com/memononen/nanovg)/[NanoSVG](https://github.com/memononen/nanosvg)
 * Hand-crafted OpenGL wrappers: GraphicsContext/FrameBuffer/ShaderProgram/VertexArray/Buffer/Texture

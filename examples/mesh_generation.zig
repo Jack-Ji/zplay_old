@@ -11,7 +11,7 @@ const Mesh = gfx.Mesh;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
 const Renderer = gfx.Renderer;
-const SimpleRenderer = gfx.@"3d".SimpleRenderer;
+const SimpleRenderer = gfx.SimpleRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = true;

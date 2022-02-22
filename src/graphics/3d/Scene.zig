@@ -1,7 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const Model = @import("Model");
-const SimpleRenderer = @import("SimpleRenderer.zig");
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
 const VertexArray = gfx.gpu.VertexArray;

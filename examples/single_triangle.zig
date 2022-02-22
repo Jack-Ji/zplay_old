@@ -10,7 +10,7 @@ const VertexArray = gfx.gpu.VertexArray;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
-const SimpleRenderer = gfx.@"3d".SimpleRenderer;
+const SimpleRenderer = gfx.SimpleRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
 var render_data: Renderer.Input = undefined;

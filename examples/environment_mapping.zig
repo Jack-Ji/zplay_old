@@ -11,10 +11,10 @@ const Renderer = gfx.Renderer;
 const Material = gfx.Material;
 const Camera = gfx.Camera;
 const Model = gfx.@"3d".Model;
-const Skybox = gfx.@"3d".Skybox;
+const SkyboxRenderer = gfx.@"3d".SkyboxRenderer;
 const EnvMappingRenderer = gfx.@"3d".EnvMappingRenderer;
 
-var skybox: Skybox = undefined;
+var skybox: SkyboxRenderer = undefined;
 var cubemap: *Texture = undefined;
 var skybox_material: Material = undefined;
 var refract_air_material: Material = undefined;
@@ -87,7 +87,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = skybox_material.allocTextureUnit(0);
 
     // alloc renderers
-    skybox = Skybox.init(std.testing.allocator);
+    skybox = SkyboxRenderer.init(std.testing.allocator);
     reflect_renderer = EnvMappingRenderer.init(.reflect);
     refract_renderer = EnvMappingRenderer.init(.refract);
     current_scene_renderer = reflect_renderer.renderer();

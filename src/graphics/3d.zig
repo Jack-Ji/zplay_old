@@ -8,10 +8,7 @@ pub const Scene = @import("3d/Scene.zig");
 pub const light = @import("3d/light.zig");
 
 /// skybox
-pub const Skybox = @import("3d/Skybox.zig");
-
-/// simple renderer
-pub const SimpleRenderer = @import("3d/SimpleRenderer.zig");
+pub const SkyboxRenderer = @import("3d/SkyboxRenderer.zig");
 
 /// blinn-phong lighting renderer
 pub const PhongRenderer = @import("3d/PhongRenderer.zig");

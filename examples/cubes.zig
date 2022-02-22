@@ -14,13 +14,13 @@ const Mesh = gfx.Mesh;
 const render_pass = gfx.render_pass;
 const Material = gfx.Material;
 const Camera = gfx.Camera;
-const SimpleRenderer = gfx.@"3d".SimpleRenderer;
+const SimpleRenderer = gfx.SimpleRenderer;
 const TextureDisplay = gfx.post_processing.TextureDisplay;
-const Skybox = gfx.@"3d".Skybox;
+const SkyboxRenderer = gfx.@"3d".SkyboxRenderer;
 
 var scene_renderer: SimpleRenderer = undefined;
 var screen_renderer: TextureDisplay = undefined;
-var skybox: Skybox = undefined;
+var skybox: SkyboxRenderer = undefined;
 var skybox_material: Material = undefined;
 var fb: Framebuffer = undefined;
 var fb_msaa: Framebuffer = undefined;
@@ -70,7 +70,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // allocate skybox
-    skybox = Skybox.init(std.testing.allocator);
+    skybox = SkyboxRenderer.init(std.testing.allocator);
 
     // allocate framebuffer stuff
     var width: u32 = undefined;

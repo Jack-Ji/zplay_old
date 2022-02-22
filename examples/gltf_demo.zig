@@ -11,11 +11,11 @@ const Texture = gfx.gpu.Texture;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
 const Renderer = gfx.Renderer;
-const SimpleRenderer = gfx.@"3d".SimpleRenderer;
+const SimpleRenderer = gfx.SimpleRenderer;
 const Model = gfx.@"3d".Model;
-const Skybox = gfx.@"3d".Skybox;
+const SkyboxRenderer = gfx.@"3d".SkyboxRenderer;
 
-var skybox: Skybox = undefined;
+var skybox: SkyboxRenderer = undefined;
 var skybox_material: Material = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = false;
@@ -42,7 +42,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // create renderer
-    skybox = Skybox.init(std.testing.allocator);
+    skybox = SkyboxRenderer.init(std.testing.allocator);
     simple_renderer = SimpleRenderer.init(.{});
 
     // load scene

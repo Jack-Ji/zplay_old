@@ -15,11 +15,11 @@ const render_pass = gfx.render_pass;
 const Camera = gfx.Camera;
 const Mesh = gfx.Mesh;
 const Material = gfx.Material;
+const SimpleRenderer = gfx.SimpleRenderer;
+const GammaCorrection = gfx.post_processing.GammaCorrection;
 const light = gfx.@"3d".light;
-const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 const PhongRenderer = gfx.@"3d".PhongRenderer;
 const BlinnPhongRenderer = gfx.@"3d".BlinnPhongRenderer;
-const GammaCorrection = gfx.post_processing.GammaCorrection;
 
 var shadow_fb: Framebuffer = undefined;
 var scene_fb: Framebuffer = undefined;
