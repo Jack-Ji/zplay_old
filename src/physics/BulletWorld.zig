@@ -296,36 +296,33 @@ pub fn getRayTestResult(self: Self, from: Vec3, to: Vec3) ?u32 {
 /// update world
 pub const UpdateOption = struct {
     delta_time: f32 = 0, // passed time
-    debug_draw: ?DebugDraw = null, // draw debug lines
-
-    pub const DebugDraw = struct {
-        projection: Mat4,
-        camera: *Camera,
-        line_width: f32 = 3,
-    };
 };
-pub fn update(self: *Self, option: UpdateOption) void {
+pub fn update(self: Self, option: UpdateOption) void {
     _ = bt.worldStepSimulation(self.world, option.delta_time, 1, 1.0 / 60.0);
     if (self.debug) |dbg| {
-        if (option.debug_draw) |param| {
-            for (self.objects.items) |obj| {
-                var linear_velocity: bt.Vector3 = undefined;
-                var angular_velocity: bt.Vector3 = undefined;
-                var position: bt.Vector3 = undefined;
-                bt.bodyGetLinearVelocity(obj.body, &linear_velocity);
-                bt.bodyGetAngularVelocity(obj.body, &angular_velocity);
-                bt.bodyGetCenterOfMassPosition(obj.body, &position);
-                const p1_linear = Vec3.fromSlice(&position).add(Vec3.fromSlice(&linear_velocity));
-                const p1_angular = Vec3.fromSlice(&position).add(Vec3.fromSlice(&angular_velocity));
-                const color_linear = bt.Vector3{ 1.0, 0.0, 1.0 };
-                const color_angular = bt.Vector3{ 0.0, 1.0, 1.0 };
-                bt.worldDebugDrawLine1(self.world, &position, &p1_linear.toArray(), &color_linear);
-                bt.worldDebugDrawLine1(self.world, &position, &p1_angular.toArray(), &color_angular);
-            }
-
-            bt.worldDebugDraw(self.world);
-            dbg.render(param.projection, param.camera, param.line_width);
+        dbg.clear();
+        for (self.objects.items) |obj| {
+            var linear_velocity: bt.Vector3 = undefined;
+            var angular_velocity: bt.Vector3 = undefined;
+            var position: bt.Vector3 = undefined;
+            bt.bodyGetLinearVelocity(obj.body, &linear_velocity);
+            bt.bodyGetAngularVelocity(obj.body, &angular_velocity);
+            bt.bodyGetCenterOfMassPosition(obj.body, &position);
+            const p1_linear = Vec3.fromSlice(&position).add(Vec3.fromSlice(&linear_velocity));
+            const p1_angular = Vec3.fromSlice(&position).add(Vec3.fromSlice(&angular_velocity));
+            const color_linear = bt.Vector3{ 1.0, 0.0, 1.0 };
+            const color_angular = bt.Vector3{ 0.0, 1.0, 1.0 };
+            bt.worldDebugDrawLine1(self.world, &position, &p1_linear.toArray(), &color_linear);
+            bt.worldDebugDrawLine1(self.world, &position, &p1_angular.toArray(), &color_angular);
         }
+    }
+}
+
+/// draw debug lines
+pub fn debugDraw(self: Self, projection: Mat4, camera: *Camera, line_width: f32) void {
+    if (self.debug) |dbg| {
+        bt.worldDebugDraw(self.world);
+        dbg.render(projection, camera, line_width);
     }
 }
 
@@ -398,12 +395,12 @@ const PhysicsDebug = struct {
         debug.allocator.destroy(debug);
     }
 
-    fn render(
-        debug: *PhysicsDebug,
-        projection: Mat4,
-        camera: *Camera,
-        line_width: f32,
-    ) void {
+    fn clear(debug: *PhysicsDebug) void {
+        debug.positions.clearRetainingCapacity();
+        debug.colors.clearRetainingCapacity();
+    }
+
+    fn render(debug: *PhysicsDebug, projection: Mat4, camera: *Camera, line_width: f32) void {
         if (debug.positions.items.len == 0) return;
 
         // upload vertex data
@@ -422,8 +419,7 @@ const PhysicsDebug = struct {
         debug.ctx.toggleCapability(.stencil_test, false);
 
         defer {
-            debug.positions.resize(0) catch unreachable;
-            debug.colors.resize(0) catch unreachable;
+            debug.clear();
             debug.ctx.setLineWidth(old_line_width);
             debug.ctx.toggleCapability(.depth_test, old_depth_test_status);
             debug.ctx.toggleCapability(.stencil_test, old_stencil_test_status);

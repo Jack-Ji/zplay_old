@@ -377,15 +377,8 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    // render world
-    const debug_draw = BulletWorld.UpdateOption.DebugDraw{
-        .projection = render_data_static.projection.?,
-        .camera = &camera,
-    };
-    physics_world.update(.{
-        .delta_time = ctx.delta_tick,
-        .debug_draw = debug_draw,
-    });
+    // update physics world's status
+    physics_world.update(.{ .delta_time = ctx.delta_tick });
     var idx: u32 = 0;
     for (all_actors.items) |a, i| {
         if (i == 0) continue;
@@ -399,7 +392,14 @@ fn loop(ctx: *zp.Context) void {
         }
         idx = end;
     }
+
+    // render the scene
     render_pipeline.run() catch unreachable;
+    physics_world.debugDraw(
+        render_data_static.projection.?,
+        &camera,
+        3,
+    );
 
     // settings
     dig.beginFrame();
