@@ -30,6 +30,7 @@ pub fn build(b: *std.build.Builder) void {
         "gltf_demo",
         "environment_mapping",
         "post_processing",
+        "rasterization",
         "bullet_test",
     };
     const build_examples = b.step("build_examples", "compile and install all examples");

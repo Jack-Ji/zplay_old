@@ -32,6 +32,9 @@ A simple framework intended for game/tool creation.
 2. Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
 
 # Examples
+* rasterization (original idea from [michal-z](https://github.com/michal-z/zig-gamedev/tree/main/samples/rasterization))
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/rasterization.png)
+
 * glTF 2.0 model
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/gltf_demo.png)
 

@@ -190,10 +190,14 @@ pub const Input = struct {
     }
 
     /// create a copy of renderer's input
-    pub fn clone(self: Input) !Input {
+    pub fn clone(self: Input, allocator: std.mem.Allocator) !Input {
         var cloned = self;
         if (self.vds) |ds| {
-            clone.vds = try ds.clone();
+            cloned.vds = try std.ArrayList(VertexData).initCapacity(
+                allocator,
+                ds.items.len,
+            );
+            cloned.vds.?.appendSliceAssumeCapacity(ds.items);
         }
         return cloned;
     }
