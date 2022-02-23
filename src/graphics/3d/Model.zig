@@ -357,11 +357,12 @@ pub fn appendVertexData(
     self: Self,
     input: *Renderer.Input,
     transform: Mat4,
+    material: ?*Material,
 ) !void {
     for (self.meshes.items) |m, i| {
         // add vertex data of mesh #i
         try input.vds.?.append(m.getVertexData(
-            &self.materials.items[self.material_indices.items[i]],
+            if (material) |mr| mr else &self.materials.items[self.material_indices.items[i]],
             Renderer.LocalTransform{
                 .single = transform.mul(self.transforms.items[i]),
             },
@@ -376,6 +377,7 @@ pub fn appendVertexDataInstanced(
     allocator: std.mem.Allocator,
     input: *Renderer.Input,
     transforms: []Mat4,
+    material: ?*Material,
 ) !void {
     assert(transforms.len > 0);
     var temp = try std.ArrayList(allocator).initCapacity(transforms.len);
@@ -391,7 +393,7 @@ pub fn appendVertexDataInstanced(
 
         // add vertex data of mesh #i
         try input.vds.?.append(m.getVertexData(
-            &self.materials.items[self.material_indices.items[i]],
+            if (material) |mr| mr else &self.materials.items[self.material_indices.items[i]],
             Renderer.LocalTransform{ .instanced = trs },
         ));
     }

@@ -105,7 +105,7 @@ pub fn renderer(self: *Self) Renderer {
 
 /// generic rendering implementation
 pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
-    assert(input.vds.?.items.len > 0);
+    if (input.vds == null or input.vds.?.items.len == 0) return;
     var is_instanced_drawing = input.vds.?.items[0].transform == .instanced;
     var prog = if (is_instanced_drawing) &self.program_instanced else &self.program;
     prog.use();

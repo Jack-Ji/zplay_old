@@ -114,7 +114,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         &skybox_material,
         null,
     );
-    try model.appendVertexData(&render_data_scene, Mat4.identity());
+    try model.appendVertexData(&render_data_scene, Mat4.identity(), null);
     render_data_skybox = .{
         .ctx = &ctx.graphics,
         .projection = projection,

@@ -80,6 +80,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     helmet.appendVertexData(
         &render_data_wireframe,
         Mat4.fromScale(Vec3.set(0.7)).rotate(90, Vec3.up()),
+        null,
     ) catch unreachable;
     render_data_raster = try render_data_wireframe.clone(std.testing.allocator);
     render_data_wireframe.vds.?.items[0].material = &color_mr;

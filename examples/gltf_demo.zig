@@ -53,34 +53,20 @@ fn init(ctx: *zp.Context) anyerror!void {
 }
 
 fn loop(ctx: *zp.Context) void {
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    ctx.graphics.getDrawableSize(&width, &height);
+
     while (ctx.pollEvent()) |e| {
         if (e == .mouse_event and dig.getIO().*.WantCaptureMouse) {
             _ = dig.processEvent(e);
             continue;
         }
         switch (e) {
-            .window_event => |we| {
-                switch (we.data) {
-                    .resized => |size| {
-                        ctx.graphics.setViewport(0, 0, size.width, size.height);
-                    },
-                    else => {},
-                }
-            },
             .keyboard_event => |key| {
                 if (key.trigger_type == .up) {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
-                        .m => ctx.toggleRelativeMouseMode(null),
-                        .f => {
-                            if (wireframe_mode) {
-                                wireframe_mode = false;
-                            } else {
-                                wireframe_mode = true;
-                            }
-                            ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
-                        },
                         else => {},
                     }
                 }
@@ -95,6 +81,12 @@ fn loop(ctx: *zp.Context) void {
                         if (camera.zoom > 45) {
                             camera.zoom = 45;
                         }
+                        render_data_scene.projection = Mat4.perspective(
+                            camera.zoom,
+                            @intToFloat(f32, width) / @intToFloat(f32, height),
+                            0.1,
+                            100,
+                        );
                     },
                     else => {},
                 }
@@ -103,10 +95,6 @@ fn loop(ctx: *zp.Context) void {
             else => {},
         }
     }
-
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
 
     // start drawing
     ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
@@ -287,9 +275,9 @@ fn loadScene(ctx: *zp.Context) void {
         null,
         null,
     ) catch unreachable;
-    dog.appendVertexData(&render_data_scene, Mat4.identity()) catch unreachable;
-    girl.appendVertexData(&render_data_scene, Mat4.identity()) catch unreachable;
-    helmet.appendVertexData(&render_data_scene, Mat4.identity()) catch unreachable;
+    dog.appendVertexData(&render_data_scene, Mat4.identity(), null) catch unreachable;
+    girl.appendVertexData(&render_data_scene, Mat4.identity(), null) catch unreachable;
+    helmet.appendVertexData(&render_data_scene, Mat4.identity(), null) catch unreachable;
     render_data_skybox = .{
         .ctx = &ctx.graphics,
         .projection = projection,

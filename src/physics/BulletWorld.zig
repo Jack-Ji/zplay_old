@@ -8,6 +8,7 @@ const Renderer = gfx.Renderer;
 const SimpleRenderer = gfx.SimpleRenderer;
 const Mesh = gfx.Mesh;
 const Camera = gfx.Camera;
+const Model = gfx.@"3d".Model;
 const bt = zp.deps.bt;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
@@ -84,48 +85,52 @@ pub fn setGravity(self: Self, gravity: f32) void {
 }
 
 /// add object, return object id
-pub const MeshParam = struct {
-    mesh: Mesh,
-    shape: ?bt.Shape = null,
-    transform: Mat4,
+pub const ShapeParam = struct {
+    shape: union(enum) {
+        predefined_shape: bt.Shape,
+        triangle_mesh: Mesh,
+    },
+    transform: Mat4 = Mat4.identity(),
 };
 pub const PhysicsParam = struct {
     mass: f32 = 0,
-    friction: ?f32 = 0.15,
+    friction: ?f32 = null,
     linear_damping: f32 = 0.1,
     angular_damping: f32 = 0.1,
 };
 pub fn addObject(
     self: *Self,
-    meshes: []MeshParam,
     position: Vec3,
+    shapes: []ShapeParam,
     physics_param: PhysicsParam,
 ) !u32 {
-    assert(meshes.len > 0);
+    assert(shapes.len > 0);
     var body: bt.Body = bt.bodyAllocate();
     assert(body != null);
     errdefer bt.bodyDestroy(body);
 
     // create shapes
     var shape: bt.Shape = undefined;
-    if (meshes.len > 1) {
+    if (shapes.len > 1) {
         shape = bt.shapeAllocate(bt.c.CBT_SHAPE_TYPE_COMPOUND);
-        bt.shapeCompoundCreate(shape, true, @intCast(c_int, meshes.len));
+        bt.shapeCompoundCreate(shape, true, @intCast(c_int, shapes.len));
         var sub_shape: bt.Shape = undefined;
-        for (meshes) |m| {
-            if (m.shape) |s| {
-                sub_shape = s;
-            } else {
-                sub_shape = createTriangleMeshShape(m.mesh);
-            }
+        for (shapes) |s| {
+            sub_shape = if (s.shape == .predefined_shape)
+                s.shape.predefined_shape
+            else
+                createTriangleMeshShape(s.shape.triangle_mesh);
             bt.shapeCompoundAddChild(
                 shape,
-                &m.transform.toArray(),
+                @ptrCast([*c]const [3]f32, s.transform.getData()),
                 sub_shape,
             );
         }
     } else {
-        shape = if (meshes[0].shape) |s| s else createTriangleMeshShape(meshes[0]);
+        shape = if (shapes[0].shape == .predefined_shape)
+            shapes[0].shape.predefined_shape
+        else
+            createTriangleMeshShape(shapes[0].shape.triangle_mesh);
     }
     errdefer bt.shapeDestroy(shape);
 
@@ -188,7 +193,37 @@ pub fn addObject(
     return @intCast(u32, self.objects.items.len - 1);
 }
 
+/// add object with loaded Model, return object id
+pub fn addObjectWithModel(
+    self: *Self,
+    allocator: std.mem.Allocator,
+    position: Vec3,
+    model: Model,
+    shape: ?bt.Shape,
+    physics_param: PhysicsParam,
+) !u32 {
+    var shapes = try std.ArrayList(ShapeParam)
+        .initCapacity(allocator, model.meshes.items.len);
+    defer shapes.deinit();
+    if (shape) |s| {
+        // predefined collision shape, high performance
+        shapes.appendAssumeCapacity(.{
+            .shape = .{ .predefined_shape = s },
+        });
+    } else {
+        // use mesh as collision shape, consume more cpu
+        for (model.meshes.items) |m, i| {
+            shapes.appendAssumeCapacity(.{
+                .shape = .{ .triangle_mesh = m },
+                .transform = model.transforms.items[i],
+            });
+        }
+    }
+    return self.addObject(position, shapes.items, physics_param);
+}
+
 fn createTriangleMeshShape(mesh: Mesh) bt.Shape {
+    assert(mesh.primitive_type == .triangles);
     var shape = bt.shapeAllocate(bt.c.CBT_SHAPE_TYPE_TRIANGLE_MESH);
     bt.shapeTriMeshCreateBegin(shape);
     bt.shapeTriMeshAddIndexVertexArray(
@@ -261,18 +296,18 @@ pub fn getRayTestResult(self: Self, from: Vec3, to: Vec3) ?u32 {
 /// update world
 pub const UpdateOption = struct {
     delta_time: f32 = 0, // passed time
+    debug_draw: ?DebugDraw = null, // draw debug lines
 
-    /// draw debug lines
-    debug_draw: ?struct {
+    pub const DebugDraw = struct {
         projection: Mat4,
         camera: *Camera,
         line_width: f32 = 3,
-    } = null,
+    };
 };
-pub fn update(self: Self, option: UpdateOption) void {
+pub fn update(self: *Self, option: UpdateOption) void {
     _ = bt.worldStepSimulation(self.world, option.delta_time, 1, 1.0 / 60.0);
     if (self.debug) |dbg| {
-        if (option.debug_draw) |dd| {
+        if (option.debug_draw) |param| {
             for (self.objects.items) |obj| {
                 var linear_velocity: bt.Vector3 = undefined;
                 var angular_velocity: bt.Vector3 = undefined;
@@ -289,7 +324,7 @@ pub fn update(self: Self, option: UpdateOption) void {
             }
 
             bt.worldDebugDraw(self.world);
-            dbg.render(dd.projection, dd.camera, dd.line_width);
+            dbg.render(param.projection, param.camera, param.line_width);
         }
     }
 }
@@ -297,6 +332,7 @@ pub fn update(self: Self, option: UpdateOption) void {
 /// debug draw
 const PhysicsDebug = struct {
     allocator: std.mem.Allocator,
+    ctx: *Context,
     vertex_array: VertexArray,
     render_data: Renderer.Input,
     positions: std.ArrayList(f32),
@@ -306,16 +342,19 @@ const PhysicsDebug = struct {
     fn init(allocator: std.mem.Allocator, ctx: *Context) !*PhysicsDebug {
         var debug = try allocator.create(PhysicsDebug);
         debug.allocator = allocator;
+        debug.ctx = ctx;
         debug.vertex_array = VertexArray.init(allocator, 2);
         debug.vertex_array.vbos[0].allocData(100 * @sizeOf(Vec3), .dynamic_draw);
         debug.vertex_array.vbos[1].allocData(100 * @sizeOf(Vec4), .dynamic_draw);
         debug.render_data = try Renderer.Input.init(
+            allocator,
             ctx,
             &[_]Renderer.Input.VertexData{
                 .{
                     .element_draw = false,
                     .vertex_array = debug.vertex_array,
-                    .primtype = .lines,
+                    .primitive = .lines,
+                    .count = 0,
                 },
             },
             null,
@@ -375,13 +414,19 @@ const PhysicsDebug = struct {
         debug.render_data.vds.?.items[0].count =
             @intCast(u32, debug.positions.items.len / 3);
 
-        var last_line_width = debug.render_data.ctx.line_width;
-        debug.render_data.ctx.setLineWidth(line_width);
+        var old_line_width = debug.ctx.line_width;
+        debug.ctx.setLineWidth(line_width);
+        var old_depth_test_status = debug.ctx.isCapabilityEnabled(.depth_test);
+        debug.ctx.toggleCapability(.depth_test, false);
+        var old_stencil_test_status = debug.ctx.isCapabilityEnabled(.stencil_test);
+        debug.ctx.toggleCapability(.stencil_test, false);
 
         defer {
             debug.positions.resize(0) catch unreachable;
             debug.colors.resize(0) catch unreachable;
-            defer debug.render_data.ctx.setLineWidth(last_line_width);
+            debug.ctx.setLineWidth(old_line_width);
+            debug.ctx.toggleCapability(.depth_test, old_depth_test_status);
+            debug.ctx.toggleCapability(.stencil_test, old_stencil_test_status);
         }
 
         // render the lines
