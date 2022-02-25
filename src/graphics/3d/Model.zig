@@ -45,13 +45,13 @@ pub fn fromMeshAndMaterial(
         .transforms = try std.ArrayList(Mat4).initCapacity(allocator, meshes.len),
         .materials = try std.ArrayList(Material).initCapacity(allocator, meshes.len),
         .material_indices = try std.ArrayList(u32).initCapacity(allocator, meshes.len),
-        .textures = try std.ArrayList(*Texture).init(allocator),
+        .textures = std.ArrayList(*Texture).init(allocator),
     };
     self.meshes.appendSliceAssumeCapacity(meshes);
     self.transforms.appendSliceAssumeCapacity(transforms);
     self.materials.appendSliceAssumeCapacity(materials);
-    for (self.meshes) |_, i| {
-        self.material_indices.appendSliceAssumeCapacity(i);
+    for (self.meshes.items) |_, i| {
+        self.material_indices.appendAssumeCapacity(@intCast(u32, i));
     }
     return self;
 }
