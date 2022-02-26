@@ -1,2 +1,2 @@
-/// image loading functions
-pub const image = @import("stb_image.zig");
+/// image loading/writing/resizing
+pub const image = @import("image.zig");

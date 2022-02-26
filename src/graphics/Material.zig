@@ -38,6 +38,9 @@ pub const Data = union(Type) {
 data: Data,
 
 /// whether material owns textures
+/// NOTE: normally material aren't respossible for freeing textures,
+///       except for simple test/throw-away code, asset-manager should be
+///       respossible for such job.
 own_data: bool = false,
 
 /// create material

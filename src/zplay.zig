@@ -10,6 +10,12 @@ pub const graphics = @import("graphics.zig");
 /// physics module
 pub const physics = @import("physics.zig");
 
+/// audio module
+pub const audio = @import("audio.zig");
+
+/// helper utilities built on top of above basic modules
+pub const utils = @import("utils.zig");
+
 /// 3rd party libraries
 pub const deps = struct {
     pub const sdl = @import("sdl"); // sdl2

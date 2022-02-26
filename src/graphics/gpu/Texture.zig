@@ -93,7 +93,6 @@ pub const TextureFormat = enum(c_uint) {
             .compressed_rgba => 4,
             .compressed_srgb => 3,
             .compressed_srgb_alpha => 4,
-            else => unreachable,
         };
     }
 };
@@ -995,10 +994,16 @@ pub fn allocMultisampleData(
 
 /// get pixel data
 pub fn getPixels(self: Self, comptime T: type, pixels: []T) void {
-    assert(pixels.len >= self.width * self.height orelse 1 * self.format.getChannels());
+    assert(pixels.len >= self.width * (self.height orelse 1) * self.format.getChannels());
     gl.bindTexture(@enumToInt(self.type), self.id);
     defer gl.bindTexture(@enumToInt(self.type), 0);
-    gl.getTexImage(self.type, 0, self.format, gl.util.dataType(T), pixels.ptr);
+    gl.getTexImage(
+        @enumToInt(self.type),
+        0,
+        @enumToInt(self.format),
+        gl.util.dataType(T),
+        pixels.ptr,
+    );
     gl.util.checkError();
 }
 

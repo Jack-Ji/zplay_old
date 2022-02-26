@@ -7,10 +7,10 @@ pub const light = @import("3d/light.zig");
 /// skybox
 pub const SkyboxRenderer = @import("3d/SkyboxRenderer.zig");
 
-/// blinn-phong lighting renderer
-pub const PhongRenderer = @import("3d/PhongRenderer.zig");
-
 /// environment mapping renderer
 pub const EnvMappingRenderer = @import("3d/EnvMappingRenderer.zig");
 
-//TODO pbr lighting renderer
+/// blinn-phong renderer
+pub const PhongRenderer = @import("3d/PhongRenderer.zig");
+
+//TODO pbr renderer

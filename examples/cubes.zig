@@ -331,6 +331,32 @@ fn loop(ctx: *zp.Context) void {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
                         .f1 => ctx.toggleFullscreeen(null),
+                        .f2 => {
+                            zp.utils.dumpTexture(
+                                std.testing.allocator,
+                                fb.tex.?,
+                                "test.png",
+                                .{},
+                            ) catch unreachable;
+                            zp.utils.dumpTexture(
+                                std.testing.allocator,
+                                fb.tex.?,
+                                "test.bmp",
+                                .{ .format = .bmp },
+                            ) catch unreachable;
+                            zp.utils.dumpTexture(
+                                std.testing.allocator,
+                                fb.tex.?,
+                                "test.tga",
+                                .{ .format = .tga },
+                            ) catch unreachable;
+                            zp.utils.dumpTexture(
+                                std.testing.allocator,
+                                fb.tex.?,
+                                "test.jpg",
+                                .{ .format = .jpg },
+                            ) catch unreachable;
+                        },
                         else => {},
                     }
                 }
