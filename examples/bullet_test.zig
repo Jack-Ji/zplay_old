@@ -10,6 +10,7 @@ const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
 const Context = gfx.gpu.Context;
+const Framebuffer = gfx.gpu.Framebuffer;
 const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
 const render_pass = gfx.render_pass;
@@ -22,10 +23,13 @@ const Model = gfx.@"3d".Model;
 const BulletWorld = zp.physics.BulletWorld;
 
 var app_context: *zp.Context = undefined;
+var shadow_fb: Framebuffer = undefined;
+var shadow_map_renderer: SimpleRenderer = undefined;
 var simple_renderer: SimpleRenderer = undefined;
 var phong_renderer: PhongRenderer = undefined;
 var color_material: Material = undefined;
 var wireframe_mode = false;
+var light_view_camera: Camera = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(5, 10, 25),
     Vec3.new(-4, 8, 0),
@@ -37,10 +41,14 @@ const Actor = struct {
     physics_id: u32,
 };
 var all_actors: std.ArrayList(Actor) = undefined;
+var render_data_shadow: Renderer.Input = undefined;
 var render_data_static: Renderer.Input = undefined;
 var render_data_movable: Renderer.Input = undefined;
 var render_data_outlined: Renderer.Input = undefined;
 var render_pipeline: render_pass.Pipeline = undefined;
+
+const shadow_width = 2048;
+const shadow_height = 2048;
 
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -49,16 +57,38 @@ fn init(ctx: *zp.Context) anyerror!void {
     // init imgui
     try dig.init(ctx.window);
 
+    // allocate framebuffer stuff
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    ctx.graphics.getDrawableSize(&width, &height);
+    shadow_fb = try Framebuffer.initForShadowMapping(
+        std.testing.allocator,
+        shadow_width,
+        shadow_height,
+    );
+
     // create renderer
+    var light_pos = Vec3.new(0, 30, 0);
+    var light_dir = Vec3.new(0.5, -1, 0);
+    const light_view_projection =
+        Mat4.orthographic(-40.0, 40.0, -40.0, 40.0, 0.1, 100.0);
+    light_view_camera = Camera.fromPositionAndTarget(
+        light_pos,
+        light_pos.add(light_dir),
+        null,
+    );
+    shadow_map_renderer = SimpleRenderer.init(.{ .no_draw = true });
     simple_renderer = SimpleRenderer.init(.{});
-    phong_renderer = PhongRenderer.init(.{});
+    phong_renderer = PhongRenderer.init(.{ .has_shadow = true });
     phong_renderer.applyLights(&[_]light.Light{
         .{
             .directional = .{
                 .ambient = Vec3.new(0.8, 0.8, 0.8),
                 .diffuse = Vec3.new(0.5, 0.5, 0.3),
                 .specular = Vec3.new(0.1, 0.1, 0.1),
-                .direction = Vec3.new(-1, -1, 0),
+                .direction = light_dir,
+                .space_matrix = light_view_projection
+                    .mul(light_view_camera.getViewMatrix()),
             },
         },
     });
@@ -166,9 +196,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
 
     // init render data annd pipeline
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
     const projection = Mat4.perspective(
         camera.zoom,
         @intToFloat(f32, width) / @intToFloat(f32, height),
@@ -185,6 +212,15 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{},
         ),
     }, true);
+    render_data_shadow = try Renderer.Input.init(
+        std.testing.allocator,
+        &ctx.graphics,
+        &.{},
+        light_view_projection,
+        &light_view_camera,
+        null,
+        null,
+    );
     render_data_static = try Renderer.Input.init(
         std.testing.allocator,
         &ctx.graphics,
@@ -219,17 +255,34 @@ fn init(ctx: *zp.Context) anyerror!void {
                 physics_world.getTransformation(a.physics_id),
                 null,
             );
+            render_data_static.vds.?.items[
+                render_data_static.vds.?.items.len - 1
+            ].material.?.data.phong.shadow_map = shadow_fb.depth_stencil.?.tex;
         } else {
+            try a.model.appendVertexData(
+                &render_data_shadow,
+                physics_world.getTransformation(a.physics_id),
+                null,
+            );
             try a.model.appendVertexData(
                 &render_data_movable,
                 physics_world.getTransformation(a.physics_id),
                 null,
             );
+            render_data_movable.vds.?.items[
+                render_data_movable.vds.?.items.len - 1
+            ].material.?.data.phong.shadow_map = shadow_fb.depth_stencil.?.tex;
         }
     }
     render_pipeline = try render_pass.Pipeline.init(
         std.testing.allocator,
         &[_]render_pass.RenderPass{
+            .{
+                .fb = shadow_fb,
+                .beforeFn = beforeShadowMapGeneration,
+                .rd = shadow_map_renderer.renderer(),
+                .data = &render_data_shadow,
+            },
             .{
                 .beforeFn = beforeRenderingStatic,
                 .rd = phong_renderer.renderer(),
@@ -254,8 +307,18 @@ fn init(ctx: *zp.Context) anyerror!void {
     ctx.graphics.toggleCapability(.multisample, true);
 }
 
+fn beforeShadowMapGeneration(ctx: *Context, custom: ?*anyopaque) void {
+    _ = custom;
+    ctx.setViewport(0, 0, shadow_width, shadow_height);
+    ctx.clear(false, true, false, null);
+}
+
 fn beforeRenderingStatic(ctx: *Context, custom: ?*anyopaque) void {
     _ = custom;
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    ctx.getDrawableSize(&width, &height);
+    ctx.setViewport(0, 0, width, height);
     ctx.clear(true, true, true, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
 }
 
@@ -380,6 +443,10 @@ fn loop(ctx: *zp.Context) void {
         var j: u32 = idx;
         const end = idx + @intCast(u32, a.model.meshes.items.len);
         while (j < end) : (j += 1) {
+            render_data_shadow.vds.?.items[j].transform = .{
+                .single = physics_world.getTransformation(a.physics_id)
+                    .mul(a.model.transforms.items[j - idx]),
+            };
             render_data_movable.vds.?.items[j].transform = .{
                 .single = physics_world.getTransformation(a.physics_id)
                     .mul(a.model.transforms.items[j - idx]),
