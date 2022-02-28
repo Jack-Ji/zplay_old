@@ -249,13 +249,6 @@ fn loadScene(ctx: *zp.Context) void {
         total_meshes += 1;
     }
 
-    // allocate texture units
-    var unit: i32 = 0;
-    unit = dog.allocTextureUnit(unit);
-    unit = girl.allocTextureUnit(unit);
-    unit = helmet.allocTextureUnit(unit);
-    _ = skybox_material.allocTextureUnit(unit);
-
     // compose renderer's input
     var width: u32 = undefined;
     var height: u32 = undefined;

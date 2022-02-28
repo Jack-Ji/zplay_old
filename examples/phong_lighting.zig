@@ -217,10 +217,6 @@ fn init(ctx: *zp.Context) anyerror!void {
             .shadow_map = shadow_fb.depth_stencil.?.tex,
         },
     }, true);
-    var unit = box_material.allocTextureUnit(0);
-    unit = floor_material.allocTextureUnit(unit);
-    unit = light_material.allocTextureUnit(unit);
-    _ = fb_material.allocTextureUnit(unit);
 
     // compose renderer's input
     const projection = Mat4.perspective(

@@ -303,6 +303,8 @@ pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
         // apply material
         var mr: *Material = input.material orelse vd.material.?;
         if (mr != current_material) {
+            current_material = mr;
+            _ = current_material.allocTextureUnit(0);
             assert(mr.data == .phong);
             var buf: [64]u8 = undefined;
             prog.setUniformByName(

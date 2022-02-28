@@ -83,6 +83,9 @@ pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
     self.quad.vertex_array.?.use();
     defer self.quad.vertex_array.?.disuse();
 
+    // apply aterial
+    _ = input.material.?.allocTextureUnit(0);
+
     // set uniforms
     self.program.setUniformByName(
         "u_texture",

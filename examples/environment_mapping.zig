@@ -84,7 +84,6 @@ fn init(ctx: *zp.Context) anyerror!void {
             .ratio = 2.42,
         },
     }, false);
-    _ = skybox_material.allocTextureUnit(0);
 
     // alloc renderers
     skybox = SkyboxRenderer.init(std.testing.allocator);

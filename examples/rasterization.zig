@@ -55,8 +55,6 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{},
         ),
     }, true);
-    var unit = helmet.allocTextureUnit(0);
-    _ = color_mr.allocTextureUnit(unit);
 
     // compose rendere pipeline
     var width: u32 = undefined;

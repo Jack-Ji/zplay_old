@@ -145,6 +145,9 @@ pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
     self.vertex_array.use();
     defer self.vertex_array.disuse();
 
+    // apply aterial
+    _ = input.material.?.allocTextureUnit(0);
+
     // set uniforms
     var view = input.camera.?.getViewMatrix();
     view.data[3][0] = 0;

@@ -79,8 +79,6 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{},
         ),
     }, true);
-    var unit = box_material.allocTextureUnit(0);
-    _ = fb_material.allocTextureUnit(unit);
 
     // create camera
     camera = Camera.fromPositionAndTarget(

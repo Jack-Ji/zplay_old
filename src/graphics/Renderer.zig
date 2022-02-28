@@ -157,7 +157,7 @@ pub const Input = struct {
         /// count of vertices
         count: u32,
 
-        /// material data, prefered over default one
+        /// material data, usually prefered over default one
         material: ?*Material = null,
 
         /// local transformation(s)

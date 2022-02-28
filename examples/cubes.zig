@@ -133,12 +133,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     }, true);
     fb_material = Material.init(.{ .single_texture = fb.tex.? }, false);
 
-    // alloc texture unit
-    var unit = cube_material.allocTextureUnit(0);
-    unit = skybox_material.allocTextureUnit(unit);
-    unit = color_material.allocTextureUnit(unit);
-    _ = fb_material.allocTextureUnit(unit);
-
     // compose renderer's input
     const projection = Mat4.perspective(
         45,

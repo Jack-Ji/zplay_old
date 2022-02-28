@@ -52,7 +52,6 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{},
         ),
     }, true);
-    _ = material.allocTextureUnit(0);
 
     // compose renderer's input
     render_data = try Renderer.Input.init(

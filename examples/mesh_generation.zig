@@ -77,8 +77,6 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{},
         ) catch unreachable,
     }, true);
-    var unit = default_material.allocTextureUnit(0);
-    _ = picture_material.allocTextureUnit(unit);
 
     // compose renderer's input
     var width: u32 = undefined;

@@ -129,6 +129,8 @@ pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
             var material = vd.material orelse input.material;
             if (material) |mr| {
                 if (mr != current_material) {
+                    current_material = mr;
+                    _ = current_material.allocTextureUnit(0);
                     switch (mr.data) {
                         .phong => |m| {
                             prog.setUniformByName("u_texture", m.diffuse_map.getTextureUnit());

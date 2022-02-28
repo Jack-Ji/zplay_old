@@ -185,11 +185,6 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{},
         ),
     }, true);
-    var unit: i32 = 0;
-    for (all_actors.items) |a| {
-        unit = a.model.allocTextureUnit(unit);
-    }
-    _ = color_material.allocTextureUnit(unit);
     render_data_static = try Renderer.Input.init(
         std.testing.allocator,
         &ctx.graphics,
