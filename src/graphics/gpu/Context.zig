@@ -189,6 +189,17 @@ pub fn init(window: sdl.Window, api: Api) !Self {
     self.setStencilOption(.{});
     self.setBlendOption(.{});
     self.setCullingOption(.{});
+
+    // output graphics info
+    const gl_vendor = @ptrCast([*:0]const u8, gl.getString(gl.GL_VENDOR));
+    const gl_renderer = @ptrCast([*:0]const u8, gl.getString(gl.GL_RENDERER));
+    const gl_version = @ptrCast([*:0]const u8, gl.getString(gl.GL_VERSION));
+    const glsl_version = @ptrCast([*:0]const u8, gl.getString(gl.GL_SHADING_LANGUAGE_VERSION));
+    std.log.info("GL Vendor: {s}", .{gl_vendor});
+    std.log.info("GL Renderer: {s}", .{gl_renderer});
+    std.log.info("GL Version: {s}", .{gl_version});
+    std.log.info("GLSL Version: {s}", .{glsl_version});
+
     return self;
 }
 
