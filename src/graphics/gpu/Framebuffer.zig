@@ -13,9 +13,12 @@ pub const FramebufferError = error{
 pub var current_fb: gl.GLuint = 0;
 
 const ColorType = enum {
-    none,
     rgb,
+    rgb_f16,
+    rgb_f32,
     rgba,
+    rgba_f16,
+    rgba_f32,
 };
 
 const ValueBufferType = enum {
@@ -29,11 +32,15 @@ const ValueBuffer = union(enum) {
     rbo: gl.GLuint,
 };
 
+const max_tex_num = 6;
+
 /// id of framebuffer
 id: gl.GLuint = undefined,
 
 /// color texture
 tex: ?*Texture = null,
+texs: [max_tex_num]?*Texture = [_]?*Texture{null} ** max_tex_num,
+tex_num: u32 = 0,
 
 /// depth or depth/stencil buffer
 depth_stencil: ?ValueBuffer = null,
@@ -43,6 +50,7 @@ stencil: ?ValueBuffer = null,
 
 pub const Option = struct {
     color_type: ColorType = .rgba,
+    color_tex_num: u32 = 1,
     depth_type: ValueBufferType = .renderbuffer,
     stencil_type: ValueBufferType = .renderbuffer,
     compose_depth_stencil: bool = true,
@@ -62,16 +70,30 @@ pub fn init(
     gl.util.checkError();
 
     // allocate and attach color texture
-    if (option.color_type != .none) {
-        self.tex = try allocAndAttachTexture(
+    var i: u32 = 0;
+    assert(option.color_tex_num <= max_tex_num);
+    self.tex_num = option.color_tex_num;
+    while (i < option.color_tex_num) : (i += 1) {
+        self.texs[i] = try allocAndAttachTexture(
             allocator,
-            .color0,
+            @intToEnum(AttachmentType, gl.GL_COLOR_ATTACHMENT0 + @intCast(c_int, i)),
             width,
             height,
-            if (option.color_type == .rgb) .rgb else .rgba,
-            if (option.color_type == .rgb) .rgb else .rgba,
+            switch (option.color_type) {
+                .rgb => .rgb,
+                .rgb_f16 => .rgb_f16,
+                .rgb_f32 => .rgb_f32,
+                .rgba => .rgba,
+                .rgba_f16 => .rgba_f16,
+                .rgba_f32 => .rgba_f32,
+            },
+            switch (option.color_type) {
+                .rgb, .rgb_f16, .rgb_f32 => .rgb,
+                .rgba, .rgba_f16, .rgba_f32 => .rgba,
+            },
             option.multisamples,
         );
+        if (i == 0) self.tex = self.texs[0];
     }
 
     // allocate and attach depth/stencil buffer
@@ -151,7 +173,7 @@ pub fn init(
     }
 
     // disable color rendering when necessary
-    if (self.tex == null) {
+    if (option.color_tex_num == 0) {
         gl.drawBuffer(gl.GL_NONE);
         gl.readBuffer(gl.GL_NONE);
         gl.util.checkError();
@@ -166,7 +188,7 @@ pub fn initForShadowMapping(
     height: u32,
 ) !Self {
     var fb = try init(allocator, width, height, .{
-        .color_type = .none,
+        .color_tex_num = 0,
         .depth_type = .texture,
         .stencil_type = .none,
     });
@@ -317,12 +339,20 @@ fn allocAndAttachRenderBuffer(
 }
 
 pub fn deinit(self: Self) void {
-    self.tex.deinit();
-    if (self.rbo1 > 0) {
-        gl.deleteRenderbuffers(1, &self.rbo1);
+    for (self.texs) |t| {
+        t.deinit();
     }
-    if (self.rbo2 > 0) {
-        gl.deleteRenderbuffers(1, &self.rbo2);
+    if (self.depth_stencil) |vb| {
+        switch (vb) {
+            .tex => |t| t.deinit(),
+            .rbo => |o| gl.deleteRenderbuffers(1, &o),
+        }
+    }
+    if (self.stencil) |vb| {
+        switch (vb) {
+            .tex => |t| t.deinit(),
+            .rbo => |o| gl.deleteRenderbuffers(1, &o),
+        }
     }
     gl.deleteFramebuffers(1, &self.id);
     gl.util.checkError();
