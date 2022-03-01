@@ -32,6 +32,7 @@ pub fn build(b: *std.build.Builder) void {
         "post_processing",
         "rasterization",
         "bullet_test",
+        "file_dialog",
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |name| {
@@ -67,6 +68,7 @@ pub fn link(
     // link dependencies
     const deps = .{
         @import("build/sdl.zig"),
+        @import("build/nfd.zig"),
         @import("build/opengl.zig"),
         @import("build/stb.zig"),
         @import("build/imgui.zig"),
