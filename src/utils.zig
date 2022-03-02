@@ -14,6 +14,7 @@ pub const TexutureDumpOption = struct {
     png_compress_level: u8 = 8,
     tga_rle_compress: bool = true,
     jpg_quality: u8 = 75, // between 1 and 100
+    flip_on_write: bool = true, // flip by default
 };
 pub fn dumpTexture(
     allocator: std.mem.Allocator,
@@ -32,6 +33,7 @@ pub fn dumpTexture(
 
     // encode file
     var result: c_int = undefined;
+    stb_image.stbi_flip_vertically_on_write(@boolToInt(option.flip_on_write));
     switch (option.format) {
         .png => {
             stb_image.stbi_write_png_compression_level =
