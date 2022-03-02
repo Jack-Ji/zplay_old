@@ -98,7 +98,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     render_data = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         if (perspective_mode) proj_persp else proj_ortho,
         &camera,
@@ -161,7 +160,7 @@ fn loop(ctx: *zp.Context) void {
     for (render_data.vds.?.items) |*d, i| {
         d.transform.single = model.translate(positions.items[i]);
     }
-    simple_renderer.draw(render_data) catch unreachable;
+    simple_renderer.draw(&ctx.graphics, render_data) catch unreachable;
 
     // settings
     dig.beginFrame();

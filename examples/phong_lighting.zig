@@ -227,7 +227,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     render_data_scene = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         null,
         null,
@@ -254,7 +253,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     }
     render_data_light = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         projection,
         &view_camera,
@@ -272,7 +270,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     }
     render_data_screen = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         null,
         null,
@@ -439,9 +436,9 @@ fn loop(ctx: *zp.Context) void {
 
     // render the scene
     if (enable_gamma_correction) {
-        render_pipeline_gc.run() catch unreachable;
+        render_pipeline_gc.run(&ctx.graphics) catch unreachable;
     } else {
-        render_pipeline.run() catch unreachable;
+        render_pipeline.run(&ctx.graphics) catch unreachable;
     }
 
     dig.beginFrame();

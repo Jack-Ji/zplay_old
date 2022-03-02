@@ -61,8 +61,8 @@ pub fn deinit(self: *Self) void {
 }
 
 /// enable physics debug rendering
-pub fn enableDebugDraw(self: *Self, allocator: std.mem.Allocator, ctx: *Context) !void {
-    self.debug = try PhysicsDebug.init(allocator, ctx);
+pub fn enableDebugDraw(self: *Self, allocator: std.mem.Allocator) !void {
+    self.debug = try PhysicsDebug.init(allocator);
     bt.worldDebugSetCallbacks(self.world, &.{
         .drawLine1 = PhysicsDebug.drawLine1Callback,
         .drawLine2 = PhysicsDebug.drawLine2Callback,
@@ -319,33 +319,30 @@ pub fn update(self: Self, option: UpdateOption) void {
 }
 
 /// draw debug lines
-pub fn debugDraw(self: Self, projection: Mat4, camera: *Camera, line_width: f32) void {
+pub fn debugDraw(self: Self, ctx: *Context, projection: Mat4, camera: *Camera, line_width: f32) void {
     if (self.debug) |dbg| {
         bt.worldDebugDraw(self.world);
-        dbg.render(projection, camera, line_width);
+        dbg.render(ctx, projection, camera, line_width);
     }
 }
 
 /// debug draw
 const PhysicsDebug = struct {
     allocator: std.mem.Allocator,
-    ctx: *Context,
     vertex_array: VertexArray,
     render_data: Renderer.Input,
     positions: std.ArrayList(f32),
     colors: std.ArrayList(f32),
     renderer: SimpleRenderer,
 
-    fn init(allocator: std.mem.Allocator, ctx: *Context) !*PhysicsDebug {
+    fn init(allocator: std.mem.Allocator) !*PhysicsDebug {
         var debug = try allocator.create(PhysicsDebug);
         debug.allocator = allocator;
-        debug.ctx = ctx;
         debug.vertex_array = VertexArray.init(allocator, 2);
         debug.vertex_array.vbos[0].allocData(100 * @sizeOf(Vec3), .dynamic_draw);
         debug.vertex_array.vbos[1].allocData(100 * @sizeOf(Vec4), .dynamic_draw);
         debug.render_data = try Renderer.Input.init(
             allocator,
-            ctx,
             &[_]Renderer.Input.VertexData{
                 .{
                     .element_draw = false,
@@ -400,7 +397,7 @@ const PhysicsDebug = struct {
         debug.colors.clearRetainingCapacity();
     }
 
-    fn render(debug: *PhysicsDebug, projection: Mat4, camera: *Camera, line_width: f32) void {
+    fn render(debug: *PhysicsDebug, ctx: *Context, projection: Mat4, camera: *Camera, line_width: f32) void {
         if (debug.positions.items.len == 0) return;
 
         // upload vertex data
@@ -411,22 +408,22 @@ const PhysicsDebug = struct {
         debug.render_data.vds.?.items[0].count =
             @intCast(u32, debug.positions.items.len / 3);
 
-        var old_line_width = debug.ctx.line_width;
-        debug.ctx.setLineWidth(line_width);
-        var old_depth_test_status = debug.ctx.isCapabilityEnabled(.depth_test);
-        debug.ctx.toggleCapability(.depth_test, false);
-        var old_stencil_test_status = debug.ctx.isCapabilityEnabled(.stencil_test);
-        debug.ctx.toggleCapability(.stencil_test, false);
+        var old_line_width = ctx.line_width;
+        ctx.setLineWidth(line_width);
+        var old_depth_test_status = ctx.isCapabilityEnabled(.depth_test);
+        ctx.toggleCapability(.depth_test, false);
+        var old_stencil_test_status = ctx.isCapabilityEnabled(.stencil_test);
+        ctx.toggleCapability(.stencil_test, false);
 
         defer {
             debug.clear();
-            debug.ctx.setLineWidth(old_line_width);
-            debug.ctx.toggleCapability(.depth_test, old_depth_test_status);
-            debug.ctx.toggleCapability(.stencil_test, old_stencil_test_status);
+            ctx.setLineWidth(old_line_width);
+            ctx.toggleCapability(.depth_test, old_depth_test_status);
+            ctx.toggleCapability(.stencil_test, old_stencil_test_status);
         }
 
         // render the lines
-        debug.renderer.draw(debug.render_data) catch unreachable;
+        debug.renderer.draw(ctx, debug.render_data) catch unreachable;
     }
 
     fn drawLine1(debug: *PhysicsDebug, p0: Vec3, p1: Vec3, color: Vec4) void {

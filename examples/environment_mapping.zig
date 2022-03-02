@@ -106,7 +106,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     render_data_scene = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         projection,
         &camera,
@@ -115,7 +114,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     try model.appendVertexData(&render_data_scene, Mat4.identity(), null);
     render_data_skybox = .{
-        .ctx = &ctx.graphics,
         .projection = projection,
         .camera = &camera,
         .material = &skybox_material,
@@ -197,8 +195,8 @@ fn loop(ctx: *zp.Context) void {
             .scale(Vec3.set(0.6))
             .mul(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
     );
-    current_scene_renderer.draw(render_data_scene) catch unreachable;
-    skybox.draw(render_data_skybox) catch unreachable;
+    current_scene_renderer.draw(&ctx.graphics, render_data_scene) catch unreachable;
+    skybox.draw(&ctx.graphics, render_data_skybox) catch unreachable;
 
     // rendering settings
     dig.beginFrame();

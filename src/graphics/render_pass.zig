@@ -33,7 +33,7 @@ pub const RenderPass = struct {
     custom: ?*anyopaque = null,
 
     /// execute render pass
-    pub fn run(self: Self) anyerror!void {
+    pub fn run(self: Self, ctx: *Context) anyerror!void {
         // set current frame buffer
         var fb_changed = false;
         if (self.fb) |f| {
@@ -47,15 +47,15 @@ pub const RenderPass = struct {
         }
 
         if (self.beforeFn) |f| {
-            f(self.data.ctx, self.custom);
+            f(ctx, self.custom);
         } else if (std.debug.runtime_safety) {
             if (fb_changed) {
                 std.log.warn("New framebuffer is used without any preparing job, probably something is wrong, please double check!", .{});
             }
         }
-        defer if (self.afterFn) |f| f(self.data.ctx, self.custom);
+        defer if (self.afterFn) |f| f(ctx, self.custom);
 
-        try self.rd.draw(self.data.*);
+        try self.rd.draw(ctx, self.data.*);
     }
 };
 
@@ -81,9 +81,9 @@ pub const Pipeline = struct {
     }
 
     /// execute render pass
-    pub fn run(self: Self) anyerror!void {
+    pub fn run(self: Self, ctx: *Context) anyerror!void {
         for (self.passes.items) |p| {
-            try p.run();
+            try p.run(ctx);
         }
     }
 };

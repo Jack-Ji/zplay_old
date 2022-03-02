@@ -111,7 +111,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     var vertex_data = box.getVertexData(null, null);
     render_data = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{vertex_data},
         projection,
         &camera,
@@ -155,7 +154,7 @@ fn loop(ctx: *zp.Context) void {
     Framebuffer.use(fb);
     {
         ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
-        simple_renderer.draw(render_data) catch unreachable;
+        simple_renderer.draw(&ctx.graphics, render_data) catch unreachable;
     }
 
     // post processing
@@ -163,7 +162,6 @@ fn loop(ctx: *zp.Context) void {
     {
         ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
         var input = Renderer.Input{
-            .ctx = &ctx.graphics,
             .material = &fb_material,
         };
         switch (pp_selection) {
@@ -175,7 +173,7 @@ fn loop(ctx: *zp.Context) void {
             },
             else => {},
         }
-        pp_rd.draw(input) catch unreachable;
+        pp_rd.draw(&ctx.graphics, input) catch unreachable;
     }
 
     // control panel

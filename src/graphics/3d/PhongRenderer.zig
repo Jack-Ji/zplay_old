@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const light = @import("light.zig");
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
+const Context = gfx.gpu.Context;
 const drawcall = gfx.gpu.drawcall;
 const ShaderProgram = gfx.gpu.ShaderProgram;
 const Renderer = gfx.Renderer;
@@ -282,7 +283,8 @@ fn applyMaterial(self: *Self, material: Material) void {
 }
 
 /// generic rendering implementation
-pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
+pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
+    _ = ctx;
     assert(input.vds.?.items.len > 0);
     var is_instanced_drawing = input.vds.?.items[0].transform == .instanced;
     var prog = if (is_instanced_drawing) &self.program_instanced else &self.program;

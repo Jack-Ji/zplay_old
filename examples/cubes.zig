@@ -143,7 +143,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     cubes_transform_array = try Renderer.InstanceTransformArray.init(std.testing.allocator);
     render_data_scene = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &[_]Renderer.Input.VertexData{cube.getVertexData(
             &cube_material,
             Renderer.LocalTransform{ .instanced = cubes_transform_array },
@@ -154,13 +153,11 @@ fn init(ctx: *zp.Context) anyerror!void {
         null,
     );
     render_data_skybox = .{
-        .ctx = &ctx.graphics,
         .projection = projection,
         .camera = &camera,
         .material = &skybox_material,
     };
     render_data_screen = .{
-        .ctx = &ctx.graphics,
         .material = &fb_material,
         .custom = &screen_transform,
     };
@@ -362,9 +359,9 @@ fn loop(ctx: *zp.Context) void {
 
     // render the scene
     if (outlined) {
-        render_pipeline_outlined.run() catch unreachable;
+        render_pipeline_outlined.run(&ctx.graphics) catch unreachable;
     } else {
-        render_pipeline.run() catch unreachable;
+        render_pipeline.run(&ctx.graphics) catch unreachable;
     }
 
     // settings

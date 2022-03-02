@@ -122,9 +122,6 @@ pub const InstanceTransformArray = struct {
 
 /// generic renderer's input
 pub const Input = struct {
-    /// graphics context
-    ctx: *Context,
-
     /// array of vertex data, waiting to be rendered
     vds: ?std.ArrayList(VertexData) = null,
 
@@ -169,7 +166,6 @@ pub const Input = struct {
     /// allocate renderer's input container
     pub fn init(
         allocator: std.mem.Allocator,
-        ctx: *Context,
         vds: []VertexData,
         projection: ?Mat4,
         camera: ?*Camera,
@@ -177,7 +173,6 @@ pub const Input = struct {
         custom: ?*anyopaque,
     ) !Input {
         var self = Input{
-            .ctx = ctx,
             .vds = try std.ArrayList(VertexData)
                 .initCapacity(allocator, std.math.max(vds.len, 1)),
             .projection = projection,
@@ -210,12 +205,12 @@ pub const Input = struct {
 
 const VTable = struct {
     /// generic drawing
-    drawFn: fn (ptr: *anyopaque, input: Input) anyerror!void,
+    drawFn: fn (ptr: *anyopaque, ctx: *Context, input: Input) anyerror!void,
 };
 
 pub fn init(
     pointer: anytype,
-    comptime drawFn: fn (ptr: @TypeOf(pointer), input: Input) anyerror!void,
+    comptime drawFn: fn (ptr: @TypeOf(pointer), ctx: *Context, input: Input) anyerror!void,
 ) Renderer {
     const Ptr = @TypeOf(pointer);
     const ptr_info = @typeInfo(Ptr);
@@ -226,12 +221,12 @@ pub fn init(
     const alignment = ptr_info.Pointer.alignment;
 
     const gen = struct {
-        fn drawImpl(ptr: *anyopaque, input: Input) anyerror!void {
+        fn drawImpl(ptr: *anyopaque, ctx: *Context, input: Input) anyerror!void {
             const self = @ptrCast(Ptr, @alignCast(alignment, ptr));
             return @call(
                 .{ .modifier = .always_inline },
                 drawFn,
-                .{ self, input },
+                .{ self, ctx, input },
             );
         }
 
@@ -246,7 +241,7 @@ pub fn init(
     };
 }
 
-pub fn draw(rd: Renderer, input: Input) anyerror!void {
+pub fn draw(rd: Renderer, ctx: *Context, input: Input) anyerror!void {
     if (std.debug.runtime_safety) {
         if (input.vds) |ds| {
             for (ds.items) |d| {
@@ -256,5 +251,5 @@ pub fn draw(rd: Renderer, input: Input) anyerror!void {
             }
         }
     }
-    return rd.vtable.drawFn(rd.ptr, input);
+    return rd.vtable.drawFn(rd.ptr, ctx, input);
 }

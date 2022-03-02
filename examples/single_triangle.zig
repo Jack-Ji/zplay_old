@@ -18,6 +18,7 @@ var vertex_array: VertexArray = undefined;
 var material: Material = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
+    _ = ctx;
     std.log.info("game init", .{});
 
     // create renderer
@@ -56,7 +57,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     // compose renderer's input
     render_data = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &[_]Renderer.Input.VertexData{.{
             .element_draw = false,
             .vertex_array = vertex_array,
@@ -96,7 +96,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     ctx.graphics.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
-    simple_renderer.draw(render_data) catch unreachable;
+    simple_renderer.draw(&ctx.graphics, render_data) catch unreachable;
 }
 
 fn quit(ctx: *zp.Context) void {

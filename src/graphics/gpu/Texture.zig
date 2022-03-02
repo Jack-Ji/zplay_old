@@ -85,8 +85,8 @@ pub const TextureFormat = enum(c_uint) {
         return switch (self) {
             .red => 1,
             .rg => 2,
-            .rgb => 3,
-            .rgba => 4,
+            .rgb, .rgb_f16, .rgb_f32 => 3,
+            .rgba, .rgba_f16, .rgba_f32 => 4,
             .srgb => 3,
             .srgba => 4,
             .depth_component => 1,

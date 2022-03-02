@@ -95,7 +95,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // init physics world
     physics_world = try BulletWorld.init(std.testing.allocator, -9.8);
-    try physics_world.enableDebugDraw(std.testing.allocator, &ctx.graphics);
+    try physics_world.enableDebugDraw(std.testing.allocator);
     all_actors = try std.ArrayList(Actor).initCapacity(std.testing.allocator, 6);
     addActor(
         Vec3.zero(),
@@ -214,7 +214,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     }, true);
     render_data_shadow = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         light_view_projection,
         &light_view_camera,
@@ -223,7 +222,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     render_data_static = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         projection,
         &camera,
@@ -232,7 +230,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     render_data_movable = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         projection,
         &camera,
@@ -241,7 +238,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     render_data_outlined = try Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         projection,
         &camera,
@@ -456,8 +452,9 @@ fn loop(ctx: *zp.Context) void {
     }
 
     // render the scene
-    render_pipeline.run() catch unreachable;
+    render_pipeline.run(&ctx.graphics) catch unreachable;
     physics_world.debugDraw(
+        &ctx.graphics,
         render_data_static.projection.?,
         &camera,
         3,

@@ -1,3 +1,6 @@
+/// 3d scene
+pub const Scene = @import("3d/Scene.zig");
+
 /// model (glTF 2.0)
 pub const Model = @import("3d/Model.zig");
 

@@ -2,6 +2,7 @@ const std = @import("std");
 const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
+const Context = gfx.gpu.Context;
 const drawcall = gfx.gpu.drawcall;
 const ShaderProgram = gfx.gpu.ShaderProgram;
 const VertexArray = gfx.gpu.VertexArray;
@@ -129,15 +130,14 @@ pub fn renderer(self: *Self) Renderer {
 }
 
 /// generic rendering implementation
-pub fn draw(self: *Self, input: Renderer.Input) anyerror!void {
-    const graphics_context = input.ctx;
-    const old_polygon_mode = graphics_context.polygon_mode;
-    graphics_context.setPolygonMode(.fill);
-    defer graphics_context.setPolygonMode(old_polygon_mode);
+pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
+    const old_polygon_mode = ctx.polygon_mode;
+    ctx.setPolygonMode(.fill);
+    defer ctx.setPolygonMode(old_polygon_mode);
 
-    const old_depth_option = graphics_context.depth_option;
-    graphics_context.setDepthOption(.{ .test_func = .less_or_equal });
-    defer graphics_context.setDepthOption(old_depth_option);
+    const old_depth_option = ctx.depth_option;
+    ctx.setDepthOption(.{ .test_func = .less_or_equal });
+    defer ctx.setDepthOption(old_depth_option);
 
     self.program.use();
     defer self.program.disuse();

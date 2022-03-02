@@ -116,8 +116,8 @@ fn loop(ctx: *zp.Context) void {
             .scale(Vec3.set(0.7))
             .mul(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
     );
-    simple_renderer.draw(render_data_scene) catch unreachable;
-    skybox.draw(render_data_skybox) catch unreachable;
+    simple_renderer.draw(&ctx.graphics, render_data_scene) catch unreachable;
+    skybox.draw(&ctx.graphics, render_data_skybox) catch unreachable;
 
     // settings
     dig.beginFrame();
@@ -261,7 +261,6 @@ fn loadScene(ctx: *zp.Context) void {
     );
     render_data_scene = Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         projection,
         &camera,
@@ -272,7 +271,6 @@ fn loadScene(ctx: *zp.Context) void {
     girl.appendVertexData(&render_data_scene, Mat4.identity(), null) catch unreachable;
     helmet.appendVertexData(&render_data_scene, Mat4.identity(), null) catch unreachable;
     render_data_skybox = .{
-        .ctx = &ctx.graphics,
         .projection = projection,
         .camera = &camera,
         .material = &skybox_material,

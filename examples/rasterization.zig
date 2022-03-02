@@ -68,7 +68,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     render_data_wireframe = Renderer.Input.init(
         std.testing.allocator,
-        &ctx.graphics,
         &.{},
         projection,
         &camera,
@@ -174,7 +173,7 @@ fn loop(ctx: *zp.Context) void {
         @intCast(u32, render_data_raster.vds.?.items[0].count + raster_speed),
         @intCast(u32, helmet.meshes.items[0].indices.items.len),
     ) catch unreachable;
-    render_pipeline.run() catch unreachable;
+    render_pipeline.run(&ctx.graphics) catch unreachable;
 
     // settings
     dig.beginFrame();
