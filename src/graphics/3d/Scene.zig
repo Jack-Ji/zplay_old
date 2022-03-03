@@ -17,6 +17,9 @@ const Self = @This();
 /// rendering data
 render_data: Renderer.Input,
 
+/// camera
+camera: Camera,
+
 /// create scene
 pub fn init(allocator: std.mem.Allocator) !Self {
     var self = Self{
@@ -26,6 +29,11 @@ pub fn init(allocator: std.mem.Allocator) !Self {
             null,
             null,
             null,
+            null,
+        ),
+        .camera = Camera.fromPositionAndTarget(
+            Vec3.new(1, 1, 1),
+            Vec3.zero(),
             null,
         ),
     };

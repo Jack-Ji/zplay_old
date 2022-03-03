@@ -16,6 +16,9 @@ vbos: [MAX_VBO_NUM]*Buffer = [_]*Buffer{null} ** MAX_VBO_NUM,
 vbo_num: u32 = undefined,
 borrowed: bool = undefined,
 
+/// current active vertex array
+var current: gl.GLuint = 0;
+
 /// init vertex array
 pub fn init(allocator: std.mem.Allocator, vbo_num: u32) Self {
     assert(vbo_num > 0 and vbo_num <= MAX_VBO_NUM);
@@ -73,12 +76,14 @@ pub fn setAttribute(
     stride: u32,
     offset: u32,
 ) void {
+    assert(current == self.id);
     assert(vbo_index < self.vbo_num);
     self.vbos[vbo_index].setAttribute(loc, size, T, normalized, stride, offset, null);
 }
 
 /// start using vertex array
 pub fn use(self: Self) void {
+    current = self.id;
     gl.bindVertexArray(self.id);
     gl.util.checkError();
 }
@@ -86,6 +91,7 @@ pub fn use(self: Self) void {
 /// stop using vertex array
 pub fn disuse(self: Self) void {
     _ = self;
+    current = 0;
     gl.bindVertexArray(0);
     gl.util.checkError();
 }
