@@ -50,10 +50,18 @@ const fs_body =
     \\
     \\uniform sampler2D u_texture;
     \\uniform float u_mix_factor;
+    \\uniform vec3 u_pos_max;
+    \\uniform vec3 u_pos_min;
+    \\uniform bool u_exclude_inside;
     \\
     \\void main()
     \\{
     \\#ifndef NO_DRAW
+    \\    if (u_exclude_inside) {
+    \\      if (all(lessThan(v_pos, u_pos_max)) && all(greaterThan(v_pos, u_pos_min))) discard;
+    \\    } else {
+    \\      if (any(greaterThan(v_pos, u_pos_max)) || any(lessThan(v_pos, u_pos_min))) discard;
+    \\    }
     \\    frag_color = mix(texture(u_texture, v_tex), v_color, u_mix_factor);
     \\#endif
     \\}
@@ -69,20 +77,29 @@ program: ShaderProgram = undefined,
 program_instanced: ShaderProgram = undefined,
 
 /// rendering options
-mix_factor: f32 = undefined,
 no_draw: bool = undefined,
+mix_factor: f32 = undefined,
+pos_max: Vec3 = undefined,
+pos_min: Vec3 = undefined,
+exclude_inside: bool = undefined,
 
 /// rendering options
 pub const Option = struct {
-    mix_factor: f32 = 0,
     no_draw: bool = false,
+    mix_factor: f32 = 0,
+    pos_max: Vec3 = Vec3.set(100),
+    pos_min: Vec3 = Vec3.set(-100),
+    exclude_inside: bool = false,
 };
 
 /// create a simple renderer
 pub fn init(option: Option) Self {
     var self = Self{};
-    self.mix_factor = option.mix_factor;
     self.no_draw = option.no_draw;
+    self.mix_factor = option.mix_factor;
+    self.pos_max = option.pos_max;
+    self.pos_min = option.pos_min;
+    self.exclude_inside = option.exclude_inside;
     if (self.no_draw) {
         self.program = ShaderProgram.init(vs, fs_no_draw, null);
         self.program_instanced = ShaderProgram.init(vs_instanced, fs_no_draw, null);
@@ -118,6 +135,9 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     prog.setUniformByName("u_view", if (input.camera) |c| c.getViewMatrix() else Mat4.identity());
     if (!self.no_draw) {
         prog.setUniformByName("u_mix_factor", self.mix_factor);
+        prog.setUniformByName("u_pos_max", self.pos_max);
+        prog.setUniformByName("u_pos_min", self.pos_min);
+        prog.setUniformByName("u_exclude_inside", self.exclude_inside);
     }
 
     // render vertex data one by one

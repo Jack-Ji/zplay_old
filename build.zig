@@ -33,6 +33,7 @@ pub fn build(b: *std.build.Builder) void {
         "rasterization",
         "bullet_test",
         "file_dialog",
+        "cube_cross",
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |name| {
