@@ -181,6 +181,7 @@ fn beforeRenderingCube(ctx: *Context, custom: ?*anyopaque) void {
 
 fn loop(ctx: *zp.Context) void {
     while (ctx.pollEvent()) |e| {
+        _ = dig.processEvent(e);
         switch (e) {
             .keyboard_event => |key| {
                 if (key.trigger_type == .up) {
