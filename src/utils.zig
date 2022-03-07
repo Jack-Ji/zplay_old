@@ -110,10 +110,10 @@ pub fn getPlane(normal: Vec3, point: Vec3, size: f32) [12]f32 {
     else
         unreachable;
     const normal_pp = normal_p.cross(normal).norm();
-    const v1 = point.add(normal_p.scale(size));
-    const v2 = point.add(normal_pp.scale(size));
-    const v3 = point.sub(normal_p.scale(size));
-    const v4 = point.sub(normal_pp.scale(size));
+    const v1 = point.add(normal_p.scale(size / 2));
+    const v2 = point.add(normal_pp.scale(size / 2));
+    const v3 = point.sub(normal_p.scale(size / 2));
+    const v4 = point.sub(normal_pp.scale(size / 2));
     return [12]f32{
         v1.x(), v1.y(), v1.z(),
         v2.x(), v2.y(), v2.z(),

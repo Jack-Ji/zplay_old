@@ -153,9 +153,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     });
     cube_renderer = SimpleRenderer.init(.{});
     section_renderer = SimpleRenderer.init(.{
-        .pos_min = Vec3.set(0),
-        .pos_max = Vec3.set(1),
-        .exclude_inside = true,
+        .pos_range1_min = Vec3.set(0),
+        .pos_range1_max = Vec3.set(1),
     });
     pipeline = try render_pass.Pipeline.init(
         std.testing.allocator,
@@ -198,10 +197,16 @@ fn loop(ctx: *zp.Context) void {
     }
 
     // calculate a plane determined by normal and point
+    const cube_center = Vec3.set(0.5);
+    const norm = Vec3.fromSlice(&plane_norm).norm();
     plane_vs = zp.utils.getPlane(
-        Vec3.fromSlice(&plane_norm),
-        Vec3.fromSlice(&plane_point),
-        1.2,
+        norm,
+        cube_center.add(
+            norm.scale(
+                Vec3.fromSlice(&plane_point).sub(cube_center).dot(norm),
+            ),
+        ),
+        2.5,
     );
     plane_va.vbos[0].updateData(
         0,
@@ -218,7 +223,7 @@ fn loop(ctx: *zp.Context) void {
     if (dig.begin("settings", null, null)) {
         _ = dig.dragFloat3("plane normal", &plane_norm, .{
             .v_speed = 0.001,
-            .v_min = 0,
+            .v_min = -1,
             .v_max = 1,
         });
         _ = dig.dragFloat3("plane point", &plane_point, .{
