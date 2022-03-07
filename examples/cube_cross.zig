@@ -1,4 +1,5 @@
 const std = @import("std");
+const math = std.math;
 const zp = @import("zplay");
 const gfx = zp.graphics;
 const Context = gfx.gpu.Context;
@@ -44,6 +45,7 @@ var wire_vs = [_]f32{
     0, 1, 0, 0, 1, 1,
 };
 
+const cube_center = Vec3.set(0.5);
 var plane_norm = [_]f32{ 0, 0, 1 };
 var plane_point = [_]f32{ 0, 0, 0.2 };
 var plane_vs = [_]f32{0} ** 12;
@@ -100,15 +102,15 @@ fn init(ctx: *zp.Context) anyerror!void {
     }, true);
     camera = Camera.fromPositionAndTarget(
         Vec3.new(1.5, -1.5, 2),
-        Vec3.new(0.5, 0.5, 0.5),
-        Vec3.new(0, 0, 1),
+        cube_center,
+        Vec3.forward(),
     );
 
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(&width, &height);
     const projection = Mat4.perspective(
-        45,
+        camera.zoom,
         @intToFloat(f32, width) / @intToFloat(f32, height),
         0.1,
         100,
@@ -125,7 +127,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         cube.getVertexData(
             &cube_material,
             Renderer.LocalTransform{
-                .single = Mat4.fromTranslate(Vec3.set(0.5)),
+                .single = Mat4.fromTranslate(cube_center),
             },
         ),
     );
@@ -180,8 +182,21 @@ fn beforeRenderingCube(ctx: *Context, custom: ?*anyopaque) void {
 }
 
 fn loop(ctx: *zp.Context) void {
+    const S = struct {
+        var mouse_btn_pressed = false;
+        var camera_orig_pos: Vec3 = undefined;
+        var mouse_orig_x: i32 = undefined;
+        var mouse_orig_y: i32 = undefined;
+    };
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    ctx.graphics.getDrawableSize(&width, &height);
+
     while (ctx.pollEvent()) |e| {
-        _ = dig.processEvent(e);
+        if (e == .mouse_event and dig.getIO().*.WantCaptureMouse) {
+            _ = dig.processEvent(e);
+            continue;
+        }
         switch (e) {
             .keyboard_event => |key| {
                 if (key.trigger_type == .up) {
@@ -192,13 +207,70 @@ fn loop(ctx: *zp.Context) void {
                     }
                 }
             },
+            .mouse_event => |me| {
+                switch (me.data) {
+                    .button => |click| {
+                        if (click.btn != .left) {
+                            continue;
+                        }
+                        if (click.clicked and !S.mouse_btn_pressed) {
+                            S.camera_orig_pos = camera.position;
+                            S.mouse_orig_x = click.x;
+                            S.mouse_orig_y = click.y;
+                        }
+                        S.mouse_btn_pressed = click.clicked;
+                    },
+                    .motion => |move| {
+                        if (!S.mouse_btn_pressed) continue;
+                        const vpos = S.camera_orig_pos.sub(cube_center);
+                        const offset_angle_h = @intToFloat(f32, -(move.x - S.mouse_orig_x)) / 10;
+                        const offset_angle_v = @intToFloat(f32, move.y - S.mouse_orig_y) / 10;
+                        const angle_h = if (vpos.x() > 0)
+                            alg.toDegrees(math.atan(vpos.y() / vpos.x()))
+                        else
+                            180 + alg.toDegrees(math.atan(vpos.y() / vpos.x()));
+                        const angle_v = 90 - vpos.getAngle(Vec3.forward());
+                        const new_angle_h = alg.toRadians(angle_h + offset_angle_h);
+                        const new_angle_v = alg.toRadians(angle_v + offset_angle_v);
+                        const new_pos = cube_center.add(
+                            Vec3.new(
+                                math.cos(new_angle_v) * math.cos(new_angle_h),
+                                math.cos(new_angle_v) * math.sin(new_angle_h),
+                                math.sin(new_angle_v),
+                            ).scale(vpos.length()),
+                        );
+                        var new_camera = Camera.fromPositionAndTarget(
+                            new_pos,
+                            cube_center,
+                            Vec3.new(0, 0, 1),
+                        );
+                        new_camera.zoom = camera.zoom;
+                        camera = new_camera;
+                    },
+                    .wheel => |scroll| {
+                        camera.zoom -= @intToFloat(f32, scroll.scroll_y);
+                        if (camera.zoom < 1) {
+                            camera.zoom = 1;
+                        }
+                        if (camera.zoom > 45) {
+                            camera.zoom = 45;
+                        }
+                        render_data_cube.projection = Mat4.perspective(
+                            camera.zoom,
+                            @intToFloat(f32, width) / @intToFloat(f32, height),
+                            0.1,
+                            100,
+                        );
+                        render_data_section.projection = render_data_cube.projection;
+                    },
+                }
+            },
             .quit_event => ctx.kill(),
             else => {},
         }
     }
 
     // calculate a plane determined by normal and point
-    const cube_center = Vec3.set(0.5);
     const norm = Vec3.fromSlice(&plane_norm).norm();
     plane_vs = zp.utils.getPlane(
         norm,
