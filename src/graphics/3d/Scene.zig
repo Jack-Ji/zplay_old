@@ -21,9 +21,6 @@ const Self = @This();
 /// memory allocator
 allocator: std.mem.Allocator,
 
-/// graphics context
-ctx: *Context,
-
 /// viewer's camera
 viewer_camera: Camera,
 
@@ -44,7 +41,6 @@ rdata_scene: Renderer.Input,
 rdata_post: Renderer.Input,
 
 pub const InitOption = struct {
-    ctx: *Context,
     viewer_projection: Mat4,
     viewer_position: Vec3 = Vec3.set(1),
     viewer_target: Vec3 = Vec3.zero(),
@@ -69,7 +65,6 @@ pub const InitOption = struct {
 pub fn init(allocator: std.mem.Allocator, option: InitOption) !*Self {
     var self = try allocator.create(Self);
     self.allocator = allocator;
-    self.ctx = option.ctx;
     self.viewer_camera = Camera.fromPositionAndTarget(
         option.viewer_position,
         option.viewer_target,
@@ -242,6 +237,6 @@ pub fn setRenderPasses(
 }
 
 /// draw the scene
-pub fn draw(self: Self) !void {
-    try self.rd_pipeline.run();
+pub fn draw(self: Self, ctx: Context) !void {
+    try self.rd_pipeline.run(ctx);
 }
