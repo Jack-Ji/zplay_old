@@ -5,23 +5,23 @@ const Material = @import("Material.zig");
 const Renderer = @import("Renderer.zig");
 const zp = @import("../zplay.zig");
 const Context = zp.graphics.gpu.Context;
-const FrameBuffer = zp.graphics.gpu.Framebuffer;
+const Framebuffer = zp.graphics.gpu.Framebuffer;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
+
+pub const TriggerFunc = fn (ctx: *Context, custom: ?*anyopaque) void;
 
 /// render-pass
 pub const RenderPass = struct {
     const Self = @This();
 
     /// frame buffer of the render-pass
-    fb: ?FrameBuffer = null,
+    fb: ?Framebuffer = null,
 
-    /// do some work before rendering
-    beforeFn: ?fn (ctx: *Context, custom: ?*anyopaque) void = null,
-
-    /// do some work after rendering
-    afterFn: ?fn (ctx: *Context, custom: ?*anyopaque) void = null,
+    /// do some work before/after rendering
+    beforeFn: ?TriggerFunc = null,
+    afterFn: ?TriggerFunc = null,
 
     /// renderer of the render-pass
     rd: Renderer,
@@ -37,12 +37,12 @@ pub const RenderPass = struct {
         // set current frame buffer
         var fb_changed = false;
         if (self.fb) |f| {
-            if (FrameBuffer.current_fb != f.id) {
-                FrameBuffer.use(f);
+            if (Framebuffer.current_fb != f.id) {
+                Framebuffer.use(f);
                 fb_changed = true;
             }
-        } else if (FrameBuffer.current_fb != 0) {
-            FrameBuffer.use(null);
+        } else if (Framebuffer.current_fb != 0) {
+            Framebuffer.use(null);
             fb_changed = true;
         }
 
@@ -78,6 +78,12 @@ pub const Pipeline = struct {
     /// destroy pipeline
     pub fn deinit(self: Self) void {
         self.passes.deinit();
+    }
+
+    /// reset pipeline's content
+    pub fn setPasses(self: *Self, passes: []RenderPass) !void {
+        self.passes.clearRetainingCapacity();
+        try self.passes.appendSlice(passes);
     }
 
     /// execute render pass
