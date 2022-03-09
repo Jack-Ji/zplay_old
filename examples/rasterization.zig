@@ -17,7 +17,7 @@ const render_pass = gfx.render_pass;
 const Model = gfx.@"3d".Model;
 
 var renderer: SimpleRenderer = undefined;
-var helmet: Model = undefined;
+var helmet: *Model = undefined;
 var color_mr: Material = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(0, 0, 3),

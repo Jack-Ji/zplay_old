@@ -19,6 +19,9 @@ pub const Error = error{
     NoRootNode,
 };
 
+/// memory allocator
+allocator: std.mem.Allocator,
+
 /// meshes
 meshes: std.ArrayList(Mesh),
 transforms: std.ArrayList(Mat4),
@@ -31,20 +34,20 @@ material_indices: std.ArrayList(u32),
 textures: std.ArrayList(*Texture),
 
 /// init model with raw data
-pub fn fromMeshAndMaterial(
+pub fn init(
     allocator: std.mem.Allocator,
     meshes: []Mesh,
     transforms: []Mat4,
     materials: []Material,
-) !Self {
+) !*Self {
     assert(meshes.len == transforms.len and meshes.len == materials.len);
-    var self = Self{
-        .meshes = try std.ArrayList(Mesh).initCapacity(allocator, meshes.len),
-        .transforms = try std.ArrayList(Mat4).initCapacity(allocator, meshes.len),
-        .materials = try std.ArrayList(Material).initCapacity(allocator, meshes.len),
-        .material_indices = try std.ArrayList(u32).initCapacity(allocator, meshes.len),
-        .textures = std.ArrayList(*Texture).init(allocator),
-    };
+    var self = try allocator.create(Self);
+    self.allocator = allocator;
+    self.meshes = try std.ArrayList(Mesh).initCapacity(allocator, meshes.len);
+    self.transforms = try std.ArrayList(Mat4).initCapacity(allocator, meshes.len);
+    self.materials = try std.ArrayList(Material).initCapacity(allocator, meshes.len);
+    self.material_indices = try std.ArrayList(u32).initCapacity(allocator, meshes.len);
+    self.textures = std.ArrayList(*Texture).init(allocator);
     self.meshes.appendSliceAssumeCapacity(meshes);
     self.transforms.appendSliceAssumeCapacity(transforms);
     self.materials.appendSliceAssumeCapacity(materials);
@@ -63,17 +66,17 @@ pub fn fromGLTF(
     filename: [:0]const u8,
     merge_meshes: bool,
     default_texture: ?*Texture,
-) !Self {
+) !*Self {
     var data: *gltf.Data = try gltf.loadFile(filename, null);
     defer gltf.free(data);
 
-    var self = Self{
-        .meshes = try std.ArrayList(Mesh).initCapacity(allocator, 1),
-        .transforms = try std.ArrayList(Mat4).initCapacity(allocator, 1),
-        .materials = try std.ArrayList(Material).initCapacity(allocator, 1),
-        .material_indices = try std.ArrayList(u32).initCapacity(allocator, 1),
-        .textures = try std.ArrayList(*Texture).initCapacity(allocator, 1),
-    };
+    var self = try allocator.create(Self);
+    self.allocator = allocator;
+    self.meshes = try std.ArrayList(Mesh).initCapacity(allocator, 1);
+    self.transforms = try std.ArrayList(Mat4).initCapacity(allocator, 1);
+    self.materials = try std.ArrayList(Material).initCapacity(allocator, 1);
+    self.material_indices = try std.ArrayList(u32).initCapacity(allocator, 1);
+    self.textures = try std.ArrayList(*Texture).initCapacity(allocator, 1);
 
     // load vertex attributes
     assert(data.scenes_count > 0);
@@ -204,7 +207,7 @@ pub fn fromGLTF(
 }
 
 /// deallocate resources
-pub fn deinit(self: Self) void {
+pub fn deinit(self: *Self) void {
     for (self.meshes.items) |m| {
         m.deinit();
     }
@@ -219,6 +222,7 @@ pub fn deinit(self: Self) void {
         t.deinit();
     }
     self.textures.deinit();
+    self.allocator.destroy(self);
 }
 
 fn parseNode(
@@ -415,14 +419,17 @@ pub fn fillInstanceTransformArray(
     self: Self,
     vds: []Renderer.Input.VertexData,
     transforms: []Mat4,
-    temp: []Mat4,
+    temp: ?[]Mat4,
 ) !void {
     assert(vds.len == self.meshes.items.len);
-    assert(transforms.len == temp.len);
+    var ms = temp orelse try std.heap.c_allocator.alloc(Mat4, transforms.len);
+    assert(transforms.len == ms.len);
+    defer if (temp == null) std.heap.c_allocator.free(ms);
+
     for (self.meshes.items) |_, i| {
         for (transforms.items) |tr, j| {
-            temp[j] = tr.mul(self.transforms.items[i]);
+            ms[j] = tr.mul(self.transforms.items[i]);
         }
-        try vds[i].transform.instanced.updateTransforms(temp);
+        try vds[i].transform.instanced.updateTransforms(ms);
     }
 }

@@ -139,6 +139,9 @@ pub const Input = struct {
 
     /// vertex data
     pub const VertexData = struct {
+        /// whether data is valid
+        valid: bool = true,
+
         /// whether use element indices, normally we do
         element_draw: bool = true,
 

@@ -37,7 +37,7 @@ var camera = Camera.fromPositionAndTarget(
 );
 var physics_world: BulletWorld = undefined;
 const Actor = struct {
-    model: Model,
+    model: *Model,
     physics_id: u32,
 };
 var all_actors: std.ArrayList(Actor) = undefined;
@@ -364,7 +364,7 @@ fn beforeRenderingOutlined(ctx: *Context, custom: ?*anyopaque) void {
 
 fn addActor(
     pos: Vec3,
-    model: Model,
+    model: *Model,
     shape: ?bt.Shape,
     phy: BulletWorld.PhysicsParam,
 ) void {

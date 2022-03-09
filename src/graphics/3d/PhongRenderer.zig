@@ -299,6 +299,7 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     // render vertex data one by one
     var current_material: *Material = undefined;
     for (input.vds.?.items) |vd| {
+        if (!vd.valid) continue;
         vd.vertex_array.use();
         defer vd.vertex_array.disuse();
 

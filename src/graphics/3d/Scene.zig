@@ -18,6 +18,10 @@ const Mat4 = alg.Mat4;
 const Quat = alg.Quat;
 const Self = @This();
 
+const Error = error{
+    InvalidModel,
+};
+
 /// memory allocator
 allocator: std.mem.Allocator,
 
@@ -39,6 +43,26 @@ rdata_scene: Renderer.Input,
 
 /// rendering data for post-processing
 rdata_post: Renderer.Input,
+
+/// models' search table
+model_table: std.AutoHashMap(*Model, ModelInfo),
+
+/// model table
+const ModelTable = std.AutoHashMap(*Model, ModelInfo);
+
+/// model information
+const ModelInfo = struct {
+    model: *Model,
+    shadow_vds: ?[]Renderer.Input.VertexData = null,
+    scene_vds: []Renderer.Input.VertexData = null,
+
+    fn invalidate(info: ModelInfo) void {
+        if (info.shadow_vds) |vds| {
+            for (vds) |*d| d.valid = false;
+        }
+        for (info.scene_vds) |*d| d.valid = false;
+    }
+};
 
 pub const InitOption = struct {
     viewer_projection: Mat4,
@@ -110,6 +134,8 @@ pub fn init(allocator: std.mem.Allocator, option: InitOption) !*Self {
         null,
         null,
     );
+    self.current_model_id = 0;
+    self.model_table = ModelTable.init(allocator);
     return self;
 }
 
@@ -129,19 +155,24 @@ pub fn deinit(self: *Self) void {
     destroyRenderData(self.rdata_shadow);
     destroyRenderData(self.rdata_scene);
     destroyRenderData(self.rdata_post);
+    self.model_table.deinit();
     self.allocator.destroy(self);
 }
 
 /// add rendering object into scene
 pub fn addModel(
     self: *Self,
-    model: Model,
+    model: *Model,
     trs: []Mat4,
     material: ?*Material,
     has_shadow: bool,
 ) !void {
     assert(trs.len > 0);
+    var info: ModelInfo = .{ .model = model };
+
     if (has_shadow) {
+        const begin = self.rdata_shadow.vds.?.items.len;
+        defer info.shadow_vds = self.rdata_shadow.vds.?.items[begin..];
         if (trs.len == 0) {
             try model.appendVertexData(
                 &self.rdata_shadow,
@@ -156,16 +187,51 @@ pub fn addModel(
                 material,
             );
         }
+        assert(self.rdata_shadow.vds.?.items.len > begin);
     }
-    if (trs.len == 0) {
-        try model.appendVertexData(&self.rdata_scene, trs[0], material);
+
+    {
+        const begin = self.rdata_scene.vds.?.items.len;
+        defer info.scene_vds = self.rdata_scene.vds.?.items[begin..];
+        if (trs.len == 0) {
+            try model.appendVertexData(
+                &self.rdata_scene,
+                trs[0],
+                material,
+            );
+        } else {
+            try model.appendVertexDataInstanced(
+                self.allocator,
+                &self.rdata_scene,
+                trs,
+                material,
+            );
+        }
+        assert(self.rdata_scene.vds.?.items.len > begin);
+    }
+
+    try self.model_table.put(model, info);
+}
+
+pub fn removeModel(self: Self, model: *Model) !void {
+    if (self.model_table.fetchRemove(model)) |kv| {
+        kv.value.invalidate();
+    }
+}
+
+/// change model's transformation
+pub fn setTransform(self: Self, model: *Model, trs: []Mat4) !void {
+    assert(trs.len > 0);
+    if (self.model_table.get(model)) |info| {
+        assert(info.model == model);
+        assert(info.scene_vds.len > 0);
+        if (info.scene_vds[0].transform == .single) {
+            model.fillTransforms(info.scene_vds, trs[0]);
+        } else {
+            model.fillInstanceTransformArray(info.scene_vds, trs, null);
+        }
     } else {
-        try model.appendVertexDataInstanced(
-            self.allocator,
-            &self.rdata_scene,
-            trs,
-            material,
-        );
+        return error.InvalidModel;
     }
 }
 
@@ -215,7 +281,7 @@ pub fn setRenderPasses(
             .rd = p.rd,
             .custom = p.custom,
         };
-        self.rdata_shadow.material = p.mr;
+        self.rdata_scene.material = p.mr;
         if (p.light_rd) |lrd| {
             assert(lrd.ptr == p.rd.ptr);
             lrd.applyLights(&[_]light.Light{self.sun});
@@ -230,7 +296,7 @@ pub fn setRenderPasses(
             .rd = p.rd,
             .custom = p.custom,
         };
-        self.rdata_shadow.material = p.mr;
+        self.rdata_post.material = p.mr;
         count += 1;
     }
     try self.rd_pipeline.setPasses(passes[0..count]);

@@ -25,7 +25,7 @@ var refract_diamond_material: Material = undefined;
 var current_scene_renderer: Renderer = undefined;
 var reflect_renderer: EnvMappingRenderer = undefined;
 var refract_renderer: EnvMappingRenderer = undefined;
-var model: Model = undefined;
+var model: *Model = undefined;
 var camera = Camera.fromPositionAndTarget(
     Vec3.new(0, 0, 3),
     Vec3.zero(),

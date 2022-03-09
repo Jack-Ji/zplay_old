@@ -198,7 +198,7 @@ pub fn addObjectWithModel(
     self: *Self,
     allocator: std.mem.Allocator,
     position: Vec3,
-    model: Model,
+    model: *Model,
     shape: ?bt.Shape,
     physics_param: PhysicsParam,
 ) !u32 {
