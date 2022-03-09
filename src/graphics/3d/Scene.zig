@@ -5,7 +5,7 @@ const Model = @import("Model.zig");
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
 const Framebuffer = gfx.gpu.Framebuffer;
-const Context = zp.Context;
+const Context = gfx.gpu.Context;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
@@ -41,9 +41,6 @@ rdata_shadow: Renderer.Input,
 /// rendering data for regular shading
 rdata_scene: Renderer.Input,
 
-/// rendering data for post-processing
-rdata_post: Renderer.Input,
-
 /// models' search table
 model_table: std.AutoHashMap(*Model, ModelInfo),
 
@@ -54,7 +51,7 @@ const ModelTable = std.AutoHashMap(*Model, ModelInfo);
 const ModelInfo = struct {
     model: *Model,
     shadow_vds: ?[]Renderer.Input.VertexData = null,
-    scene_vds: []Renderer.Input.VertexData = null,
+    scene_vds: []Renderer.Input.VertexData = undefined,
 
     fn invalidate(info: ModelInfo) void {
         if (info.shadow_vds) |vds| {
@@ -126,15 +123,6 @@ pub fn init(allocator: std.mem.Allocator, option: InitOption) !*Self {
         null,
         null,
     );
-    self.rdata_post = try Renderer.Input.init(
-        allocator,
-        &.{},
-        null,
-        null,
-        null,
-        null,
-    );
-    self.current_model_id = 0;
     self.model_table = ModelTable.init(allocator);
     return self;
 }
@@ -154,7 +142,6 @@ pub fn deinit(self: *Self) void {
     self.rd_pipeline.deinit();
     destroyRenderData(self.rdata_shadow);
     destroyRenderData(self.rdata_scene);
-    destroyRenderData(self.rdata_post);
     self.model_table.deinit();
     self.allocator.destroy(self);
 }
@@ -228,7 +215,7 @@ pub fn setTransform(self: Self, model: *Model, trs: []Mat4) !void {
         if (info.scene_vds[0].transform == .single) {
             model.fillTransforms(info.scene_vds, trs[0]);
         } else {
-            model.fillInstanceTransformArray(info.scene_vds, trs, null);
+            try model.fillInstanceTransformArray(info.scene_vds, trs, null);
         }
     } else {
         return error.InvalidModel;
@@ -238,10 +225,7 @@ pub fn setTransform(self: Self, model: *Model, trs: []Mat4) !void {
 /// set render-passes
 pub const RenderPassOption = struct {
     /// frame buffer of the render-pass
-    fb: ?Framebuffer,
-
-    /// material setting
-    mr: ?Material = null,
+    fb: ?Framebuffer = null,
 
     /// do some work before/after rendering
     beforeFn: ?render_pass.TriggerFunc = null,
@@ -251,58 +235,31 @@ pub const RenderPassOption = struct {
     rd: Renderer,
     light_rd: ?light.Renderer = null,
 
+    /// renderer's input
+    rdata: *const Renderer.Input,
+
     /// custom data
     custom: ?*anyopaque = null,
 };
-pub fn setRenderPasses(
-    self: *Self,
-    shadow_mapping: ?RenderPassOption,
-    regular_shading: ?RenderPassOption,
-    post_processing: ?RenderPassOption,
-) !void {
-    var passes: [3]render_pass.RenderPass = undefined;
-    var count: u32 = 0;
-    if (shadow_mapping) |p| {
-        passes[count] = .{
+pub fn setRenderPasses(self: *Self, passes: []RenderPassOption) !void {
+    self.rd_pipeline.clear();
+    for (passes) |p| {
+        try self.rd_pipeline.appendPass(.{
             .fb = p.fb,
             .beforeFn = p.beforeFn,
             .afterFn = p.afterFn,
             .rd = p.rd,
+            .data = p.rdata,
             .custom = p.custom,
-        };
-        self.rdata_shadow.material = p.mr;
-        count += 1;
-    }
-    if (regular_shading) |p| {
-        passes[count] = .{
-            .fb = p.fb,
-            .beforeFn = p.beforeFn,
-            .afterFn = p.afterFn,
-            .rd = p.rd,
-            .custom = p.custom,
-        };
-        self.rdata_scene.material = p.mr;
+        });
         if (p.light_rd) |lrd| {
             assert(lrd.ptr == p.rd.ptr);
             lrd.applyLights(&[_]light.Light{self.sun});
         }
-        count += 1;
     }
-    if (post_processing) |p| {
-        passes[count] = .{
-            .fb = p.fb,
-            .beforeFn = p.beforeFn,
-            .afterFn = p.afterFn,
-            .rd = p.rd,
-            .custom = p.custom,
-        };
-        self.rdata_post.material = p.mr;
-        count += 1;
-    }
-    try self.rd_pipeline.setPasses(passes[0..count]);
 }
 
 /// draw the scene
-pub fn draw(self: Self, ctx: Context) !void {
+pub fn draw(self: Self, ctx: *Context) !void {
     try self.rd_pipeline.run(ctx);
 }

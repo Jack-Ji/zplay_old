@@ -80,10 +80,14 @@ pub const Pipeline = struct {
         self.passes.deinit();
     }
 
-    /// reset pipeline's content
-    pub fn setPasses(self: *Self, passes: []RenderPass) !void {
+    /// clear pipeline
+    pub fn clear(self: *Self) void {
         self.passes.clearRetainingCapacity();
-        try self.passes.appendSlice(passes);
+    }
+
+    /// append new render pass
+    pub fn appendPass(self: *Self, pass: RenderPass) !void {
+        try self.passes.append(pass);
     }
 
     /// execute render pass

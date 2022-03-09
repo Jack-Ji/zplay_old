@@ -382,7 +382,7 @@ pub fn appendVertexDataInstanced(
     material: ?*Material,
 ) !void {
     assert(transforms.len > 0);
-    var temp = try std.ArrayList(allocator).initCapacity(transforms.len);
+    var temp = try std.ArrayList(Mat4).initCapacity(allocator, transforms.len);
     defer temp.deinit();
 
     for (self.meshes.items) |m, i| {
@@ -399,7 +399,6 @@ pub fn appendVertexDataInstanced(
             Renderer.LocalTransform{ .instanced = trs },
         ));
     }
-    return input;
 }
 
 /// properly fill transforms 
@@ -427,7 +426,7 @@ pub fn fillInstanceTransformArray(
     defer if (temp == null) std.heap.c_allocator.free(ms);
 
     for (self.meshes.items) |_, i| {
-        for (transforms.items) |tr, j| {
+        for (transforms) |tr, j| {
             ms[j] = tr.mul(self.transforms.items[i]);
         }
         try vds[i].transform.instanced.updateTransforms(ms);
