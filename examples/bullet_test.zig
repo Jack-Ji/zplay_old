@@ -42,8 +42,7 @@ const Actor = struct {
 };
 var all_actors: std.ArrayList(Actor) = undefined;
 var render_data_shadow: Renderer.Input = undefined;
-var render_data_static: Renderer.Input = undefined;
-var render_data_movable: Renderer.Input = undefined;
+var render_data_scene: Renderer.Input = undefined;
 var render_data_outlined: Renderer.Input = undefined;
 var render_pipeline: render_pass.Pipeline = undefined;
 
@@ -69,9 +68,9 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // create renderer
     var light_pos = Vec3.new(0, 30, 0);
-    var light_dir = Vec3.new(0.5, -1, 0);
+    var light_dir = Vec3.new(0.1, -1, 0);
     const light_view_projection =
-        Mat4.orthographic(-40.0, 40.0, -40.0, 40.0, 0.1, 100.0);
+        Mat4.orthographic(-50.0, 50.0, -50.0, 50.0, 0.1, 100.0);
     light_view_camera = Camera.fromPositionAndTarget(
         light_pos,
         light_pos.add(light_dir),
@@ -220,15 +219,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         null,
         null,
     );
-    render_data_static = try Renderer.Input.init(
-        std.testing.allocator,
-        &.{},
-        projection,
-        &camera,
-        null,
-        null,
-    );
-    render_data_movable = try Renderer.Input.init(
+    render_data_scene = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
         projection,
@@ -244,31 +235,20 @@ fn init(ctx: *zp.Context) anyerror!void {
         null,
         null,
     );
-    for (all_actors.items) |a, i| {
-        if (i == 0) {
-            try a.model.appendVertexData(
-                &render_data_static,
-                physics_world.getTransformation(a.physics_id),
-                null,
-            );
-            render_data_static.vds.?.items[
-                render_data_static.vds.?.items.len - 1
-            ].material.?.data.phong.shadow_map = shadow_fb.depth_stencil.?.tex;
-        } else {
-            try a.model.appendVertexData(
-                &render_data_shadow,
-                physics_world.getTransformation(a.physics_id),
-                null,
-            );
-            try a.model.appendVertexData(
-                &render_data_movable,
-                physics_world.getTransformation(a.physics_id),
-                null,
-            );
-            render_data_movable.vds.?.items[
-                render_data_movable.vds.?.items.len - 1
-            ].material.?.data.phong.shadow_map = shadow_fb.depth_stencil.?.tex;
-        }
+    for (all_actors.items) |a| {
+        try a.model.appendVertexData(
+            &render_data_shadow,
+            physics_world.getTransformation(a.physics_id),
+            null,
+        );
+        try a.model.appendVertexData(
+            &render_data_scene,
+            physics_world.getTransformation(a.physics_id),
+            null,
+        );
+        render_data_scene.vds.?.items[
+            render_data_scene.vds.?.items.len - 1
+        ].material.?.data.phong.shadow_map = shadow_fb.depth_stencil.?.tex;
     }
     render_pipeline = try render_pass.Pipeline.init(
         std.testing.allocator,
@@ -280,14 +260,9 @@ fn init(ctx: *zp.Context) anyerror!void {
                 .data = &render_data_shadow,
             },
             .{
-                .beforeFn = beforeRenderingStatic,
+                .beforeFn = beforeRenderingScene,
                 .rd = phong_renderer.renderer(),
-                .data = &render_data_static,
-            },
-            .{
-                .beforeFn = beforeRenderingMovables,
-                .rd = phong_renderer.renderer(),
-                .data = &render_data_movable,
+                .data = &render_data_scene,
             },
             .{
                 .beforeFn = beforeRenderingOutlined,
@@ -309,17 +284,13 @@ fn beforeShadowMapGeneration(ctx: *Context, custom: ?*anyopaque) void {
     ctx.clear(false, true, false, null);
 }
 
-fn beforeRenderingStatic(ctx: *Context, custom: ?*anyopaque) void {
+fn beforeRenderingScene(ctx: *Context, custom: ?*anyopaque) void {
     _ = custom;
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.getDrawableSize(&width, &height);
     ctx.setViewport(0, 0, width, height);
     ctx.clear(true, true, true, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
-}
-
-fn beforeRenderingMovables(ctx: *Context, custom: ?*anyopaque) void {
-    _ = custom;
     ctx.setStencilOption(.{
         .test_func = .always,
         .test_ref = 1,
@@ -434,8 +405,7 @@ fn loop(ctx: *zp.Context) void {
     // update physics world's status
     physics_world.update(.{ .delta_time = ctx.delta_tick });
     var idx: u32 = 0;
-    for (all_actors.items) |a, i| {
-        if (i == 0) continue;
+    for (all_actors.items) |a| {
         var j: u32 = idx;
         const end = idx + @intCast(u32, a.model.meshes.items.len);
         while (j < end) : (j += 1) {
@@ -443,7 +413,7 @@ fn loop(ctx: *zp.Context) void {
                 .single = physics_world.getTransformation(a.physics_id)
                     .mul(a.model.transforms.items[j - idx]),
             };
-            render_data_movable.vds.?.items[j].transform = .{
+            render_data_scene.vds.?.items[j].transform = .{
                 .single = physics_world.getTransformation(a.physics_id)
                     .mul(a.model.transforms.items[j - idx]),
             };
@@ -455,7 +425,7 @@ fn loop(ctx: *zp.Context) void {
     render_pipeline.run(&ctx.graphics) catch unreachable;
     physics_world.debugDraw(
         &ctx.graphics,
-        render_data_static.projection.?,
+        render_data_scene.projection.?,
         &camera,
         3,
     );

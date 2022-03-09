@@ -76,12 +76,12 @@ pub const InitOption = struct {
     sun_diffuse: Vec3 = Vec3.set(0.3),
     sun_specular: Vec3 = Vec3.set(0.1),
     sun_projection: Mat4 = Mat4.orthographic(
-        -100.0,
-        100.0,
-        -100.0,
-        100.0,
+        -50.0,
+        50.0,
+        -50.0,
+        50.0,
         0.1,
-        1000,
+        100,
     ),
 };
 
