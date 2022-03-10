@@ -245,14 +245,5 @@ pub fn init(
 }
 
 pub fn draw(rd: Renderer, ctx: *Context, input: Input) anyerror!void {
-    if (std.debug.runtime_safety) {
-        if (input.vds) |ds| {
-            for (ds.items) |d| {
-                if (d.transform == .instanced) {
-                    assert(d.transform.instanced.count > 0);
-                }
-            }
-        }
-    }
     return rd.vtable.drawFn(rd.ptr, ctx, input);
 }

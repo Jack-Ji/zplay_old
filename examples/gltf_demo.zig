@@ -7,13 +7,14 @@ const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
+const GraphicsContext = gfx.gpu.Context;
 const Texture = gfx.gpu.Texture;
-const Camera = gfx.Camera;
 const Material = gfx.Material;
 const Renderer = gfx.Renderer;
 const SimpleRenderer = gfx.SimpleRenderer;
 const Model = gfx.@"3d".Model;
 const SkyboxRenderer = gfx.@"3d".SkyboxRenderer;
+const Scene = gfx.@"3d".Scene;
 
 var skybox: SkyboxRenderer = undefined;
 var skybox_material: Material = undefined;
@@ -27,13 +28,9 @@ var helmet: *Model = undefined;
 var total_vertices: u32 = undefined;
 var total_meshes: u32 = undefined;
 var face_culling: bool = false;
-var camera = Camera.fromPositionAndTarget(
-    Vec3.new(0, 0, 3),
-    Vec3.zero(),
-    null,
-);
-var render_data_scene: Renderer.Input = undefined;
 var render_data_skybox: Renderer.Input = undefined;
+var scene: *Scene = undefined;
+var global_tick: f32 = 0;
 
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
@@ -46,13 +43,14 @@ fn init(ctx: *zp.Context) anyerror!void {
     simple_renderer = SimpleRenderer.init(.{});
 
     // load scene
-    loadScene(ctx);
+    try loadScene(ctx);
 
     // enable depth test
     ctx.graphics.toggleCapability(.depth_test, true);
 }
 
 fn loop(ctx: *zp.Context) void {
+    global_tick = ctx.tick;
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(&width, &height);
@@ -74,15 +72,15 @@ fn loop(ctx: *zp.Context) void {
             .mouse_event => |me| {
                 switch (me.data) {
                     .wheel => |scroll| {
-                        camera.zoom -= @intToFloat(f32, scroll.scroll_y);
-                        if (camera.zoom < 1) {
-                            camera.zoom = 1;
+                        scene.viewer_camera.zoom -= @intToFloat(f32, scroll.scroll_y);
+                        if (scene.viewer_camera.zoom < 1) {
+                            scene.viewer_camera.zoom = 1;
                         }
-                        if (camera.zoom > 45) {
-                            camera.zoom = 45;
+                        if (scene.viewer_camera.zoom > 45) {
+                            scene.viewer_camera.zoom = 45;
                         }
-                        render_data_scene.projection = Mat4.perspective(
-                            camera.zoom,
+                        scene.rdata_scene.projection = Mat4.perspective(
+                            scene.viewer_camera.zoom,
                             @intToFloat(f32, width) / @intToFloat(f32, height),
                             0.1,
                             100,
@@ -96,28 +94,7 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    // start drawing
-    ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
-    dog.fillTransforms(
-        render_data_scene.vds.?.items[0..dog.meshes.items.len],
-        Mat4.fromTranslate(Vec3.new(-2.0, -0.7, 0))
-            .scale(Vec3.set(0.7))
-            .mul(Mat4.fromRotation(ctx.tick * 50, Vec3.up())),
-    );
-    girl.fillTransforms(
-        render_data_scene.vds.?.items[dog.meshes.items.len .. dog.meshes.items.len + girl.meshes.items.len],
-        Mat4.fromTranslate(Vec3.new(2.0, -1.2, 0))
-            .scale(Vec3.set(0.7))
-            .mul(Mat4.fromRotation(ctx.tick * 100, Vec3.up())),
-    );
-    helmet.fillTransforms(
-        render_data_scene.vds.?.items[dog.meshes.items.len + girl.meshes.items.len ..],
-        Mat4.fromTranslate(Vec3.new(0.0, 0, 0))
-            .scale(Vec3.set(0.7))
-            .mul(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
-    );
-    simple_renderer.draw(&ctx.graphics, render_data_scene) catch unreachable;
-    skybox.draw(&ctx.graphics, render_data_skybox) catch unreachable;
+    scene.draw(&ctx.graphics) catch unreachable;
 
     // settings
     dig.beginFrame();
@@ -152,7 +129,7 @@ fn loop(ctx: *zp.Context) void {
                 ctx.graphics.toggleCapability(.cull_face, face_culling);
             }
             if (dig.checkbox("merge meshes", &merge_meshes)) {
-                loadScene(ctx);
+                loadScene(ctx) catch unreachable;
             }
         }
         dig.end();
@@ -203,7 +180,7 @@ fn loop(ctx: *zp.Context) void {
     dig.endFrame();
 }
 
-fn loadScene(ctx: *zp.Context) void {
+fn loadScene(ctx: *zp.Context) !void {
     const S = struct {
         var loaded = false;
     };
@@ -212,8 +189,7 @@ fn loadScene(ctx: *zp.Context) void {
         dog.deinit();
         girl.deinit();
         helmet.deinit();
-        render_data_scene.deinit();
-        render_data_skybox.deinit();
+        scene.deinit();
     }
 
     // allocate skybox
@@ -249,34 +225,70 @@ fn loadScene(ctx: *zp.Context) void {
         total_meshes += 1;
     }
 
-    // compose renderer's input
+    // init scene
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(&width, &height);
     const projection = Mat4.perspective(
-        camera.zoom,
+        45,
         @intToFloat(f32, width) / @intToFloat(f32, height),
         0.1,
         100,
     );
-    render_data_scene = Renderer.Input.init(
-        std.testing.allocator,
-        &.{},
-        projection,
-        &camera,
-        null,
-        null,
-    ) catch unreachable;
-    dog.appendVertexData(&render_data_scene, Mat4.identity(), null) catch unreachable;
-    girl.appendVertexData(&render_data_scene, Mat4.identity(), null) catch unreachable;
-    helmet.appendVertexData(&render_data_scene, Mat4.identity(), null) catch unreachable;
+    scene = try Scene.init(std.testing.allocator, .{
+        .viewer_projection = projection,
+        .viewer_position = Vec3.new(0, 0, 3),
+    });
+    try scene.addModel(dog, &[_]Mat4{Mat4.identity()}, null, false);
+    try scene.addModel(girl, &[_]Mat4{Mat4.identity()}, null, false);
+    try scene.addModel(helmet, &[_]Mat4{Mat4.identity()}, null, false);
     render_data_skybox = .{
         .projection = projection,
-        .camera = &camera,
+        .camera = scene.rdata_scene.camera,
         .material = &skybox_material,
     };
+    try scene.setRenderPasses(&[_]Scene.RenderPassOption{
+        .{
+            .beforeFn = beforeSceneRendering,
+            .rd = simple_renderer.renderer(),
+            .rdata = &scene.rdata_scene,
+        },
+        .{
+            .rd = skybox.renderer(),
+            .rdata = &render_data_skybox,
+        },
+    });
 
     S.loaded = true;
+}
+
+fn beforeSceneRendering(ctx: *GraphicsContext, custom: ?*anyopaque) void {
+    _ = custom;
+    ctx.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    scene.setTransform(
+        dog,
+        &[_]Mat4{
+            Mat4.fromTranslate(Vec3.new(-2.0, -0.7, 0))
+                .scale(Vec3.set(0.7))
+                .mul(Mat4.fromRotation(global_tick * 50, Vec3.up())),
+        },
+    ) catch unreachable;
+    scene.setTransform(
+        girl,
+        &[_]Mat4{
+            Mat4.fromTranslate(Vec3.new(2.0, -1.2, 0))
+                .scale(Vec3.set(0.7))
+                .mul(Mat4.fromRotation(global_tick * 100, Vec3.up())),
+        },
+    ) catch unreachable;
+    scene.setTransform(
+        helmet,
+        &[_]Mat4{
+            Mat4.fromTranslate(Vec3.new(0.0, 0, 0))
+                .scale(Vec3.set(0.7))
+                .mul(Mat4.fromRotation(global_tick * 10, Vec3.up())),
+        },
+    ) catch unreachable;
 }
 
 fn quit(ctx: *zp.Context) void {

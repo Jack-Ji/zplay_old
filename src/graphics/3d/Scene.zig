@@ -160,7 +160,7 @@ pub fn addModel(
     if (has_shadow) {
         const begin = self.rdata_shadow.vds.?.items.len;
         defer info.shadow_vds = self.rdata_shadow.vds.?.items[begin..];
-        if (trs.len == 0) {
+        if (trs.len == 1) {
             try model.appendVertexData(
                 &self.rdata_shadow,
                 trs[0],
@@ -180,7 +180,7 @@ pub fn addModel(
     {
         const begin = self.rdata_scene.vds.?.items.len;
         defer info.scene_vds = self.rdata_scene.vds.?.items[begin..];
-        if (trs.len == 0) {
+        if (trs.len == 1) {
             try model.appendVertexData(
                 &self.rdata_scene,
                 trs[0],
@@ -200,7 +200,15 @@ pub fn addModel(
     try self.model_table.put(model, info);
 }
 
-pub fn removeModel(self: Self, model: *Model) !void {
+/// remove all models
+pub fn clearModel(self: *Self) void {
+    self.model_table.clearRetainingCapacity();
+    self.rdata_shadow.vds.?.clearRetainingCapacity();
+    self.rdata_scene.vds.?.clearRetainingCapacity();
+}
+
+/// remove one model
+pub fn removeModel(self: *Self, model: *Model) !void {
     if (self.model_table.fetchRemove(model)) |kv| {
         kv.value.invalidate();
     }
@@ -208,7 +216,6 @@ pub fn removeModel(self: Self, model: *Model) !void {
 
 /// change model's transformation
 pub fn setTransform(self: Self, model: *Model, trs: []Mat4) !void {
-    assert(trs.len > 0);
     if (self.model_table.get(model)) |info| {
         assert(info.model == model);
         assert(info.scene_vds.len > 0);

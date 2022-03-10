@@ -56,6 +56,7 @@ pub fn drawBufferInstanced(
     vertex_count: u32,
     count: u32,
 ) void {
+    if (count == 0) return;
     gl.drawArraysInstanced(
         @enumToInt(primitive),
         @intCast(gl.GLint, offset),
@@ -76,6 +77,7 @@ pub fn drawElementsInstanced(
     if (ElementType != u16 and ElementType != u32) {
         std.debug.panic("unsupported element type!", .{});
     }
+    if (count == 0) return;
     gl.drawElementsInstanced(
         @enumToInt(primitive),
         @intCast(gl.GLsizei, element_count),

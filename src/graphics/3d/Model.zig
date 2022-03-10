@@ -33,27 +33,24 @@ material_indices: std.ArrayList(u32),
 /// loaded textures
 textures: std.ArrayList(*Texture),
 
-/// init model with raw data
+/// init model with mesh/transform/material, data's ownship is taken
 pub fn init(
     allocator: std.mem.Allocator,
-    meshes: []Mesh,
-    transforms: []Mat4,
-    materials: []Material,
+    mesh: Mesh,
+    transform: Mat4,
+    material: Material,
 ) !*Self {
-    assert(meshes.len == transforms.len and meshes.len == materials.len);
     var self = try allocator.create(Self);
     self.allocator = allocator;
-    self.meshes = try std.ArrayList(Mesh).initCapacity(allocator, meshes.len);
-    self.transforms = try std.ArrayList(Mat4).initCapacity(allocator, meshes.len);
-    self.materials = try std.ArrayList(Material).initCapacity(allocator, meshes.len);
-    self.material_indices = try std.ArrayList(u32).initCapacity(allocator, meshes.len);
+    self.meshes = try std.ArrayList(Mesh).initCapacity(allocator, 1);
+    self.transforms = try std.ArrayList(Mat4).initCapacity(allocator, 1);
+    self.materials = try std.ArrayList(Material).initCapacity(allocator, 1);
+    self.material_indices = try std.ArrayList(u32).initCapacity(allocator, 1);
     self.textures = std.ArrayList(*Texture).init(allocator);
-    self.meshes.appendSliceAssumeCapacity(meshes);
-    self.transforms.appendSliceAssumeCapacity(transforms);
-    self.materials.appendSliceAssumeCapacity(materials);
-    for (self.meshes.items) |_, i| {
-        self.material_indices.appendAssumeCapacity(@intCast(u32, i));
-    }
+    self.meshes.appendAssumeCapacity(mesh);
+    self.transforms.appendAssumeCapacity(transform);
+    self.materials.appendAssumeCapacity(material);
+    self.material_indices.appendAssumeCapacity(0);
     return self;
 }
 

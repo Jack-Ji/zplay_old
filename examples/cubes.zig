@@ -93,16 +93,16 @@ fn init(ctx: *zp.Context) anyerror!void {
     // init model
     cube = try Model.init(
         std.testing.allocator,
-        &[_]Mesh{try Mesh.genCube(std.testing.allocator, 1, 1, 1)},
-        &[_]Mat4{Mat4.identity()},
-        &[_]Material{Material.init(.{
+        try Mesh.genCube(std.testing.allocator, 1, 1, 1),
+        Mat4.identity(),
+        Material.init(.{
             .single_texture = try Texture.init2DFromFilePath(
                 std.testing.allocator,
                 "assets/wall.jpg",
                 false,
                 .{},
             ),
-        }, true)},
+        }, true),
     );
 
     // init scene
