@@ -5,6 +5,7 @@ const dig = zp.deps.dig;
 const nvg = zp.deps.nvg;
 const nsvg = zp.deps.nsvg;
 
+var zh_font: i32 = undefined;
 var font_normal: i32 = undefined;
 var font_bold: i32 = undefined;
 var font_icons: i32 = undefined;
@@ -29,6 +30,11 @@ fn init(ctx: *zp.Context) anyerror!void {
         if (images[i].handle == 0) {
             std.debug.panic("load image({s}) failed!", .{buf});
         }
+    }
+
+    zh_font = nvg.createFont("zh", "assets/msyh.ttf");
+    if (font_icons == -1) {
+        std.debug.panic("load font failed!", .{});
     }
 
     font_icons = nvg.createFont("icons", "assets/entypo.ttf");
@@ -113,13 +119,15 @@ fn loop(ctx: *zp.Context) void {
     drawLabel("Login", x, y, 280, 20);
     y += 25;
     drawLabel("Diameter", x, y, 280, 20);
+    y += 50;
+    drawChinese("你好，世界！", x, y, 280, 20);
 
     // Thumbnails box
     drawThumbnails(500, 50, 160, 300, ctx.tick);
 
     // draw svg
     nvg.save();
-    nvg.translate(100, 100);
+    nvg.translate(100, 170);
     nvg.scale(0.5, 0.5);
     nvg.svg(tiger);
     nvg.restore();
@@ -539,6 +547,17 @@ fn drawLabel(text: []const u8, x: f32, y: f32, w: f32, h: f32) void {
     nvg.fontSize(15.0);
     nvg.fontFace("sans");
     nvg.fillColor(nvg.rgba(255, 255, 255, 128));
+
+    nvg.textAlign(.{ .horizontal = .left, .vertical = .middle });
+    _ = nvg.text(x, y + h * 0.5, text);
+}
+
+fn drawChinese(text: []const u8, x: f32, y: f32, w: f32, h: f32) void {
+    _ = w;
+
+    nvg.fontSize(45.0);
+    nvg.fontFace("zh");
+    nvg.fillColor(nvg.rgba(255, 255, 255, 255));
 
     nvg.textAlign(.{ .horizontal = .left, .vertical = .middle });
     _ = nvg.text(x, y + h * 0.5, text);
