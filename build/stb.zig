@@ -15,7 +15,7 @@ pub fn link(
     stb.setTarget(target);
     stb.linkLibC();
     stb.addCSourceFile(
-        root_path ++ "/src/deps/stb/c/stb_image_wrapper.c",
+        root_path ++ "/src/deps/stb/c/stb_wrapper.c",
         flags.items,
     );
     exe.linkLibrary(stb);

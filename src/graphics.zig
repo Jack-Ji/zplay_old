@@ -1,6 +1,9 @@
 /// graphics card types/utilities
 pub const gpu = @import("graphics/gpu.zig");
 
+/// Font loading/rendering
+pub const Font = @import("graphics/Font.zig");
+
 /// generic rendering interface
 pub const Renderer = @import("graphics/Renderer.zig");
 
