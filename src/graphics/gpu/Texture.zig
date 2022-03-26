@@ -861,6 +861,9 @@ pub fn updateImageData(
         },
         .texture_2d => {
             assert(target == .texture_2d or target == .proxy_texture_2d);
+            if (texture_format.getChannels() == 1) {
+                gl.pixelStorei(gl.GL_UNPACK_ALIGNMENT, 1);
+            }
             gl.texImage2D(
                 @enumToInt(target),
                 mipmap_level,

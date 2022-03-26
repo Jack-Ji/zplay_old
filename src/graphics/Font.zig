@@ -106,15 +106,19 @@ pub const Atlas = struct {
         tex.updateImageData(
             .texture_2d,
             0,
-            .alpha,
+            .red,
             map_size,
             map_size,
             null,
-            .alpha,
+            .red,
             u8,
             pixels.ptr,
             false,
         ) catch unreachable;
+        tex.setWrappingMode(.s, .clamp_to_edge);
+        tex.setWrappingMode(.t, .clamp_to_edge);
+        tex.setFilteringMode(.minifying, .linear);
+        tex.setFilteringMode(.magnifying, .linear);
 
         return .{
             .tex = tex,
