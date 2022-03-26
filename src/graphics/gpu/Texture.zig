@@ -63,6 +63,9 @@ pub const MultisampleTarget = enum(c_uint) {
 
 pub const TextureFormat = enum(c_uint) {
     red = gl.GL_RED,
+    blue = gl.GL_BLUE,
+    green = gl.GL_GREEN,
+    alpha = gl.GL_ALPHA,
     rg = gl.GL_RG,
     rgb = gl.GL_RGB,
     rgb_f16 = gl.GL_RGB16F,
@@ -83,7 +86,7 @@ pub const TextureFormat = enum(c_uint) {
 
     pub fn getChannels(self: @This()) u32 {
         return switch (self) {
-            .red => 1,
+            .red, .blue, .green, .alpha => 1,
             .rg => 2,
             .rgb, .rgb_f16, .rgb_f32 => 3,
             .rgba, .rgba_f16, .rgba_f32 => 4,
@@ -103,6 +106,9 @@ pub const TextureFormat = enum(c_uint) {
 
 pub const PixelFormat = enum(c_uint) {
     red = gl.GL_RED,
+    blue = gl.GL_BLUE,
+    green = gl.GL_GREEN,
+    alpha = gl.GL_ALPHA,
     rg = gl.GL_RG,
     rgb = gl.GL_RGB,
     bgr = gl.GL_BGR,
@@ -113,7 +119,7 @@ pub const PixelFormat = enum(c_uint) {
 
     pub fn getChannels(self: @This()) u32 {
         return switch (self) {
-            .red => 1,
+            .red, .blue, .green, .alpha => 1,
             .rg => 2,
             .rgb => 3,
             .bgr => 3,
