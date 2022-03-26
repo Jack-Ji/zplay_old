@@ -42,6 +42,10 @@ pub fn deinit(self: *Self) void {
     self.allocator.destroy(self);
 }
 
+pub fn createAtlas(self: Self, font_size: u32, codepoint_ranges: [][2]u32) !Atlas {
+    return Atlas.init(self.allocator, &self.font_info, font_size, codepoint_ranges);
+}
+
 pub const Atlas = struct {
     const CharRange = struct {
         codepoint_begin: u32,
@@ -55,9 +59,9 @@ pub const Atlas = struct {
     ranges: std.ArrayList(CharRange),
 
     /// create font atlas
-    pub fn init(
+    fn init(
         allocator: std.mem.Allocator,
-        font_info: *truetype.stbtt_fontinfo,
+        font_info: *const truetype.stbtt_fontinfo,
         font_size: u32,
         codepoint_ranges: [][2]u32,
     ) !Atlas {
