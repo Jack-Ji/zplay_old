@@ -62,24 +62,26 @@ const ModelInfo = struct {
 };
 
 pub const InitOption = struct {
-    viewer_projection: Mat4,
+    viewer_frustrum: Camera.ViewFrustrum,
     viewer_position: Vec3 = Vec3.set(1),
     viewer_target: Vec3 = Vec3.zero(),
     viewer_up: Vec3 = Vec3.up(),
+    sun_frustrum: Camera.ViewFrustrum = .{
+        .orthographic = .{
+            .left = -50.0,
+            .right = 50.0,
+            .bottom = -50.0,
+            .top = 50.0,
+            .near = 0.1,
+            .far = 100,
+        },
+    },
     sun_position: Vec3 = Vec3.new(0, 30, 0),
     sun_dir: Vec3 = Vec3.new(0.5, -1, 0),
     sun_up: Vec3 = Vec3.up(),
     sun_ambient: Vec3 = Vec3.set(0.8),
     sun_diffuse: Vec3 = Vec3.set(0.3),
     sun_specular: Vec3 = Vec3.set(0.1),
-    sun_projection: Mat4 = Mat4.orthographic(
-        -50.0,
-        50.0,
-        -50.0,
-        50.0,
-        0.1,
-        100,
-    ),
 };
 
 /// create scene
@@ -87,11 +89,13 @@ pub fn init(allocator: std.mem.Allocator, option: InitOption) !*Self {
     var self = try allocator.create(Self);
     self.allocator = allocator;
     self.viewer_camera = Camera.fromPositionAndTarget(
+        option.viewer_frustrum,
         option.viewer_position,
         option.viewer_target,
         option.viewer_up,
     );
     self.sun_camera = Camera.fromPositionAndTarget(
+        option.sun_frustrum,
         option.sun_position,
         option.sun_position.add(option.sun_dir),
         option.sun_up,
@@ -102,15 +106,13 @@ pub fn init(allocator: std.mem.Allocator, option: InitOption) !*Self {
             .diffuse = option.sun_diffuse,
             .specular = option.sun_specular,
             .direction = option.sun_dir,
-            .space_matrix = option.sun_projection
-                .mul(self.sun_camera.getViewMatrix()),
+            .space_matrix = self.sun_camera.getViewProjectMatrix(),
         },
     };
     self.rd_pipeline = try render_pass.Pipeline.init(allocator, &.{});
     self.rdata_shadow = try Renderer.Input.init(
         allocator,
         &.{},
-        option.sun_projection,
         &self.sun_camera,
         null,
         null,
@@ -118,7 +120,6 @@ pub fn init(allocator: std.mem.Allocator, option: InitOption) !*Self {
     self.rdata_scene = try Renderer.Input.init(
         allocator,
         &.{},
-        option.viewer_projection,
         &self.viewer_camera,
         null,
         null,

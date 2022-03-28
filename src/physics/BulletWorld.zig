@@ -6,8 +6,8 @@ const Context = gfx.gpu.Context;
 const VertexArray = gfx.gpu.VertexArray;
 const Renderer = gfx.Renderer;
 const SimpleRenderer = gfx.SimpleRenderer;
-const Mesh = gfx.Mesh;
 const Camera = gfx.Camera;
+const Mesh = gfx.@"3d".Mesh;
 const Model = gfx.@"3d".Model;
 const bt = zp.deps.bt;
 const alg = zp.deps.alg;
@@ -319,10 +319,10 @@ pub fn update(self: Self, option: UpdateOption) void {
 }
 
 /// draw debug lines
-pub fn debugDraw(self: Self, ctx: *Context, projection: Mat4, camera: *Camera, line_width: f32) void {
+pub fn debugDraw(self: Self, ctx: *Context, camera: *Camera, line_width: f32) void {
     if (self.debug) |dbg| {
         bt.worldDebugDraw(self.world);
-        dbg.render(ctx, projection, camera, line_width);
+        dbg.render(ctx, camera, line_width);
     }
 }
 
@@ -351,7 +351,6 @@ const PhysicsDebug = struct {
                     .count = 0,
                 },
             },
-            null,
             null,
             null,
             null,
@@ -397,13 +396,12 @@ const PhysicsDebug = struct {
         debug.colors.clearRetainingCapacity();
     }
 
-    fn render(debug: *PhysicsDebug, ctx: *Context, projection: Mat4, camera: *Camera, line_width: f32) void {
+    fn render(debug: *PhysicsDebug, ctx: *Context, camera: *Camera, line_width: f32) void {
         if (debug.positions.items.len == 0) return;
 
         // upload vertex data
         debug.vertex_array.vbos[0].updateData(0, f32, debug.positions.items);
         debug.vertex_array.vbos[1].updateData(0, f32, debug.colors.items);
-        debug.render_data.projection = projection;
         debug.render_data.camera = camera;
         debug.render_data.vds.?.items[0].count =
             @intCast(u32, debug.positions.items.len / 3);

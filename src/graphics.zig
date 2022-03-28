@@ -16,10 +16,7 @@ pub const SimpleRenderer = @import("graphics/SimpleRenderer.zig");
 /// generic camera
 pub const Camera = @import("graphics/Camera.zig");
 
-/// generic mesh object
-pub const Mesh = @import("graphics/Mesh.zig");
-
-/// generic material types
+/// generic material
 pub const Material = @import("graphics/Material.zig");
 
 /// post-processing effects, dealing with a single texture

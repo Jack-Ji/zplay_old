@@ -66,7 +66,6 @@ fn init(ctx: *zp.Context) anyerror!void {
         null,
         null,
         null,
-        null,
     );
 }
 

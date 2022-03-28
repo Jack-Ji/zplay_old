@@ -6,6 +6,24 @@ const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
 const Self = @This();
 
+/// params for viewering frustrum
+pub const ViewFrustrum = union(enum) {
+    orthographic: struct {
+        left: f32,
+        right: f32,
+        bottom: f32,
+        top: f32,
+        near: f32,
+        far: f32,
+    },
+    perspective: struct {
+        fov: f32,
+        aspect_ratio: f32,
+        near: f32,
+        far: f32,
+    },
+};
+
 const MoveDirection = enum {
     forward,
     backward,
@@ -14,6 +32,9 @@ const MoveDirection = enum {
     up,
     down,
 };
+
+/// viewing frustrum
+frustrum: ViewFrustrum = undefined,
 
 /// up vector of the world
 world_up: Vec3 = undefined,
@@ -37,11 +58,11 @@ temp_angle: f32 = undefined,
 /// i/o state
 move_speed: f32 = 2.5,
 mouse_sensitivity: f32 = 0.25,
-zoom: f32 = 45.0,
 
 /// create a 3d camera using position and target
-pub fn fromPositionAndTarget(pos: Vec3, target: Vec3, world_up: ?Vec3) Self {
+pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: Vec3, target: Vec3, world_up: ?Vec3) Self {
     var camera: Self = .{};
+    camera.frustrum = frustrum;
     camera.world_up = world_up orelse Vec3.up();
     camera.position = pos;
     camera.dir = target.sub(pos).norm();
@@ -66,8 +87,9 @@ pub fn fromPositionAndTarget(pos: Vec3, target: Vec3, world_up: ?Vec3) Self {
 }
 
 /// create a 3d camera using position and euler angle (in degrees)
-pub fn fromPositionAndEulerAngles(pos: Vec3, pitch: f32, yaw: f32, world_up: ?Vec3) Self {
+pub fn fromPositionAndEulerAngles(frustrum: ViewFrustrum, pos: Vec3, pitch: f32, yaw: f32, world_up: ?Vec3) Self {
     var camera: Self = .{};
+    camera.frustrum = frustrum;
     camera.world_up = world_up orelse Vec3.up();
     camera.position = pos;
     camera.euler = Vec3.new(pitch, yaw - 90, 0);
@@ -75,9 +97,34 @@ pub fn fromPositionAndEulerAngles(pos: Vec3, pitch: f32, yaw: f32, world_up: ?Ve
     return camera;
 }
 
+/// get projection matrix
+pub fn getProjectMatrix(self: Self) Mat4 {
+    return switch (self.frustrum) {
+        .orthographic => |param| Mat4.orthographic(
+            param.left,
+            param.right,
+            param.bottom,
+            param.top,
+            param.near,
+            param.far,
+        ),
+        .perspective => |param| Mat4.perspective(
+            param.fov,
+            param.aspect_ratio,
+            param.near,
+            param.far,
+        ),
+    };
+}
+
 /// get view matrix
 pub fn getViewMatrix(self: Self) Mat4 {
     return Mat4.lookAt(self.position, self.position.add(self.dir), self.world_up);
+}
+
+/// get projection*view matrix
+pub fn getViewProjectMatrix(self: Self) Mat4 {
+    return self.getProjectMatrix().mul(self.getViewMatrix());
 }
 
 /// move camera
@@ -125,7 +172,9 @@ pub fn getRayTestTarget(
     mouse_y: u32,
 ) Vec3 {
     const far_plane: f32 = 10000.0;
-    const tanfov = math.tan(0.5 * alg.toRadians(self.zoom));
+    const tanfov = math.tan(0.5 * alg.toRadians(
+        self.frustrum.perspective.fov,
+    ));
     const width = @intToFloat(f32, viewport_w);
     const height = @intToFloat(f32, viewport_h);
     const aspect = width / height;

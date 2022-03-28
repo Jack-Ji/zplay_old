@@ -10,13 +10,12 @@ const GraphicsContext = gfx.gpu.Context;
 const Framebuffer = gfx.gpu.Framebuffer;
 const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
-const Mesh = gfx.Mesh;
 const render_pass = gfx.render_pass;
 const Material = gfx.Material;
-const Camera = gfx.Camera;
 const SimpleRenderer = gfx.SimpleRenderer;
 const TextureDisplay = gfx.post_processing.TextureDisplay;
 const SkyboxRenderer = gfx.@"3d".SkyboxRenderer;
+const Mesh = gfx.@"3d".Mesh;
 const Model = gfx.@"3d".Model;
 const Scene = gfx.@"3d".Scene;
 
@@ -107,12 +106,14 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // init scene
     scene = try Scene.init(std.testing.allocator, .{
-        .viewer_projection = Mat4.perspective(
-            45,
-            @intToFloat(f32, width) / @intToFloat(f32, height),
-            0.1,
-            100,
-        ),
+        .viewer_frustrum = .{
+            .perspective = .{
+                .fov = 45,
+                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .near = 0.1,
+                .far = 100,
+            },
+        },
         .viewer_position = Vec3.new(0, 0, 3),
     });
     for (cube_positions) |pos, i| {
@@ -123,7 +124,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     }
     try scene.addModel(cube, &cube_transforms, null, false);
     render_data_skybox = .{
-        .projection = scene.rdata_scene.projection,
         .camera = &scene.viewer_camera,
         .material = &skybox_material,
     };

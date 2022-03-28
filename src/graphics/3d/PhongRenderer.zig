@@ -292,7 +292,7 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     defer prog.disuse();
 
     // set uniforms
-    prog.setUniformByName("u_project", input.projection.?);
+    prog.setUniformByName("u_project", input.camera.?.getProjectMatrix());
     prog.setUniformByName("u_view", input.camera.?.getViewMatrix());
     prog.setUniformByName("u_view_pos", input.camera.?.position);
 

@@ -72,19 +72,13 @@ fn loop(ctx: *zp.Context) void {
             .mouse_event => |me| {
                 switch (me.data) {
                     .wheel => |scroll| {
-                        scene.viewer_camera.zoom -= @intToFloat(f32, scroll.scroll_y);
-                        if (scene.viewer_camera.zoom < 1) {
-                            scene.viewer_camera.zoom = 1;
+                        scene.viewer_camera.frustrum.perspective.fov -= @intToFloat(f32, scroll.scroll_y);
+                        if (scene.viewer_camera.frustrum.perspective.fov < 1) {
+                            scene.viewer_camera.frustrum.perspective.fov = 1;
                         }
-                        if (scene.viewer_camera.zoom > 45) {
-                            scene.viewer_camera.zoom = 45;
+                        if (scene.viewer_camera.frustrum.perspective.fov > 45) {
+                            scene.viewer_camera.frustrum.perspective.fov = 45;
                         }
-                        scene.rdata_scene.projection = Mat4.perspective(
-                            scene.viewer_camera.zoom,
-                            @intToFloat(f32, width) / @intToFloat(f32, height),
-                            0.1,
-                            100,
-                        );
                     },
                     else => {},
                 }
@@ -229,21 +223,21 @@ fn loadScene(ctx: *zp.Context) !void {
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(&width, &height);
-    const projection = Mat4.perspective(
-        45,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
-    );
     scene = try Scene.init(std.testing.allocator, .{
-        .viewer_projection = projection,
+        .viewer_frustrum = .{
+            .perspective = .{
+                .fov = 45,
+                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .near = 0.1,
+                .far = 100,
+            },
+        },
         .viewer_position = Vec3.new(0, 0, 3),
     });
     try scene.addModel(dog, &[_]Mat4{Mat4.identity()}, null, false);
     try scene.addModel(girl, &[_]Mat4{Mat4.identity()}, null, false);
     try scene.addModel(helmet, &[_]Mat4{Mat4.identity()}, null, false);
     render_data_skybox = .{
-        .projection = projection,
         .camera = scene.rdata_scene.camera,
         .material = &skybox_material,
     };

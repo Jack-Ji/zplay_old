@@ -1,8 +1,11 @@
+/// 3d mesh
+pub const Mesh = @import("3d/Mesh.zig");
+
+/// 3d model (glTF 2.0)
+pub const Model = @import("3d/Model.zig");
+
 /// 3d scene
 pub const Scene = @import("3d/Scene.zig");
-
-/// model (glTF 2.0)
-pub const Model = @import("3d/Model.zig");
 
 /// 3d light manager
 pub const light = @import("3d/light.zig");

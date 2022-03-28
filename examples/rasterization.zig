@@ -19,11 +19,7 @@ const Model = gfx.@"3d".Model;
 var renderer: SimpleRenderer = undefined;
 var helmet: *Model = undefined;
 var color_mr: Material = undefined;
-var camera = Camera.fromPositionAndTarget(
-    Vec3.new(0, 0, 3),
-    Vec3.zero(),
-    null,
-);
+var camera: Camera = undefined;
 var render_data_wireframe: Renderer.Input = undefined;
 var render_data_raster: Renderer.Input = undefined;
 var render_pipeline: render_pass.Pipeline = undefined;
@@ -60,16 +56,22 @@ fn init(ctx: *zp.Context) anyerror!void {
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(&width, &height);
-    const projection = Mat4.perspective(
-        camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
+    camera = Camera.fromPositionAndTarget(
+        .{
+            .perspective = .{
+                .fov = 45,
+                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .near = 0.1,
+                .far = 100,
+            },
+        },
+        Vec3.new(0, 0, 3),
+        Vec3.zero(),
+        null,
     );
     render_data_wireframe = Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        projection,
         &camera,
         null,
         null,

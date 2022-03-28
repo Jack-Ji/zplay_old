@@ -154,7 +154,7 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     view.data[3][1] = 0;
     view.data[3][2] = 0;
     self.program.setUniformByName("u_view", view);
-    self.program.setUniformByName("u_project", input.projection.?);
+    self.program.setUniformByName("u_project", input.camera.?.getProjectMatrix());
     self.program.setUniformByName(
         "u_texture",
         input.material.?.data.single_cubemap.getTextureUnit(),

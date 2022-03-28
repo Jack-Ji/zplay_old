@@ -13,13 +13,13 @@ const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
 const render_pass = gfx.render_pass;
 const Camera = gfx.Camera;
-const Mesh = gfx.Mesh;
 const Material = gfx.Material;
 const SimpleRenderer = gfx.SimpleRenderer;
 const GammaCorrection = gfx.post_processing.GammaCorrection;
 const light = gfx.@"3d".light;
 const PhongRenderer = gfx.@"3d".PhongRenderer;
 const BlinnPhongRenderer = gfx.@"3d".BlinnPhongRenderer;
+const Mesh = gfx.@"3d".Mesh;
 
 var shadow_fb: Framebuffer = undefined;
 var scene_fb: Framebuffer = undefined;
@@ -35,13 +35,7 @@ var light_material: Material = undefined;
 var box_material: Material = undefined;
 var floor_material: Material = undefined;
 var light_view_camera: Camera = undefined;
-var light_view_projection: Mat4 = undefined;
-var view_camera = Camera.fromPositionAndEulerAngles(
-    Vec3.new(2.05, 1.33, -9.69),
-    -12.93,
-    -170.01,
-    null,
-);
+var person_view_camera: Camera = undefined;
 var enable_gamma_correction = true;
 var gamma_value: f32 = 2.2;
 var render_data_scene: Renderer.Input = undefined;
@@ -115,11 +109,20 @@ fn init(ctx: *zp.Context) anyerror!void {
     // simple renderer
     var pos = Vec3.new(0, 10, 0);
     light_view_camera = Camera.fromPositionAndTarget(
+        .{
+            .orthographic = .{
+                .left = -20.0,
+                .right = 20.0,
+                .bottom = -20.0,
+                .top = 20.0,
+                .near = 0.1,
+                .far = 100.0,
+            },
+        },
         pos,
         pos.add(Vec3.fromSlice(&dir_light_direction)),
         null,
     );
-    light_view_projection = Mat4.orthographic(-20.0, 20.0, -20.0, 20.0, 0.1, 100.0);
     shadow_map_renderer = SimpleRenderer.init(.{ .no_draw = true });
     light_renderer = SimpleRenderer.init(.{});
 
@@ -131,7 +134,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .diffuse = Vec3.fromSlice(&dir_light_diffuse),
             .specular = Vec3.fromSlice(&dir_light_specular),
             .direction = Vec3.fromSlice(&dir_light_direction),
-            .space_matrix = light_view_projection.mul(light_view_camera.getViewMatrix()),
+            .space_matrix = light_view_camera.getViewProjectMatrix(),
         },
     });
     try all_lights.append(.{
@@ -219,16 +222,23 @@ fn init(ctx: *zp.Context) anyerror!void {
     }, true);
 
     // compose renderer's input
-    const projection = Mat4.perspective(
-        view_camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
+    person_view_camera = Camera.fromPositionAndEulerAngles(
+        .{
+            .perspective = .{
+                .fov = 45,
+                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .near = 0.1,
+                .far = 100,
+            },
+        },
+        Vec3.new(2.05, 1.33, -9.69),
+        -12.93,
+        -170.01,
+        null,
     );
     render_data_scene = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        null,
         null,
         null,
         null,
@@ -254,8 +264,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     render_data_light = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        projection,
-        &view_camera,
+        &person_view_camera,
         null,
         null,
     );
@@ -271,7 +280,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     render_data_screen = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        null,
         null,
         &fb_material,
         &gamma_value,
@@ -340,8 +348,6 @@ fn beforeShadowMapGeneration(ctx: *GraphicsContext, custom: ?*anyopaque) void {
     _ = custom;
     ctx.setViewport(0, 0, shadow_width, shadow_height);
     ctx.clear(false, true, false, null);
-    render_data_scene.projection =
-        Mat4.orthographic(-20.0, 20.0, -20.0, 20.0, 0.1, 100.0);
     render_data_scene.camera = &light_view_camera;
 }
 
@@ -356,8 +362,7 @@ fn afterShadowMapGeneration(ctx: *GraphicsContext, custom: ?*anyopaque) void {
 fn beforeSceneRendering1(ctx: *GraphicsContext, custom: ?*anyopaque) void {
     _ = custom;
     ctx.clear(true, true, false, [_]f32{ 0, 0, 0, 1.0 });
-    render_data_scene.projection = render_data_light.projection;
-    render_data_scene.camera = &view_camera;
+    render_data_scene.camera = &person_view_camera;
 }
 
 var old_blend_option: GraphicsContext.BlendOption = undefined;
@@ -383,30 +388,30 @@ fn beforeScreenRendering(ctx: *GraphicsContext, custom: ?*anyopaque) void {
 
 fn loop(ctx: *zp.Context) void {
     // camera movement
-    const distance = ctx.delta_tick * view_camera.move_speed;
+    const distance = ctx.delta_tick * person_view_camera.move_speed;
     if (ctx.isKeyPressed(.w)) {
-        view_camera.move(.forward, distance);
+        person_view_camera.move(.forward, distance);
     }
     if (ctx.isKeyPressed(.s)) {
-        view_camera.move(.backward, distance);
+        person_view_camera.move(.backward, distance);
     }
     if (ctx.isKeyPressed(.a)) {
-        view_camera.move(.left, distance);
+        person_view_camera.move(.left, distance);
     }
     if (ctx.isKeyPressed(.d)) {
-        view_camera.move(.right, distance);
+        person_view_camera.move(.right, distance);
     }
     if (ctx.isKeyPressed(.left)) {
-        view_camera.rotate(0, -1);
+        person_view_camera.rotate(0, -1);
     }
     if (ctx.isKeyPressed(.right)) {
-        view_camera.rotate(0, 1);
+        person_view_camera.rotate(0, 1);
     }
     if (ctx.isKeyPressed(.up)) {
-        view_camera.rotate(1, 0);
+        person_view_camera.rotate(1, 0);
     }
     if (ctx.isKeyPressed(.down)) {
-        view_camera.rotate(-1, 0);
+        person_view_camera.rotate(-1, 0);
     }
 
     while (ctx.pollEvent()) |e| {
@@ -462,14 +467,14 @@ fn loop(ctx: *zp.Context) void {
         )) {
             dig.text("Press WASD and up/down/left/right key to move around");
             dig.ztext("Current camera's position: {d:.2}, {d:.2}, {d:.2}", .{
-                view_camera.position.x(),
-                view_camera.position.y(),
-                view_camera.position.z(),
+                person_view_camera.position.x(),
+                person_view_camera.position.y(),
+                person_view_camera.position.z(),
             });
             dig.ztext("Current camera's euler angles: {d:.2}, {d:.2}, {d:.2}", .{
-                view_camera.euler.x(),
-                view_camera.euler.y() + 90,
-                view_camera.euler.z(),
+                person_view_camera.euler.x(),
+                person_view_camera.euler.y() + 90,
+                person_view_camera.euler.z(),
             });
 
             dig.separator();
@@ -626,12 +631,21 @@ fn loop(ctx: *zp.Context) void {
             }
             if (lights_changed) {
                 light_view_camera = Camera.fromPositionAndTarget(
+                    .{
+                        .orthographic = .{
+                            .left = -20.0,
+                            .right = 20.0,
+                            .bottom = -20.0,
+                            .top = 20.0,
+                            .near = 0.1,
+                            .far = 100.0,
+                        },
+                    },
                     light_view_camera.position,
                     light_view_camera.position.add(Vec3.fromSlice(&dir_light_direction)),
                     null,
                 );
-                all_lights.items[0].directional.space_matrix =
-                    light_view_projection.mul(light_view_camera.getViewMatrix());
+                all_lights.items[0].directional.space_matrix = light_view_camera.getViewProjectMatrix();
                 phong_renderer.applyLights(all_lights.items);
                 var idx: u32 = 0;
                 for (all_lights.items) |d| {

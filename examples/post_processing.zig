@@ -10,10 +10,10 @@ const Framebuffer = gfx.gpu.Framebuffer;
 const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
-const Mesh = gfx.Mesh;
 const Material = gfx.Material;
 const post_processing = gfx.post_processing;
 const SimpleRenderer = gfx.SimpleRenderer;
+const Mesh = gfx.@"3d".Mesh;
 
 var fb: Framebuffer = undefined;
 var fb_material: Material = undefined;
@@ -80,13 +80,6 @@ fn init(ctx: *zp.Context) anyerror!void {
         ),
     }, true);
 
-    // create camera
-    camera = Camera.fromPositionAndTarget(
-        Vec3.new(3, 3, 3),
-        Vec3.zero(),
-        null,
-    );
-
     // create post-processing renderers
     pp_texture_display = try post_processing.TextureDisplay.init(std.testing.allocator);
     pp_gamma_correction = try post_processing.GammaCorrection.init(std.testing.allocator);
@@ -102,17 +95,23 @@ fn init(ctx: *zp.Context) anyerror!void {
     };
 
     // compose render data
-    const projection = Mat4.perspective(
-        camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
+    camera = Camera.fromPositionAndTarget(
+        .{
+            .perspective = .{
+                .fov = 45,
+                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .near = 0.1,
+                .far = 100,
+            },
+        },
+        Vec3.new(3, 3, 3),
+        Vec3.zero(),
+        null,
     );
     var vertex_data = box.getVertexData(null, null);
     render_data = try Renderer.Input.init(
         std.testing.allocator,
         &.{vertex_data},
-        projection,
         &camera,
         &box_material,
         null,

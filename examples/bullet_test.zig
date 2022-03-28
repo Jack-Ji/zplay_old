@@ -30,11 +30,7 @@ var phong_renderer: PhongRenderer = undefined;
 var color_material: Material = undefined;
 var wireframe_mode = false;
 var light_view_camera: Camera = undefined;
-var camera = Camera.fromPositionAndTarget(
-    Vec3.new(5, 10, 25),
-    Vec3.new(-4, 8, 0),
-    null,
-);
+var person_view_camera: Camera = undefined;
 var physics_world: BulletWorld = undefined;
 const Actor = struct {
     model: *Model,
@@ -69,11 +65,32 @@ fn init(ctx: *zp.Context) anyerror!void {
     // create renderer
     var light_pos = Vec3.new(0, 30, 0);
     var light_dir = Vec3.new(0.1, -1, 0);
-    const light_view_projection =
-        Mat4.orthographic(-50.0, 50.0, -50.0, 50.0, 0.1, 100.0);
     light_view_camera = Camera.fromPositionAndTarget(
+        .{
+            .orthographic = .{
+                .left = -50,
+                .right = 50,
+                .bottom = -50,
+                .top = 50,
+                .near = 0.1,
+                .far = 100,
+            },
+        },
         light_pos,
         light_pos.add(light_dir),
+        null,
+    );
+    person_view_camera = Camera.fromPositionAndTarget(
+        .{
+            .perspective = .{
+                .fov = 45,
+                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .near = 0.1,
+                .far = 100,
+            },
+        },
+        Vec3.new(5, 10, 25),
+        Vec3.new(-4, 8, 0),
         null,
     );
     shadow_map_renderer = SimpleRenderer.init(.{ .no_draw = true });
@@ -86,8 +103,7 @@ fn init(ctx: *zp.Context) anyerror!void {
                 .diffuse = Vec3.new(0.5, 0.5, 0.3),
                 .specular = Vec3.new(0.1, 0.1, 0.1),
                 .direction = light_dir,
-                .space_matrix = light_view_projection
-                    .mul(light_view_camera.getViewMatrix()),
+                .space_matrix = light_view_camera.getViewProjectMatrix(),
             },
         },
     });
@@ -195,12 +211,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
 
     // init render data annd pipeline
-    const projection = Mat4.perspective(
-        camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        1000,
-    );
     color_material = Material.init(.{
         .single_texture = try Texture.init2DFromPixels(
             std.testing.allocator,
@@ -214,7 +224,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     render_data_shadow = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        light_view_projection,
         &light_view_camera,
         null,
         null,
@@ -222,16 +231,14 @@ fn init(ctx: *zp.Context) anyerror!void {
     render_data_scene = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        projection,
-        &camera,
+        &person_view_camera,
         null,
         null,
     );
     render_data_outlined = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        projection,
-        &camera,
+        &person_view_camera,
         null,
         null,
     );
@@ -305,8 +312,8 @@ fn beforeRenderingOutlined(ctx: *Context, custom: ?*anyopaque) void {
     ctx.getDrawableSize(&width, &height);
     const mouse_state = app_context.getMouseState();
     var result = physics_world.getRayTestResult(
-        camera.position,
-        camera.getRayTestTarget(
+        person_view_camera.position,
+        person_view_camera.getRayTestTarget(
             width,
             height,
             @intCast(u32, mouse_state.x),
@@ -352,31 +359,31 @@ fn addActor(
 }
 
 fn loop(ctx: *zp.Context) void {
-    // camera movement
-    const distance = ctx.delta_tick * camera.move_speed;
+    // person_view_camera movement
+    const distance = ctx.delta_tick * person_view_camera.move_speed;
     if (ctx.isKeyPressed(.w)) {
-        camera.move(.forward, distance);
+        person_view_camera.move(.forward, distance);
     }
     if (ctx.isKeyPressed(.s)) {
-        camera.move(.backward, distance);
+        person_view_camera.move(.backward, distance);
     }
     if (ctx.isKeyPressed(.a)) {
-        camera.move(.left, distance);
+        person_view_camera.move(.left, distance);
     }
     if (ctx.isKeyPressed(.d)) {
-        camera.move(.right, distance);
+        person_view_camera.move(.right, distance);
     }
     if (ctx.isKeyPressed(.left)) {
-        camera.rotate(0, -1);
+        person_view_camera.rotate(0, -1);
     }
     if (ctx.isKeyPressed(.right)) {
-        camera.rotate(0, 1);
+        person_view_camera.rotate(0, 1);
     }
     if (ctx.isKeyPressed(.up)) {
-        camera.rotate(1, 0);
+        person_view_camera.rotate(1, 0);
     }
     if (ctx.isKeyPressed(.down)) {
-        camera.rotate(-1, 0);
+        person_view_camera.rotate(-1, 0);
     }
 
     while (ctx.pollEvent()) |e| {
@@ -425,8 +432,7 @@ fn loop(ctx: *zp.Context) void {
     render_pipeline.run(&ctx.graphics) catch unreachable;
     physics_world.debugDraw(
         &ctx.graphics,
-        render_data_scene.projection.?,
-        &camera,
+        &person_view_camera,
         3,
     );
 

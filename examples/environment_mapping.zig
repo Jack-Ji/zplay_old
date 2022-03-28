@@ -26,11 +26,7 @@ var current_scene_renderer: Renderer = undefined;
 var reflect_renderer: EnvMappingRenderer = undefined;
 var refract_renderer: EnvMappingRenderer = undefined;
 var model: *Model = undefined;
-var camera = Camera.fromPositionAndTarget(
-    Vec3.new(0, 0, 3),
-    Vec3.zero(),
-    null,
-);
+var camera: Camera = undefined;
 var render_data_scene: Renderer.Input = undefined;
 var render_data_skybox: Renderer.Input = undefined;
 
@@ -98,23 +94,28 @@ fn init(ctx: *zp.Context) anyerror!void {
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(&width, &height);
-    const projection = alg.Mat4.perspective(
-        camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
+    camera = Camera.fromPositionAndTarget(
+        .{
+            .perspective = .{
+                .fov = 45,
+                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .near = 0.1,
+                .far = 100,
+            },
+        },
+        Vec3.new(0, 0, 3),
+        Vec3.zero(),
+        null,
     );
     render_data_scene = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        projection,
         &camera,
         &skybox_material,
         null,
     );
     try model.appendVertexData(&render_data_scene, Mat4.identity(), null);
     render_data_skybox = .{
-        .projection = projection,
         .camera = &camera,
         .material = &skybox_material,
     };

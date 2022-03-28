@@ -2,7 +2,6 @@ const std = @import("std");
 const assert = std.debug.assert;
 const Camera = @import("Camera.zig");
 const Material = @import("Material.zig");
-const Mesh = @import("Mesh.zig");
 const zp = @import("../zplay.zig");
 const Context = zp.graphics.gpu.Context;
 const drawcall = zp.graphics.gpu.drawcall;
@@ -25,7 +24,7 @@ pub const shader_head =
 
 /// renderer's vertex attribute locations
 /// NOTE: renderer's vertex shader should follow this 
-/// convention if its purpose is rendering Model/Mesh objects.
+/// convention if its purpose is rendering 3d Mesh/Model objects.
 pub const AttribLocation = enum(c_uint) {
     position = 0,
     color = 1,
@@ -125,10 +124,7 @@ pub const Input = struct {
     /// array of vertex data, waiting to be rendered
     vds: ?std.ArrayList(VertexData) = null,
 
-    /// projection matrix
-    projection: ?Mat4 = null,
-
-    /// 3d camera
+    /// camera
     camera: ?*Camera = null,
 
     /// globally shared material data
@@ -170,7 +166,6 @@ pub const Input = struct {
     pub fn init(
         allocator: std.mem.Allocator,
         vds: []VertexData,
-        projection: ?Mat4,
         camera: ?*Camera,
         material: ?*Material,
         custom: ?*anyopaque,
@@ -178,7 +173,6 @@ pub const Input = struct {
         var self = Input{
             .vds = try std.ArrayList(VertexData)
                 .initCapacity(allocator, std.math.max(vds.len, 1)),
-            .projection = projection,
             .camera = camera,
             .material = material,
             .custom = custom,

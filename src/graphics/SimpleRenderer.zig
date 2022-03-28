@@ -136,7 +136,7 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     defer prog.disuse();
 
     // apply common uniform vars
-    prog.setUniformByName("u_project", input.projection orelse Mat4.identity());
+    prog.setUniformByName("u_project", if (input.camera) |c| c.getProjectMatrix() else Mat4.identity());
     prog.setUniformByName("u_view", if (input.camera) |c| c.getViewMatrix() else Mat4.identity());
     if (!self.no_draw) {
         prog.setUniformByName("u_mix_factor", self.mix_factor);

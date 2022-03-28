@@ -7,11 +7,11 @@ const Vec3 = alg.Vec3;
 const Vec4 = alg.Vec4;
 const gfx = zp.graphics;
 const Texture = gfx.gpu.Texture;
-const Mesh = gfx.Mesh;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
 const Renderer = gfx.Renderer;
 const SimpleRenderer = gfx.SimpleRenderer;
+const Mesh = gfx.@"3d".Mesh;
 
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = true;
@@ -21,13 +21,9 @@ var meshes: std.ArrayList(Mesh) = undefined;
 var positions: std.ArrayList(Vec3) = undefined;
 var default_material: Material = undefined;
 var picture_material: Material = undefined;
-var camera = Camera.fromPositionAndTarget(
-    Vec3.new(0, 0, 6),
-    Vec3.zero(),
-    null,
-);
-var proj_persp: alg.Mat4 = undefined;
-var proj_ortho: alg.Mat4 = undefined;
+var camera: Camera = undefined;
+var view_persp: Camera.ViewFrustrum = undefined;
+var view_ortho: Camera.ViewFrustrum = undefined;
 var render_data: Renderer.Input = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -82,24 +78,33 @@ fn init(ctx: *zp.Context) anyerror!void {
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(&width, &height);
-    proj_persp = alg.Mat4.perspective(
-        camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
-    );
-    proj_ortho = alg.Mat4.orthographic(
-        -3,
-        3,
-        -3,
-        3,
-        0,
-        100,
+    view_persp = .{
+        .perspective = .{
+            .fov = 45,
+            .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+            .near = 0.1,
+            .far = 100,
+        },
+    };
+    view_ortho = .{
+        .orthographic = .{
+            .left = -3,
+            .right = 3,
+            .bottom = -3,
+            .top = 3,
+            .near = 0.1,
+            .far = 100,
+        },
+    };
+    camera = Camera.fromPositionAndTarget(
+        view_persp,
+        Vec3.new(0, 0, 6),
+        Vec3.zero(),
+        null,
     );
     render_data = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        if (perspective_mode) proj_persp else proj_ortho,
         &camera,
         if (use_texture) &picture_material else &default_material,
         null,
@@ -183,7 +188,7 @@ fn loop(ctx: *zp.Context) void {
                 ctx.graphics.setPolygonMode(if (wireframe_mode) .line else .fill);
             }
             if (dig.checkbox("perspective", &perspective_mode)) {
-                render_data.projection = if (perspective_mode) proj_persp else proj_ortho;
+                camera.frustrum = if (perspective_mode) view_persp else view_ortho;
             }
             if (dig.checkbox("texture", &use_texture)) {
                 render_data.material = if (use_texture) &picture_material else &default_material;

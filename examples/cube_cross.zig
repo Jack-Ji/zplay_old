@@ -10,7 +10,7 @@ const render_pass = gfx.render_pass;
 const SimpleRenderer = gfx.SimpleRenderer;
 const Material = gfx.Material;
 const Camera = gfx.Camera;
-const Mesh = gfx.Mesh;
+const Mesh = gfx.@"3d".Mesh;
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
@@ -100,25 +100,26 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{},
         ),
     }, true);
-    camera = Camera.fromPositionAndTarget(
-        Vec3.new(1.5, -1.5, 2),
-        cube_center,
-        Vec3.forward(),
-    );
 
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(&width, &height);
-    const projection = Mat4.perspective(
-        camera.zoom,
-        @intToFloat(f32, width) / @intToFloat(f32, height),
-        0.1,
-        100,
+    camera = Camera.fromPositionAndTarget(
+        .{
+            .perspective = .{
+                .fov = 45,
+                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .near = 0.1,
+                .far = 100,
+            },
+        },
+        Vec3.new(1.5, -1.5, 2),
+        cube_center,
+        Vec3.forward(),
     );
     render_data_cube = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        projection,
         &camera,
         null,
         null,
@@ -141,7 +142,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     render_data_section = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
-        projection,
         &camera,
         null,
         null,
@@ -240,28 +240,21 @@ fn loop(ctx: *zp.Context) void {
                             ).scale(vpos.length()),
                         );
                         var new_camera = Camera.fromPositionAndTarget(
+                            camera.frustrum,
                             new_pos,
                             cube_center,
                             Vec3.new(0, 0, 1),
                         );
-                        new_camera.zoom = camera.zoom;
                         camera = new_camera;
                     },
                     .wheel => |scroll| {
-                        camera.zoom -= @intToFloat(f32, scroll.scroll_y);
-                        if (camera.zoom < 1) {
-                            camera.zoom = 1;
+                        camera.frustrum.perspective.fov -= @intToFloat(f32, scroll.scroll_y);
+                        if (camera.frustrum.perspective.fov < 1) {
+                            camera.frustrum.perspective.fov = 1;
                         }
-                        if (camera.zoom > 45) {
-                            camera.zoom = 45;
+                        if (camera.frustrum.perspective.fov > 45) {
+                            camera.frustrum.perspective.fov = 45;
                         }
-                        render_data_cube.projection = Mat4.perspective(
-                            camera.zoom,
-                            @intToFloat(f32, width) / @intToFloat(f32, height),
-                            0.1,
-                            100,
-                        );
-                        render_data_section.projection = render_data_cube.projection;
                     },
                 }
             },
