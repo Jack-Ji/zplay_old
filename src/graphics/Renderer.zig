@@ -22,20 +22,6 @@ pub const shader_head =
     \\
 ;
 
-/// renderer's vertex attribute locations
-/// NOTE: renderer's vertex shader should follow this 
-/// convention if its purpose is rendering 3d Mesh/Model objects.
-pub const AttribLocation = enum(c_uint) {
-    position = 0,
-    color = 1,
-    normal = 2,
-    tangent = 3,
-    texture1 = 4,
-    texture2 = 5,
-    texture3 = 6,
-    instance_transform = 10,
-};
-
 /// local coordinate transform(s)
 pub const LocalTransform = union(enum) {
     single: Mat4,
@@ -79,9 +65,9 @@ pub const InstanceTransformArray = struct {
 
     /// enable vertex attributes
     /// NOTE: VertexArray should have been activated!
-    pub fn enableAttributes(self: Self) void {
+    pub fn enableAttributes(self: Self, location: c_uint) void {
         self.buf.setAttribute(
-            @enumToInt(AttribLocation.instance_transform),
+            location,
             4,
             f32,
             false,
@@ -90,7 +76,7 @@ pub const InstanceTransformArray = struct {
             1,
         );
         self.buf.setAttribute(
-            @enumToInt(AttribLocation.instance_transform) + 1,
+            location + 1,
             4,
             f32,
             false,
@@ -99,7 +85,7 @@ pub const InstanceTransformArray = struct {
             1,
         );
         self.buf.setAttribute(
-            @enumToInt(AttribLocation.instance_transform) + 2,
+            location + 2,
             4,
             f32,
             false,
@@ -108,7 +94,7 @@ pub const InstanceTransformArray = struct {
             1,
         );
         self.buf.setAttribute(
-            @enumToInt(AttribLocation.instance_transform) + 3,
+            location + 3,
             4,
             f32,
             false,

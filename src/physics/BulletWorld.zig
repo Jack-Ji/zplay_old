@@ -5,8 +5,8 @@ const gfx = zp.graphics;
 const Context = gfx.gpu.Context;
 const VertexArray = gfx.gpu.VertexArray;
 const Renderer = gfx.Renderer;
-const SimpleRenderer = gfx.SimpleRenderer;
 const Camera = gfx.Camera;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 const Mesh = gfx.@"3d".Mesh;
 const Model = gfx.@"3d".Model;
 const bt = zp.deps.bt;
@@ -363,7 +363,7 @@ const PhysicsDebug = struct {
         defer debug.vertex_array.disuse();
         debug.vertex_array.setAttribute(
             0,
-            @enumToInt(Renderer.AttribLocation.position),
+            @enumToInt(Mesh.AttribLocation.position),
             3,
             f32,
             false,
@@ -372,7 +372,7 @@ const PhysicsDebug = struct {
         );
         debug.vertex_array.setAttribute(
             1,
-            @enumToInt(Renderer.AttribLocation.color),
+            @enumToInt(Mesh.AttribLocation.color),
             4,
             f32,
             false,

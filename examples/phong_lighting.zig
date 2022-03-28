@@ -11,11 +11,11 @@ const GraphicsContext = gfx.gpu.Context;
 const Framebuffer = gfx.gpu.Framebuffer;
 const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
-const render_pass = gfx.render_pass;
+const RenderPipeline = gfx.RenderPipeline;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
-const SimpleRenderer = gfx.SimpleRenderer;
 const GammaCorrection = gfx.post_processing.GammaCorrection;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 const light = gfx.@"3d".light;
 const PhongRenderer = gfx.@"3d".PhongRenderer;
 const BlinnPhongRenderer = gfx.@"3d".BlinnPhongRenderer;
@@ -41,8 +41,8 @@ var gamma_value: f32 = 2.2;
 var render_data_scene: Renderer.Input = undefined;
 var render_data_light: Renderer.Input = undefined;
 var render_data_screen: Renderer.Input = undefined;
-var render_pipeline_gc: render_pass.Pipeline = undefined;
-var render_pipeline: render_pass.Pipeline = undefined;
+var render_pipeline_gc: RenderPipeline = undefined;
+var render_pipeline: RenderPipeline = undefined;
 
 const cube_positions = [_]Vec3{
     Vec3.new(0.0, 0.0, 0.0),
@@ -101,7 +101,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     fb_material = Material.init(.{
         .single_texture = scene_fb.tex.?,
-    }, false);
+    });
 
     // init gamma correction
     gamma_correction = try GammaCorrection.init(std.testing.allocator);
@@ -176,7 +176,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             1,
             .{},
         ),
-    }, true);
+    });
     box_material = Material.init(.{
         .phong = .{
             .diffuse_map = try Texture.init2DFromFilePath(
@@ -196,7 +196,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .shiness = 10,
             .shadow_map = shadow_fb.depth_stencil.?.tex,
         },
-    }, true);
+    });
     floor_material = Material.init(.{
         .phong = .{
             .diffuse_map = try Texture.init2DFromFilePath(
@@ -219,7 +219,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .shiness = 0.1,
             .shadow_map = shadow_fb.depth_stencil.?.tex,
         },
-    }, true);
+    });
 
     // compose renderer's input
     person_view_camera = Camera.fromPositionAndEulerAngles(
@@ -284,9 +284,9 @@ fn init(ctx: *zp.Context) anyerror!void {
         &fb_material,
         &gamma_value,
     );
-    render_pipeline_gc = try render_pass.Pipeline.init(
+    render_pipeline_gc = try RenderPipeline.init(
         std.testing.allocator,
-        &[_]render_pass.RenderPass{
+        &[_]RenderPipeline.RenderPass{
             .{
                 .fb = shadow_fb,
                 .beforeFn = beforeShadowMapGeneration,
@@ -314,9 +314,9 @@ fn init(ctx: *zp.Context) anyerror!void {
             },
         },
     );
-    render_pipeline = try render_pass.Pipeline.init(
+    render_pipeline = try RenderPipeline.init(
         std.testing.allocator,
-        &[_]render_pass.RenderPass{
+        &[_]RenderPipeline.RenderPass{
             .{
                 .fb = shadow_fb,
                 .beforeFn = beforeShadowMapGeneration,

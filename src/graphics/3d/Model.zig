@@ -39,6 +39,7 @@ pub fn init(
     mesh: Mesh,
     transform: Mat4,
     material: Material,
+    textures: []*Texture,
 ) !*Self {
     var self = try allocator.create(Self);
     self.allocator = allocator;
@@ -46,11 +47,12 @@ pub fn init(
     self.transforms = try std.ArrayList(Mat4).initCapacity(allocator, 1);
     self.materials = try std.ArrayList(Material).initCapacity(allocator, 1);
     self.material_indices = try std.ArrayList(u32).initCapacity(allocator, 1);
-    self.textures = std.ArrayList(*Texture).init(allocator);
+    self.textures = try std.ArrayList(*Texture).initCapacity(allocator, textures.len);
     self.meshes.appendAssumeCapacity(mesh);
     self.transforms.appendAssumeCapacity(transform);
     self.materials.appendAssumeCapacity(material);
     self.material_indices.appendAssumeCapacity(0);
+    self.textures.appendSliceAssumeCapacity(textures);
     return self;
 }
 
@@ -151,7 +153,7 @@ pub fn fromGLTF(
             .specular_map = default_tex,
             .shiness = 32,
         },
-    }, false)) catch unreachable;
+    })) catch unreachable;
     i = 0;
     MATERIAL_LOOP: while (i < data.materials_count) : (i += 1) {
         var material = &data.materials[i];
@@ -169,7 +171,7 @@ pub fn fromGLTF(
             {
                 self.materials.append(Material.init(.{
                     .single_texture = self.textures.items[image_idx],
-                }, false)) catch unreachable;
+                })) catch unreachable;
                 continue :MATERIAL_LOOP;
             }
         }
@@ -190,7 +192,7 @@ pub fn fromGLTF(
         )) catch unreachable;
         self.materials.append(Material.init(.{
             .single_texture = self.textures.items[self.textures.items.len - 1],
-        }, false)) catch unreachable;
+        })) catch unreachable;
     }
 
     // TODO load skins
@@ -210,9 +212,6 @@ pub fn deinit(self: *Self) void {
     }
     self.meshes.deinit();
     self.transforms.deinit();
-    for (self.materials.items) |mr| {
-        mr.deinit();
-    }
     self.materials.deinit();
     self.material_indices.deinit();
     for (self.textures.items) |t| {

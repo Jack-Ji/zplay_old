@@ -9,7 +9,7 @@ const Context = gfx.gpu.Context;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
-const render_pass = gfx.render_pass;
+const RenderPipeline = gfx.RenderPipeline;
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
 const Vec3 = alg.Vec3;
@@ -33,7 +33,7 @@ sun_camera: Camera,
 sun: light.Light,
 
 /// render-passes
-rd_pipeline: render_pass.Pipeline,
+rd_pipeline: RenderPipeline,
 
 /// rendering data for shadow-mapping
 rdata_shadow: Renderer.Input,
@@ -109,7 +109,7 @@ pub fn init(allocator: std.mem.Allocator, option: InitOption) !*Self {
             .space_matrix = self.sun_camera.getViewProjectMatrix(),
         },
     };
-    self.rd_pipeline = try render_pass.Pipeline.init(allocator, &.{});
+    self.rd_pipeline = try RenderPipeline.init(allocator, &.{});
     self.rdata_shadow = try Renderer.Input.init(
         allocator,
         &.{},
@@ -236,8 +236,8 @@ pub const RenderPassOption = struct {
     fb: ?Framebuffer = null,
 
     /// do some work before/after rendering
-    beforeFn: ?render_pass.TriggerFunc = null,
-    afterFn: ?render_pass.TriggerFunc = null,
+    beforeFn: ?RenderPipeline.TriggerFunc = null,
+    afterFn: ?RenderPipeline.TriggerFunc = null,
 
     /// renderer of the render-pass
     rd: Renderer,

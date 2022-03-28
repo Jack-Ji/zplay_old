@@ -7,11 +7,8 @@ pub const Font = @import("graphics/Font.zig");
 /// generic rendering interface
 pub const Renderer = @import("graphics/Renderer.zig");
 
-/// render-pass and pipeline
-pub const render_pass = @import("graphics/render_pass.zig");
-
-/// a simple mesh renderer
-pub const SimpleRenderer = @import("graphics/SimpleRenderer.zig");
+/// render pipeline, consists of render passes
+pub const RenderPipeline = @import("graphics/RenderPipeline.zig");
 
 /// generic camera
 pub const Camera = @import("graphics/Camera.zig");

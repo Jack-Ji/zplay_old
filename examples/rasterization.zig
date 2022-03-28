@@ -12,9 +12,9 @@ const Texture = gfx.gpu.Texture;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
 const Renderer = gfx.Renderer;
-const SimpleRenderer = gfx.SimpleRenderer;
-const render_pass = gfx.render_pass;
+const RenderPipeline = gfx.RenderPipeline;
 const Model = gfx.@"3d".Model;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 
 var renderer: SimpleRenderer = undefined;
 var helmet: *Model = undefined;
@@ -22,7 +22,7 @@ var color_mr: Material = undefined;
 var camera: Camera = undefined;
 var render_data_wireframe: Renderer.Input = undefined;
 var render_data_raster: Renderer.Input = undefined;
-var render_pipeline: render_pass.Pipeline = undefined;
+var render_pipeline: RenderPipeline = undefined;
 var raster_speed: u32 = 4;
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -50,7 +50,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             1,
             .{},
         ),
-    }, true);
+    });
 
     // compose rendere pipeline
     var width: u32 = undefined;
@@ -83,9 +83,9 @@ fn init(ctx: *zp.Context) anyerror!void {
     ) catch unreachable;
     render_data_raster = try render_data_wireframe.clone(std.testing.allocator);
     render_data_wireframe.vds.?.items[0].material = &color_mr;
-    render_pipeline = try render_pass.Pipeline.init(
+    render_pipeline = try RenderPipeline.init(
         std.testing.allocator,
-        &[_]render_pass.RenderPass{
+        &[_]RenderPipeline.RenderPass{
             .{
                 .beforeFn = beforeWireframeRendering,
                 .rd = renderer.renderer(),

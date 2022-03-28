@@ -13,10 +13,10 @@ const Context = gfx.gpu.Context;
 const Framebuffer = gfx.gpu.Framebuffer;
 const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
-const render_pass = gfx.render_pass;
+const RenderPipeline = gfx.RenderPipeline;
 const Material = gfx.Material;
 const Camera = gfx.Camera;
-const SimpleRenderer = gfx.SimpleRenderer;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 const PhongRenderer = gfx.@"3d".PhongRenderer;
 const light = gfx.@"3d".light;
 const Model = gfx.@"3d".Model;
@@ -40,7 +40,7 @@ var all_actors: std.ArrayList(Actor) = undefined;
 var render_data_shadow: Renderer.Input = undefined;
 var render_data_scene: Renderer.Input = undefined;
 var render_data_outlined: Renderer.Input = undefined;
-var render_pipeline: render_pass.Pipeline = undefined;
+var render_pipeline: RenderPipeline = undefined;
 
 const shadow_width = 2048;
 const shadow_height = 2048;
@@ -220,7 +220,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             1,
             .{},
         ),
-    }, true);
+    });
     render_data_shadow = try Renderer.Input.init(
         std.testing.allocator,
         &.{},
@@ -257,9 +257,9 @@ fn init(ctx: *zp.Context) anyerror!void {
             render_data_scene.vds.?.items.len - 1
         ].material.?.data.phong.shadow_map = shadow_fb.depth_stencil.?.tex;
     }
-    render_pipeline = try render_pass.Pipeline.init(
+    render_pipeline = try RenderPipeline.init(
         std.testing.allocator,
-        &[_]render_pass.RenderPass{
+        &[_]RenderPipeline.RenderPass{
             .{
                 .fb = shadow_fb,
                 .beforeFn = beforeShadowMapGeneration,

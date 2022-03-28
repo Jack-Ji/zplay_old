@@ -10,8 +10,8 @@ const Texture = gfx.gpu.Texture;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
 const Renderer = gfx.Renderer;
-const SimpleRenderer = gfx.SimpleRenderer;
 const Mesh = gfx.@"3d".Mesh;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
 var wireframe_mode = true;
@@ -64,7 +64,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             1,
             .{},
         ) catch unreachable,
-    }, true);
+    });
     picture_material = Material.init(.{
         .single_texture = Texture.init2DFromFilePath(
             std.testing.allocator,
@@ -72,7 +72,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             false,
             .{},
         ) catch unreachable,
-    }, true);
+    });
 
     // compose renderer's input
     var width: u32 = undefined;

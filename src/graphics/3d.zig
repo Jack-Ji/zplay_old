@@ -10,6 +10,9 @@ pub const Scene = @import("3d/Scene.zig");
 /// 3d light manager
 pub const light = @import("3d/light.zig");
 
+/// a simple mesh renderer
+pub const SimpleRenderer = @import("3d/SimpleRenderer.zig");
+
 /// skybox
 pub const SkyboxRenderer = @import("3d/SkyboxRenderer.zig");
 

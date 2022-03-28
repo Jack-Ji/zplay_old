@@ -11,10 +11,10 @@ const GraphicsContext = gfx.gpu.Context;
 const Texture = gfx.gpu.Texture;
 const Material = gfx.Material;
 const Renderer = gfx.Renderer;
-const SimpleRenderer = gfx.SimpleRenderer;
 const Model = gfx.@"3d".Model;
-const SkyboxRenderer = gfx.@"3d".SkyboxRenderer;
 const Scene = gfx.@"3d".Scene;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
+const SkyboxRenderer = gfx.@"3d".SkyboxRenderer;
 
 var skybox: SkyboxRenderer = undefined;
 var skybox_material: Material = undefined;
@@ -179,7 +179,7 @@ fn loadScene(ctx: *zp.Context) !void {
         var loaded = false;
     };
     if (S.loaded) {
-        skybox_material.deinit();
+        skybox_material.data.single_cubemap.deinit();
         dog.deinit();
         girl.deinit();
         helmet.deinit();
@@ -198,7 +198,7 @@ fn loadScene(ctx: *zp.Context) !void {
             "assets/skybox/back.jpg",
             false,
         ) catch unreachable,
-    }, true);
+    });
 
     // load models
     total_vertices = 0;

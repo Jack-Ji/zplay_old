@@ -10,10 +10,10 @@ const GraphicsContext = gfx.gpu.Context;
 const Framebuffer = gfx.gpu.Framebuffer;
 const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
-const render_pass = gfx.render_pass;
+const RenderPipeline = gfx.RenderPipeline;
 const Material = gfx.Material;
-const SimpleRenderer = gfx.SimpleRenderer;
 const TextureDisplay = gfx.post_processing.TextureDisplay;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 const SkyboxRenderer = gfx.@"3d".SkyboxRenderer;
 const Mesh = gfx.@"3d".Mesh;
 const Model = gfx.@"3d".Model;
@@ -86,22 +86,24 @@ fn init(ctx: *zp.Context) anyerror!void {
             "assets/skybox/back.jpg",
             false,
         ),
-    }, true);
-    fb_material = Material.init(.{ .single_texture = fb.tex.? }, false);
+    });
+    fb_material = Material.init(.{ .single_texture = fb.tex.? });
 
     // init model
+    var material = Material.init(.{
+        .single_texture = try Texture.init2DFromFilePath(
+            std.testing.allocator,
+            "assets/wall.jpg",
+            false,
+            .{},
+        ),
+    });
     cube = try Model.init(
         std.testing.allocator,
         try Mesh.genCube(std.testing.allocator, 1, 1, 1),
         Mat4.identity(),
-        Material.init(.{
-            .single_texture = try Texture.init2DFromFilePath(
-                std.testing.allocator,
-                "assets/wall.jpg",
-                false,
-                .{},
-            ),
-        }, true),
+        material,
+        &.{material.data.single_texture},
     );
 
     // init scene

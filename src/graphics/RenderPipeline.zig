@@ -9,13 +9,12 @@ const Framebuffer = zp.graphics.gpu.Framebuffer;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
+const Self = @This();
 
 pub const TriggerFunc = fn (ctx: *Context, custom: ?*anyopaque) void;
 
 /// render-pass
 pub const RenderPass = struct {
-    const Self = @This();
-
     /// frame buffer of the render-pass
     fb: ?Framebuffer = null,
 
@@ -33,7 +32,7 @@ pub const RenderPass = struct {
     custom: ?*anyopaque = null,
 
     /// execute render pass
-    pub fn run(self: Self, ctx: *Context) anyerror!void {
+    pub fn run(self: RenderPass, ctx: *Context) anyerror!void {
         // set current frame buffer
         var fb_changed = false;
         if (self.fb) |f| {
@@ -59,41 +58,36 @@ pub const RenderPass = struct {
     }
 };
 
-/// pipeline (composed render-passes)
-pub const Pipeline = struct {
-    const Self = @This();
+passes: std.ArrayList(RenderPass),
 
-    passes: std.ArrayList(RenderPass),
+/// create pipeline
+pub fn init(allocator: std.mem.Allocator, passes: []RenderPass) !Self {
+    var self = Self{
+        .passes = try std.ArrayList(RenderPass)
+            .initCapacity(allocator, std.math.max(passes.len, 1)),
+    };
+    self.passes.appendSliceAssumeCapacity(passes);
+    return self;
+}
 
-    /// create pipeline
-    pub fn init(allocator: std.mem.Allocator, passes: []RenderPass) !Self {
-        var self = Self{
-            .passes = try std.ArrayList(RenderPass)
-                .initCapacity(allocator, std.math.max(passes.len, 1)),
-        };
-        self.passes.appendSliceAssumeCapacity(passes);
-        return self;
+/// destroy pipeline
+pub fn deinit(self: Self) void {
+    self.passes.deinit();
+}
+
+/// clear pipeline
+pub fn clear(self: *Self) void {
+    self.passes.clearRetainingCapacity();
+}
+
+/// append new render pass
+pub fn appendPass(self: *Self, pass: RenderPass) !void {
+    try self.passes.append(pass);
+}
+
+/// execute render pass
+pub fn run(self: Self, ctx: *Context) anyerror!void {
+    for (self.passes.items) |p| {
+        try p.run(ctx);
     }
-
-    /// destroy pipeline
-    pub fn deinit(self: Self) void {
-        self.passes.deinit();
-    }
-
-    /// clear pipeline
-    pub fn clear(self: *Self) void {
-        self.passes.clearRetainingCapacity();
-    }
-
-    /// append new render pass
-    pub fn appendPass(self: *Self, pass: RenderPass) !void {
-        try self.passes.append(pass);
-    }
-
-    /// execute render pass
-    pub fn run(self: Self, ctx: *Context) anyerror!void {
-        for (self.passes.items) |p| {
-            try p.run(ctx);
-        }
-    }
-};
+}

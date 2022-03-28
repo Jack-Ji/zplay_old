@@ -19,6 +19,20 @@ pub const vbo_tangents = 4;
 pub const vbo_indices = 5;
 pub const vbo_num = 6;
 
+/// renderer's vertex attribute locations
+/// NOTE: renderer's vertex shader should follow this 
+/// convention if its purpose is rendering 3d Mesh/Model objects.
+pub const AttribLocation = enum(c_uint) {
+    position = 0,
+    color = 1,
+    normal = 2,
+    tangent = 3,
+    texture1 = 4,
+    texture2 = 5,
+    texture3 = 6,
+    instance_transform = 10,
+};
+
 /// vertex array
 vertex_array: ?VertexArray = null,
 
@@ -120,22 +134,22 @@ pub fn setup(self: *Self, allocator: std.mem.Allocator) void {
         self.vertex_array.?.vbos[vbo_indices].id,
     ); // keep element buffer binded, which is demanded by vao
     self.vertex_array.?.vbos[vbo_positions].allocInitData(f32, self.positions.items, .static_draw);
-    self.vertex_array.?.setAttribute(vbo_positions, @enumToInt(Renderer.AttribLocation.position), 3, f32, false, 0, 0);
+    self.vertex_array.?.setAttribute(vbo_positions, @enumToInt(AttribLocation.position), 3, f32, false, 0, 0);
     if (self.normals) |ns| {
         self.vertex_array.?.vbos[vbo_normals].allocInitData(f32, ns.items, .static_draw);
-        self.vertex_array.?.setAttribute(vbo_normals, @enumToInt(Renderer.AttribLocation.normal), 3, f32, false, 0, 0);
+        self.vertex_array.?.setAttribute(vbo_normals, @enumToInt(AttribLocation.normal), 3, f32, false, 0, 0);
     }
     if (self.texcoords) |ts| {
         self.vertex_array.?.vbos[vbo_texcoords].allocInitData(f32, ts.items, .static_draw);
-        self.vertex_array.?.setAttribute(vbo_texcoords, @enumToInt(Renderer.AttribLocation.texture1), 2, f32, false, 0, 0);
+        self.vertex_array.?.setAttribute(vbo_texcoords, @enumToInt(AttribLocation.texture1), 2, f32, false, 0, 0);
     }
     if (self.colors) |cs| {
         self.vertex_array.?.vbos[vbo_colors].allocInitData(f32, cs.items, .static_draw);
-        self.vertex_array.?.setAttribute(vbo_colors, @enumToInt(Renderer.AttribLocation.color), 4, f32, false, 0, 0);
+        self.vertex_array.?.setAttribute(vbo_colors, @enumToInt(AttribLocation.color), 4, f32, false, 0, 0);
     }
     if (self.tangents) |ts| {
         self.vertex_array.?.vbos[vbo_tangents].allocInitData(f32, ts.items, .static_draw);
-        self.vertex_array.?.setAttribute(vbo_tangents, @enumToInt(Renderer.AttribLocation.tangent), 4, f32, false, 0, 0);
+        self.vertex_array.?.setAttribute(vbo_tangents, @enumToInt(AttribLocation.tangent), 4, f32, false, 0, 0);
     }
     self.vertex_array.?.disuse();
     Buffer.Target.element_array_buffer.setBinding(0);

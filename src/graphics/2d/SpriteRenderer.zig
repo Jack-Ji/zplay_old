@@ -16,7 +16,7 @@ const Self = @This();
 
 const vs_body =
     \\layout (location = 0) in vec3 a_pos;
-    \\layout (location = 4) in vec2 a_tex1;
+    \\layout (location = 1) in vec2 a_tex;
     \\layout (location = 10) in mat4 a_transform;
     \\
     \\uniform mat4 u_model = mat4(1.0);
@@ -33,7 +33,7 @@ const vs_body =
     \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
     \\#endif
     \\    gl_Position = u_project * vec4(v_pos, 1.0);
-    \\    v_tex = a_tex1;
+    \\    v_tex = a_tex;
     \\}
 ;
 
@@ -88,7 +88,7 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     defer prog.disuse();
 
     // apply common uniform vars
-    prog.setUniformByName("u_project", input.getProjectMatrix() orelse Mat4.identity());
+    prog.setUniformByName("u_project", if (input.camera) |c| c.getProjectMatrix() orelse Mat4.identity());
 
     // render vertex data one by one
     var current_material: *Material = undefined;

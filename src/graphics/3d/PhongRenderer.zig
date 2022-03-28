@@ -1,6 +1,7 @@
 const std = @import("std");
 const assert = std.debug.assert;
 const light = @import("light.zig");
+const Mesh = @import("Mesh.zig");
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
 const Context = gfx.gpu.Context;
@@ -332,7 +333,9 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
 
         // send draw command
         if (is_instanced_drawing) {
-            vd.transform.instanced.enableAttributes();
+            vd.transform.instanced.enableAttributes(
+                @enumToInt(Mesh.AttribLocation.instance_transform),
+            );
             if (vd.element_draw) {
                 drawcall.drawElementsInstanced(
                     vd.primitive,

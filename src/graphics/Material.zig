@@ -37,17 +37,10 @@ pub const Data = union(Type) {
 /// material properties
 data: Data,
 
-/// whether material owns textures
-/// NOTE: normally material aren't respossible for freeing textures,
-///       except for simple test/throw-away code, asset-manager should be
-///       respossible for such job.
-own_data: bool = false,
-
 /// create material
-pub fn init(data: Data, own_data: bool) Self {
+pub fn init(data: Data) Self {
     var self = Self{
         .data = data,
-        .own_data = own_data,
     };
     switch (self.data) {
         .phong => |mr| {
@@ -71,35 +64,6 @@ pub fn init(data: Data, own_data: bool) Self {
         },
     }
     return self;
-}
-
-/// copy material, without ownership of textures
-pub fn copy(mr: Self) Self {
-    var self = mr;
-    self.own_data = false;
-    return self;
-}
-
-/// deallocate material
-pub fn deinit(self: Self) void {
-    if (!self.own_data) return;
-    switch (self.data) {
-        .phong => |mr| {
-            mr.diffuse_map.deinit();
-            if (mr.specular_map != mr.diffuse_map)
-                mr.specular_map.deinit();
-        },
-        .pbr => {},
-        .refract_mapping => |mr| {
-            mr.cubemap.deinit();
-        },
-        .single_texture => |tex| {
-            tex.deinit();
-        },
-        .single_cubemap => |tex| {
-            tex.deinit();
-        },
-    }
 }
 
 /// alloc texture unit, return next unused unit

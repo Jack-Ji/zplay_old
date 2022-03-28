@@ -10,7 +10,8 @@ const VertexArray = gfx.gpu.VertexArray;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
-const SimpleRenderer = gfx.SimpleRenderer;
+const Mesh = gfx.@"3d".Mesh;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
 var render_data: Renderer.Input = undefined;
@@ -34,8 +35,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array.use();
     defer vertex_array.disuse();
     vertex_array.vbos[0].allocInitData(f32, &vertices, .static_draw);
-    vertex_array.setAttribute(0, @enumToInt(Renderer.AttribLocation.position), 3, f32, false, 7 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, @enumToInt(Renderer.AttribLocation.color), 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
+    vertex_array.setAttribute(0, @enumToInt(Mesh.AttribLocation.position), 3, f32, false, 7 * @sizeOf(f32), 0);
+    vertex_array.setAttribute(0, @enumToInt(Mesh.AttribLocation.color), 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
 
     // create material
     material = Material.init(.{
@@ -52,7 +53,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             2,
             .{},
         ),
-    }, true);
+    });
 
     // compose renderer's input
     render_data = try Renderer.Input.init(

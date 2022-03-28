@@ -12,8 +12,8 @@ const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
 const post_processing = gfx.post_processing;
-const SimpleRenderer = gfx.SimpleRenderer;
 const Mesh = gfx.@"3d".Mesh;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 
 var fb: Framebuffer = undefined;
 var fb_material: Material = undefined;
@@ -65,12 +65,9 @@ fn init(ctx: *zp.Context) anyerror!void {
     box = try Mesh.genCube(std.testing.allocator, 2, 2, 2);
 
     // create material
-    fb_material = Material.init(
-        .{
-            .single_texture = fb.tex.?,
-        },
-        false,
-    );
+    fb_material = Material.init(.{
+        .single_texture = fb.tex.?,
+    });
     box_material = Material.init(.{
         .single_texture = try Texture.init2DFromFilePath(
             std.testing.allocator,
@@ -78,7 +75,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             false,
             .{},
         ),
-    }, true);
+    });
 
     // create post-processing renderers
     pp_texture_display = try post_processing.TextureDisplay.init(std.testing.allocator);

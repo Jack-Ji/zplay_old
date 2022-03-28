@@ -6,10 +6,10 @@ const Context = gfx.gpu.Context;
 const VertexArray = gfx.gpu.VertexArray;
 const Texture = gfx.gpu.Texture;
 const Renderer = gfx.Renderer;
-const render_pass = gfx.render_pass;
-const SimpleRenderer = gfx.SimpleRenderer;
+const RenderPipeline = gfx.RenderPipeline;
 const Material = gfx.Material;
 const Camera = gfx.Camera;
+const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 const Mesh = gfx.@"3d".Mesh;
 const dig = zp.deps.dig;
 const alg = zp.deps.alg;
@@ -28,7 +28,7 @@ var render_data_cube: Renderer.Input = undefined;
 var render_data_section: Renderer.Input = undefined;
 var cube_renderer: SimpleRenderer = undefined;
 var section_renderer: SimpleRenderer = undefined;
-var pipeline: render_pass.Pipeline = undefined;
+var pipeline: RenderPipeline = undefined;
 
 var wire_vs = [_]f32{
     0, 0, 0, 1, 0, 0,
@@ -79,7 +79,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             1,
             .{},
         ),
-    }, true);
+    });
     wire_material = Material.init(.{
         .single_texture = try Texture.init2DFromPixels(
             std.testing.allocator,
@@ -89,7 +89,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             1,
             .{},
         ),
-    }, true);
+    });
     plane_material = Material.init(.{
         .single_texture = try Texture.init2DFromPixels(
             std.testing.allocator,
@@ -99,7 +99,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             1,
             .{},
         ),
-    }, true);
+    });
 
     var width: u32 = undefined;
     var height: u32 = undefined;
@@ -158,9 +158,9 @@ fn init(ctx: *zp.Context) anyerror!void {
         .pos_range1_min = Vec3.set(0),
         .pos_range1_max = Vec3.set(1),
     });
-    pipeline = try render_pass.Pipeline.init(
+    pipeline = try RenderPipeline.init(
         std.testing.allocator,
-        &[_]render_pass.RenderPass{
+        &[_]RenderPipeline.RenderPass{
             .{
                 .beforeFn = beforeRenderingCube,
                 .rd = cube_renderer.renderer(),

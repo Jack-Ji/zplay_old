@@ -49,37 +49,37 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     skybox_material = Material.init(.{
         .single_cubemap = cubemap,
-    }, false);
+    });
     refract_air_material = Material.init(.{
         .refract_mapping = .{
             .cubemap = cubemap,
             .ratio = 1.0,
         },
-    }, false);
+    });
     refract_water_material = Material.init(.{
         .refract_mapping = .{
             .cubemap = cubemap,
             .ratio = 1.33,
         },
-    }, false);
+    });
     refract_ice_material = Material.init(.{
         .refract_mapping = .{
             .cubemap = cubemap,
             .ratio = 1.309,
         },
-    }, false);
+    });
     refract_glass_material = Material.init(.{
         .refract_mapping = .{
             .cubemap = cubemap,
             .ratio = 1.52,
         },
-    }, false);
+    });
     refract_diamond_material = Material.init(.{
         .refract_mapping = .{
             .cubemap = cubemap,
             .ratio = 2.42,
         },
-    }, false);
+    });
 
     // alloc renderers
     skybox = SkyboxRenderer.init(std.testing.allocator);
