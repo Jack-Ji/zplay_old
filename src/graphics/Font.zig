@@ -188,6 +188,7 @@ pub const Atlas = struct {
                     quad.s1, quad.t1,
                     quad.s1, quad.t0,
                 });
+                break;
             }
             i += size;
         }
