@@ -17,6 +17,7 @@ A simple framework intended for game/tool creation.
         * Convolution (sharpen/blur/edge-detect etc)
 * Flexible render-passes pipeline, greatly simplify rendering code
 * 3D model loading and rendering (only glTF 2.0 for now)
+* TrueType font loading and rendering
 * Particle system (TODO)
 * SpriteBatch system (TODO)
 * 2D physics (TODO)
