@@ -17,22 +17,14 @@ const Self = @This();
 const vs_body =
     \\layout (location = 0) in vec3 a_pos;
     \\layout (location = 1) in vec2 a_tex;
-    \\layout (location = 10) in mat4 a_transform;
     \\
-    \\uniform mat4 u_model;
     \\uniform mat4 u_project;
     \\
-    \\out vec3 v_pos;
     \\out vec2 v_tex;
     \\
     \\void main()
     \\{
-    \\#ifdef INSTANCED_DRAW
-    \\    v_pos = vec3(a_transform * vec4(a_pos, 1.0));
-    \\#else
-    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
-    \\#endif
-    \\    gl_Position = u_project * vec4(v_pos, 1.0);
+    \\    gl_Position = u_project * vec4(a_pos, 1.0);
     \\    v_tex = a_tex;
     \\}
 ;
@@ -40,37 +32,33 @@ const vs_body =
 const fs_body =
     \\out vec4 frag_color;
     \\
-    \\in vec3 v_pos;
     \\in vec2 v_tex;
     \\
+    \\uniform vec3 u_color;
     \\uniform sampler2D u_texture;
     \\
     \\void main()
     \\{
-    \\    frag_color = texture(u_texture, v_tex);
+    \\    frag_color = vec4(u_color, texture(u_texture, v_tex).r);
     \\}
 ;
 
 const vs = Renderer.shader_head ++ vs_body;
-const vs_instanced = Renderer.shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
 const fs = Renderer.shader_head ++ fs_body;
 
 /// shader programs
 program: ShaderProgram = undefined,
-program_instanced: ShaderProgram = undefined,
 
 /// create a simple renderer
 pub fn init() Self {
     var self = Self{};
     self.program = ShaderProgram.init(vs, fs, null);
-    self.program_instanced = ShaderProgram.init(vs_instanced, fs, null);
     return self;
 }
 
 /// free resources
 pub fn deinit(self: *Self) void {
     self.program.deinit();
-    self.program_instanced.deinit();
 }
 
 /// get renderer instance
@@ -82,19 +70,17 @@ pub fn renderer(self: *Self) Renderer {
 pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     _ = ctx;
     if (input.vds == null or input.vds.?.items.len == 0) return;
-    var is_instanced_drawing = input.vds.?.items[0].transform == .instanced;
-    var prog = if (is_instanced_drawing) &self.program_instanced else &self.program;
-    prog.use();
-    defer prog.disuse();
+    self.program.use();
+    defer self.program.disuse();
 
     // apply common uniform vars
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.getDrawableSize(&width, &height);
-    prog.setUniformByName("u_project", if (input.camera) |c|
+    self.program.setUniformByName("u_project", if (input.camera) |c|
         c.getProjectMatrix()
     else
-        Mat4.orthographic(0, @intToFloat(f32, width), 0, @intToFloat(f32, height), 0, 100));
+        Mat4.orthographic(0, @intToFloat(f32, width), @intToFloat(f32, height), 0, -1, 1));
 
     // render vertex data one by one
     var current_material: *Material = undefined;
@@ -110,11 +96,9 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
                 current_material = mr;
                 _ = current_material.allocTextureUnit(0);
                 switch (mr.data) {
-                    .phong => |m| {
-                        prog.setUniformByName("u_texture", m.diffuse_map.getTextureUnit());
-                    },
-                    .single_texture => |tex| {
-                        prog.setUniformByName("u_texture", tex.getTextureUnit());
+                    .font => |m| {
+                        self.program.setUniformByName("u_color", m.color);
+                        self.program.setUniformByName("u_texture", m.atlas.getTextureUnit());
                     },
                     else => {
                         std.debug.panic("unsupported material type", .{});
@@ -124,31 +108,10 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
         }
 
         // send draw command
-        if (is_instanced_drawing) {
-            vd.transform.instanced.enableAttributes(10);
-            if (vd.element_draw) {
-                drawcall.drawElementsInstanced(
-                    vd.primitive,
-                    vd.offset,
-                    vd.count,
-                    u32,
-                    vd.transform.instanced.count,
-                );
-            } else {
-                drawcall.drawBufferInstanced(
-                    vd.primitive,
-                    vd.offset,
-                    vd.count,
-                    vd.transform.instanced.count,
-                );
-            }
+        if (vd.element_draw) {
+            drawcall.drawElements(vd.primitive, vd.offset, vd.count, u32);
         } else {
-            prog.setUniformByName("u_model", vd.transform.single);
-            if (vd.element_draw) {
-                drawcall.drawElements(vd.primitive, vd.offset, vd.count, u32);
-            } else {
-                drawcall.drawBuffer(vd.primitive, vd.offset, vd.count);
-            }
+            drawcall.drawBuffer(vd.primitive, vd.offset, vd.count);
         }
     }
 }

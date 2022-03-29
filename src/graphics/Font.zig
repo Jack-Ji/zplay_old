@@ -44,8 +44,13 @@ pub fn deinit(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-pub fn createAtlas(self: Self, font_size: u32, codepoint_ranges: []const [2]u32) !Atlas {
-    return Atlas.init(self.allocator, &self.font_info, font_size, codepoint_ranges);
+pub fn createAtlas(
+    self: Self,
+    font_size: u32,
+    codepoint_ranges: []const [2]u32,
+    atlas_size: ?u32,
+) !Atlas {
+    return Atlas.init(self.allocator, &self.font_info, font_size, codepoint_ranges, atlas_size);
 }
 
 /// useful codepoint ranges
@@ -218,10 +223,14 @@ pub const Atlas = struct {
         packedchar: std.ArrayList(truetype.stbtt_packedchar),
     };
 
-    const map_size = 4096;
+    const default_map_size = 8192;
 
     tex: *Texture,
     ranges: std.ArrayList(CharRange),
+    scale: f32,
+    vmetric_ascent: f32,
+    vmetric_descent: f32,
+    vmetric_line_gap: f32,
 
     /// create font atlas
     fn init(
@@ -229,6 +238,7 @@ pub const Atlas = struct {
         font_info: *const truetype.stbtt_fontinfo,
         font_size: u32,
         codepoint_ranges: []const [2]u32,
+        map_size: ?u32,
     ) !Atlas {
         assert(codepoint_ranges.len > 0);
 
@@ -238,7 +248,8 @@ pub const Atlas = struct {
 
         // create texture
         var tex = try Texture.init(allocator, .texture_2d);
-        const pixels = try allocator.alloc(u8, map_size * map_size);
+        const atlas_size = map_size orelse default_map_size;
+        const pixels = try allocator.alloc(u8, atlas_size * atlas_size);
         defer allocator.free(pixels);
 
         // generate atlas
@@ -246,8 +257,8 @@ pub const Atlas = struct {
         var rc = truetype.stbtt_PackBegin(
             &pack_ctx,
             pixels.ptr,
-            @intCast(c_int, map_size),
-            @intCast(c_int, map_size),
+            @intCast(c_int, atlas_size),
+            @intCast(c_int, atlas_size),
             0,
             1,
             null,
@@ -280,8 +291,8 @@ pub const Atlas = struct {
             .texture_2d,
             0,
             .red,
-            map_size,
-            map_size,
+            atlas_size,
+            atlas_size,
             null,
             .red,
             u8,
@@ -293,9 +304,19 @@ pub const Atlas = struct {
         tex.setFilteringMode(.minifying, .linear);
         tex.setFilteringMode(.magnifying, .linear);
 
+        var ascent: c_int = undefined;
+        var descent: c_int = undefined;
+        var line_gap: c_int = undefined;
+        const scale = truetype.stbtt_ScaleForPixelHeight(font_info, @intToFloat(f32, font_size));
+        truetype.stbtt_GetFontVMetrics(font_info, &ascent, &descent, &line_gap);
+
         return Atlas{
             .tex = tex,
             .ranges = ranges,
+            .scale = scale,
+            .vmetric_ascent = @intToFloat(f32, ascent),
+            .vmetric_descent = @intToFloat(f32, descent),
+            .vmetric_line_gap = @intToFloat(f32, line_gap),
         };
     }
 
@@ -307,19 +328,24 @@ pub const Atlas = struct {
         self.ranges.deinit();
     }
 
+    pub fn getVPosOfNextLine(self: Atlas, current_ypos: f32) f32 {
+        return current_ypos + @round((self.vmetric_ascent - self.vmetric_descent + self.vmetric_line_gap) * self.scale);
+    }
+
     /// append draw data for rendering utf8 string
     pub fn appendDrawDataFromUTF8String(
         self: Atlas,
         text: []const u8,
-        _xpos: f32,
-        _ypos: f32,
+        vx: f32,
+        vy: f32,
         vpos: *std.ArrayList(f32),
         tcoords: *std.ArrayList(f32),
+        ypos_type: enum { baseline, top, bottom },
     ) !f32 {
-        if (text.len == 0) return _xpos;
+        if (text.len == 0) return vx;
 
-        var xpos = _xpos;
-        var ypos = _ypos;
+        var xpos = vx;
+        var ypos = vy;
         var pxpos = &xpos;
         var pypos = &ypos;
 
@@ -335,25 +361,30 @@ pub const Atlas = struct {
                 var quad: truetype.stbtt_aligned_quad = undefined;
                 truetype.stbtt_GetPackedQuad(
                     range.packedchar.items.ptr,
-                    @intCast(c_int, map_size),
-                    @intCast(c_int, map_size),
+                    @intCast(c_int, self.tex.width),
+                    @intCast(c_int, self.tex.width),
                     @intCast(c_int, codepoint - range.codepoint_begin),
                     pxpos,
                     pypos,
                     &quad,
                     0,
                 );
+                const yoffset = switch (ypos_type) {
+                    .baseline => 0,
+                    .top => self.vmetric_ascent * self.scale,
+                    .bottom => self.vmetric_descent * self.scale,
+                };
                 try vpos.appendSlice(&[_]f32{
-                    quad.x0, quad.y0, 0,
-                    quad.x1, quad.y0, 0,
-                    quad.x1, quad.y1, 0,
-                    quad.x0, quad.y0, 0,
-                    quad.x1, quad.y1, 0,
-                    quad.x1, quad.y0, 0,
+                    quad.x0, quad.y0 + yoffset, 0,
+                    quad.x0, quad.y1 + yoffset, 0,
+                    quad.x1, quad.y1 + yoffset, 0,
+                    quad.x0, quad.y0 + yoffset, 0,
+                    quad.x1, quad.y1 + yoffset, 0,
+                    quad.x1, quad.y0 + yoffset, 0,
                 });
                 try tcoords.appendSlice(&[_]f32{
                     quad.s0, quad.t0,
-                    quad.s1, quad.t0,
+                    quad.s0, quad.t1,
                     quad.s1, quad.t1,
                     quad.s0, quad.t0,
                     quad.s1, quad.t1,
@@ -364,6 +395,6 @@ pub const Atlas = struct {
             i += size;
         }
 
-        return *pxpos;
+        return pxpos.*;
     }
 };

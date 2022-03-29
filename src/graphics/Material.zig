@@ -13,6 +13,7 @@ pub const Type = enum {
     phong,
     pbr,
     refract_mapping,
+    font,
     single_texture,
     single_cubemap,
 };
@@ -29,6 +30,10 @@ pub const Data = union(Type) {
     refract_mapping: struct {
         cubemap: *Texture,
         ratio: f32,
+    },
+    font: struct {
+        atlas: *Texture,
+        color: [3]f32,
     },
     single_texture: *Texture,
     single_cubemap: *Texture,
@@ -55,6 +60,9 @@ pub fn init(data: Data) Self {
         .refract_mapping => |mr| {
             assert(mr.cubemap.type == .texture_cube_map);
             assert(mr.ratio >= 0);
+        },
+        .font => |mr| {
+            assert(mr.atlas.type == .texture_2d);
         },
         .single_texture => |tex| {
             assert(tex.type == .texture_2d);
@@ -85,6 +93,10 @@ pub fn allocTextureUnit(self: Self, start_unit: i32) i32 {
         .pbr => {},
         .refract_mapping => |mr| {
             mr.cubemap.bindToTextureUnit(Texture.TextureUnit.fromInt(unit));
+            unit += 1;
+        },
+        .font => |mr| {
+            mr.atlas.bindToTextureUnit(Texture.TextureUnit.fromInt(unit));
             unit += 1;
         },
         .single_texture => |tex| {

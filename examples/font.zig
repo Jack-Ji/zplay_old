@@ -11,70 +11,128 @@ const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const Material = gfx.Material;
 const Font = gfx.Font;
-const Mesh = gfx.@"3d".Mesh;
-const SimpleRenderer = gfx.@"3d".SimpleRenderer;
+const FontRenderer = gfx.@"2d".FontRenderer;
 
-var font_atlas: Font.Atlas = undefined;
-var simple_renderer: SimpleRenderer = undefined;
+var font_atlas1: Font.Atlas = undefined;
+var font_atlas2: Font.Atlas = undefined;
+var font_renderer: FontRenderer = undefined;
 var render_data: Renderer.Input = undefined;
-var vertex_array: VertexArray = undefined;
-var material: Material = undefined;
+var vertex_array1: VertexArray = undefined;
+var vertex_array2: VertexArray = undefined;
+var material1: Material = undefined;
+var material2: Material = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
+    var width: u32 = undefined;
+    var height: u32 = undefined;
+    ctx.graphics.getDrawableSize(&width, &height);
+
     // create font atlas
     var font = try Font.init(std.testing.allocator, "assets/msyh.ttf");
     defer font.deinit();
-    font_atlas = try font.createAtlas(16, &Font.CodepointRanges.default);
+    font_atlas1 = try font.createAtlas(64, &Font.CodepointRanges.chineseCommon, null);
+    font_atlas2 = try font.createAtlas(30, &Font.CodepointRanges.chineseCommon, null);
 
     // create renderer
-    simple_renderer = SimpleRenderer.init(.{ .mix_factor = 1.0 });
+    font_renderer = FontRenderer.init();
 
     // vertex array
-    const vertices = [_]f32{
-        -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0,
-        0.5,  -0.5, 0.0, 0.0, 1.0, 0.0, 1.0,
-        0.0,  0.5,  0.0, 0.0, 0.0, 1.0, 1.0,
-    };
-    vertex_array = VertexArray.init(std.testing.allocator, 5);
-    vertex_array.use();
-    defer vertex_array.disuse();
-    vertex_array.vbos[0].allocInitData(f32, &vertices, .static_draw);
-    vertex_array.setAttribute(0, @enumToInt(Mesh.AttribLocation.position), 3, f32, false, 7 * @sizeOf(f32), 0);
-    vertex_array.setAttribute(0, @enumToInt(Mesh.AttribLocation.color), 4, f32, false, 7 * @sizeOf(f32), 3 * @sizeOf(f32));
+    var vpos = std.ArrayList(f32).init(std.testing.allocator);
+    var tcoords = std.ArrayList(f32).init(std.testing.allocator);
+    defer vpos.deinit();
+    defer tcoords.deinit();
+    _ = try font_atlas1.appendDrawDataFromUTF8String(
+        "你好！ABCDEFGHIJKL abcdefghijkl",
+        0,
+        0,
+        &vpos,
+        &tcoords,
+        .top,
+    );
+    _ = try font_atlas1.appendDrawDataFromUTF8String(
+        "你好！ABCDEFGHIJKL abcdefghijkl",
+        0,
+        @intToFloat(f32, height),
+        &vpos,
+        &tcoords,
+        .bottom,
+    );
+    const vcount1 = @intCast(u32, vpos.items.len);
+    vertex_array1 = VertexArray.init(std.testing.allocator, 2);
+    vertex_array1.use();
+    defer vertex_array1.disuse();
+    vertex_array1.vbos[0].allocInitData(f32, vpos.items, .static_draw);
+    vertex_array1.vbos[1].allocInitData(f32, tcoords.items, .static_draw);
+    vertex_array1.setAttribute(0, 0, 3, f32, false, 0, 0);
+    vertex_array1.setAttribute(1, 1, 2, f32, false, 0, 0);
+
+    vpos.clearRetainingCapacity();
+    tcoords.clearRetainingCapacity();
+    _ = try font_atlas2.appendDrawDataFromUTF8String(
+        "第一行",
+        0,
+        200,
+        &vpos,
+        &tcoords,
+        .baseline,
+    );
+    _ = try font_atlas2.appendDrawDataFromUTF8String(
+        "第二行",
+        0,
+        font_atlas2.getVPosOfNextLine(200),
+        &vpos,
+        &tcoords,
+        .baseline,
+    );
+    const vcount2 = @intCast(u32, vpos.items.len);
+    vertex_array2 = VertexArray.init(std.testing.allocator, 2);
+    vertex_array2.use();
+    defer vertex_array2.disuse();
+    vertex_array2.vbos[0].allocInitData(f32, vpos.items, .static_draw);
+    vertex_array2.vbos[1].allocInitData(f32, tcoords.items, .static_draw);
+    vertex_array2.setAttribute(0, 0, 3, f32, false, 0, 0);
+    vertex_array2.setAttribute(1, 1, 2, f32, false, 0, 0);
 
     // create material
-    material = Material.init(.{
-        .single_texture = try Texture.init2DFromPixels(
-            std.testing.allocator,
-            &.{
-                0,   0,   0,
-                0,   255, 0,
-                0,   0,   255,
-                255, 255, 255,
-            },
-            .rgb,
-            2,
-            2,
-            .{},
-        ),
+    material1 = Material.init(.{
+        .font = .{
+            .color = [_]f32{ 1, 1, 0 },
+            .atlas = font_atlas1.tex,
+        },
+    });
+    material2 = Material.init(.{
+        .font = .{
+            .color = [_]f32{ 1, 1, 0 },
+            .atlas = font_atlas2.tex,
+        },
     });
 
     // compose renderer's input
     render_data = try Renderer.Input.init(
         std.testing.allocator,
-        &[_]Renderer.Input.VertexData{.{
-            .element_draw = false,
-            .vertex_array = vertex_array,
-            .count = 3,
-            .material = &material,
-        }},
+        &[_]Renderer.Input.VertexData{
+            .{
+                .element_draw = false,
+                .vertex_array = vertex_array1,
+                .count = vcount1,
+                .material = &material1,
+            },
+            .{
+                .element_draw = false,
+                .vertex_array = vertex_array2,
+                .count = vcount2,
+                .material = &material2,
+            },
+        },
         null,
         null,
         null,
     );
+
+    ctx.graphics.toggleCapability(.blend, true);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -103,7 +161,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     ctx.graphics.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
-    simple_renderer.draw(&ctx.graphics, render_data) catch unreachable;
+    font_renderer.draw(&ctx.graphics, render_data) catch unreachable;
 }
 
 fn quit(ctx: *zp.Context) void {

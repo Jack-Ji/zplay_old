@@ -20,11 +20,9 @@ const vs = Renderer.shader_head ++
     \\
     \\out vec2 v_tex;
     \\
-    \\uniform mat4 u_transform;
-    \\
     \\void main()
     \\{
-    \\    gl_Position = u_transform * vec4(a_pos, 1.0);
+    \\    gl_Position = vec4(a_pos, 1.0);
     \\    v_tex = a_tex;
     \\}
 ;
