@@ -18,6 +18,7 @@ pub fn build(b: *std.build.Builder) void {
     });
     const examples = [_][]const u8{
         "simple_window",
+        "font",
         "single_triangle",
         "cubes",
         "phong_lighting",
