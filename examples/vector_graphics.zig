@@ -131,6 +131,11 @@ fn loop(ctx: *zp.Context) void {
     nvg.scale(0.5, 0.5);
     nvg.svg(tiger);
     nvg.restore();
+
+    // draw fps
+    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
+        .color = [3]f32{ 1, 1, 1 },
+    });
 }
 
 fn drawEyes(x: f32, y: f32, w: f32, h: f32, mx: f32, my: f32, t: f32) void {
@@ -733,5 +738,6 @@ pub fn main() anyerror!void {
         .quitFn = quit,
         .width = 1000,
         .height = 600,
+        .enable_console = true,
     });
 }

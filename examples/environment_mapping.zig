@@ -119,9 +119,6 @@ fn init(ctx: *zp.Context) anyerror!void {
         .camera = &camera,
         .material = &skybox_material,
     };
-
-    // enable depth test
-    ctx.graphics.toggleCapability(.depth_test, true);
 }
 
 fn loop(ctx: *zp.Context) void {

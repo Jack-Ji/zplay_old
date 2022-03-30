@@ -1,9 +1,6 @@
 /// graphics card types/utilities
 pub const gpu = @import("graphics/gpu.zig");
 
-/// Font loading/rendering
-pub const Font = @import("graphics/Font.zig");
-
 /// generic rendering interface
 pub const Renderer = @import("graphics/Renderer.zig");
 
@@ -18,6 +15,9 @@ pub const Material = @import("graphics/Material.zig");
 
 /// post-processing effects, dealing with a single texture
 pub const post_processing = @import("graphics/post_processing.zig");
+
+/// toolkit for font loading/rendering
+pub const font = @import("graphics/font.zig");
 
 /// toolkit for 3d scene
 pub const @"3d" = @import("graphics/3d.zig");

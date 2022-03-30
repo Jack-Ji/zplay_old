@@ -1,6 +1,7 @@
 const std = @import("std");
 const zp = @import("zplay.zig");
 const GraphicsContext = zp.graphics.gpu.Context;
+const console = zp.graphics.font.console;
 const event = zp.event;
 const sdl = zp.deps.sdl;
 
@@ -124,6 +125,17 @@ pub const Context = struct {
             @floatToInt(i32, @intToFloat(f32, h) * yrel),
         );
     }
+
+    /// convenient text drawing
+    pub fn drawText(
+        self: Context,
+        comptime fmt: []const u8,
+        args: anytype,
+        opt: console.DrawOption,
+    ) console.DrawRect {
+        _ = self;
+        return console.drawText(fmt, args, opt) catch unreachable;
+    }
 };
 
 /// application configurations
@@ -169,6 +181,15 @@ pub const Game = struct {
     /// graphics api
     graphics_api: GraphicsContext.Api = .opengl,
 
+    /// enable depth-testing capability
+    enable_depth_test: bool = true,
+
+    /// enable stencil-testing capability
+    enable_stencil_test: bool = true,
+
+    /// enable blending capability
+    enable_color_blend: bool = true,
+
     // vsync switch
     enable_vsync: bool = true,
 
@@ -177,6 +198,10 @@ pub const Game = struct {
 
     /// enable high resolution depth buffer
     enable_highres_depth: bool = false,
+
+    /// enable console module
+    enable_console: bool = false,
+    console_font_size: u32 = 16,
 };
 
 /// entrance point, never return until application is killed
@@ -218,10 +243,7 @@ pub fn run(g: Game) !void {
     defer context.window.destroy();
 
     // allocate graphics context
-    context.graphics = try GraphicsContext.init(
-        context.window,
-        g.graphics_api,
-    );
+    context.graphics = try GraphicsContext.init(context.window, g);
     defer context.graphics.deinit();
     context.graphics.setVsyncMode(g.enable_vsync);
 
@@ -229,6 +251,11 @@ pub fn run(g: Game) !void {
     context.toggleResizable(g.enable_resizable);
     context.toggleFullscreeen(g.enable_fullscreen);
     context.toggleRelativeMouseMode(g.enable_relative_mouse_mode);
+
+    // init console
+    if (g.enable_console) {
+        console.init(std.heap.c_allocator, &context.graphics, g.console_font_size);
+    }
 
     // init before loop
     try g.initFn(&context);
@@ -240,17 +267,39 @@ pub fn run(g: Game) !void {
     context.tick = 0;
 
     // game loop
-    while (!context.quit) {
-        // update tick
-        const counter = sdl.c.SDL_GetPerformanceCounter();
-        context.delta_tick = @intToFloat(f32, counter - last_counter) / counter_freq;
-        context.tick += context.delta_tick;
-        last_counter = counter;
+    if (g.enable_console) {
+        while (!context.quit) {
+            // update tick
+            const counter = sdl.c.SDL_GetPerformanceCounter();
+            context.delta_tick = @intToFloat(f32, counter - last_counter) / counter_freq;
+            context.tick += context.delta_tick;
+            last_counter = counter;
 
-        // main loop
-        g.loopFn(&context);
+            // clear console text
+            console.clear();
 
-        // swap buffers
-        context.graphics.swap();
+            // main loop
+            g.loopFn(&context);
+
+            // render console text
+            console.submitAndRender();
+
+            // swap buffers
+            context.graphics.swap();
+        }
+    } else {
+        while (!context.quit) {
+            // update tick
+            const counter = sdl.c.SDL_GetPerformanceCounter();
+            context.delta_tick = @intToFloat(f32, counter - last_counter) / counter_freq;
+            context.tick += context.delta_tick;
+            last_counter = counter;
+
+            // main loop
+            g.loopFn(&context);
+
+            // swap buffers
+            context.graphics.swap();
+        }
     }
 }

@@ -1,17 +1,14 @@
 const std = @import("std");
 const zp = @import("zplay");
-const gl = zp.deps.gl;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
-const Texture = gfx.gpu.Texture;
 const VertexArray = gfx.gpu.VertexArray;
 const Renderer = gfx.Renderer;
-const Camera = gfx.Camera;
 const Material = gfx.Material;
-const Font = gfx.Font;
-const FontRenderer = gfx.@"2d".FontRenderer;
+const Font = gfx.font.Font;
+const FontRenderer = gfx.font.FontRenderer;
 
 var font_atlas1: Font.Atlas = undefined;
 var font_atlas2: Font.Atlas = undefined;
@@ -40,74 +37,57 @@ fn init(ctx: *zp.Context) anyerror!void {
     font_renderer = FontRenderer.init();
 
     // vertex array
-    var vpos = std.ArrayList(f32).init(std.testing.allocator);
-    var tcoords = std.ArrayList(f32).init(std.testing.allocator);
-    defer vpos.deinit();
-    defer tcoords.deinit();
+    var vattrib = std.ArrayList(f32).init(std.testing.allocator);
+    defer vattrib.deinit();
     _ = try font_atlas1.appendDrawDataFromUTF8String(
         "你好！ABCDEFGHIJKL abcdefghijkl",
         0,
         0,
-        &vpos,
-        &tcoords,
         .top,
+        [3]f32{ 1, 1, 0 },
+        &vattrib,
     );
     _ = try font_atlas1.appendDrawDataFromUTF8String(
         "你好！ABCDEFGHIJKL abcdefghijkl",
         0,
         @intToFloat(f32, height),
-        &vpos,
-        &tcoords,
         .bottom,
+        [3]f32{ 1, 1, 0 },
+        &vattrib,
     );
-    const vcount1 = @intCast(u32, vpos.items.len);
-    vertex_array1 = VertexArray.init(std.testing.allocator, 2);
-    vertex_array1.use();
-    defer vertex_array1.disuse();
-    vertex_array1.vbos[0].allocInitData(f32, vpos.items, .static_draw);
-    vertex_array1.vbos[1].allocInitData(f32, tcoords.items, .static_draw);
-    vertex_array1.setAttribute(0, 0, 3, f32, false, 0, 0);
-    vertex_array1.setAttribute(1, 1, 2, f32, false, 0, 0);
+    const vcount1 = @intCast(u32, vattrib.items.len) / FontRenderer.FloatNumOfVertexAttrib;
+    vertex_array1 = VertexArray.init(std.testing.allocator, 1);
+    FontRenderer.setupVertexArray(vertex_array1);
+    vertex_array1.vbos[0].allocInitData(f32, vattrib.items, .static_draw);
 
-    vpos.clearRetainingCapacity();
-    tcoords.clearRetainingCapacity();
+    vattrib.clearRetainingCapacity();
     _ = try font_atlas2.appendDrawDataFromUTF8String(
         "第一行",
         0,
         200,
-        &vpos,
-        &tcoords,
         .baseline,
+        [3]f32{ 1, 0, 0 },
+        &vattrib,
     );
     _ = try font_atlas2.appendDrawDataFromUTF8String(
         "第二行",
         0,
         font_atlas2.getVPosOfNextLine(200),
-        &vpos,
-        &tcoords,
         .baseline,
+        [3]f32{ 1, 0, 0 },
+        &vattrib,
     );
-    const vcount2 = @intCast(u32, vpos.items.len);
-    vertex_array2 = VertexArray.init(std.testing.allocator, 2);
-    vertex_array2.use();
-    defer vertex_array2.disuse();
-    vertex_array2.vbos[0].allocInitData(f32, vpos.items, .static_draw);
-    vertex_array2.vbos[1].allocInitData(f32, tcoords.items, .static_draw);
-    vertex_array2.setAttribute(0, 0, 3, f32, false, 0, 0);
-    vertex_array2.setAttribute(1, 1, 2, f32, false, 0, 0);
+    const vcount2 = @intCast(u32, vattrib.items.len) / FontRenderer.FloatNumOfVertexAttrib;
+    vertex_array2 = VertexArray.init(std.testing.allocator, 1);
+    FontRenderer.setupVertexArray(vertex_array2);
+    vertex_array2.vbos[0].allocInitData(f32, vattrib.items, .static_draw);
 
     // create material
     material1 = Material.init(.{
-        .font = .{
-            .color = [_]f32{ 1, 1, 0 },
-            .atlas = font_atlas1.tex,
-        },
+        .single_texture = font_atlas1.tex,
     });
     material2 = Material.init(.{
-        .font = .{
-            .color = [_]f32{ 1, 1, 0 },
-            .atlas = font_atlas2.tex,
-        },
+        .single_texture = font_atlas2.tex,
     });
 
     // compose renderer's input
@@ -131,8 +111,6 @@ fn init(ctx: *zp.Context) anyerror!void {
         null,
         null,
     );
-
-    ctx.graphics.toggleCapability(.blend, true);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -160,7 +138,7 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    ctx.graphics.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
     font_renderer.draw(&ctx.graphics, render_data) catch unreachable;
 }
 
@@ -174,6 +152,5 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
-        .enable_resizable = true,
     });
 }

@@ -173,8 +173,8 @@ pub fn prepare(g: zp.Game) !void {
 }
 
 /// allocate graphics context
-pub fn init(window: sdl.Window, api: Api) !Self {
-    assert(api == .opengl); // only opengl for now
+pub fn init(window: sdl.Window, g: zp.Game) !Self {
+    assert(g.graphics_api == .opengl); // only opengl for now
     const gl_ctx = try sdl.gl.createContext(window);
     try sdl.gl.makeCurrent(gl_ctx, window);
     if (gl.gladLoadGLLoader(sdl.c.SDL_GL_GetProcAddress) == 0) {
@@ -184,6 +184,9 @@ pub fn init(window: sdl.Window, api: Api) !Self {
         .window = window,
         .gl_ctx = gl_ctx,
     };
+    self.toggleCapability(.depth_test, g.enable_depth_test);
+    self.toggleCapability(.stencil_test, g.enable_stencil_test);
+    self.toggleCapability(.blend, g.enable_color_blend);
     self.setPolygonMode(.fill);
     self.setDepthOption(.{});
     self.setStencilOption(.{});

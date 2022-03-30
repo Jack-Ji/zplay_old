@@ -172,8 +172,6 @@ fn init(ctx: *zp.Context) anyerror!void {
             },
         },
     );
-
-    ctx.graphics.toggleCapability(.blend, true);
 }
 
 fn beforeRenderingCube(ctx: *Context, custom: ?*anyopaque) void {
@@ -313,5 +311,6 @@ pub fn main() anyerror!void {
         .quitFn = quit,
         .width = 1024,
         .height = 760,
+        .enable_depth_test = false,
     });
 }

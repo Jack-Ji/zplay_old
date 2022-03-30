@@ -280,8 +280,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
 
     // graphics init
-    ctx.graphics.toggleCapability(.depth_test, true);
-    ctx.graphics.toggleCapability(.stencil_test, true);
     ctx.graphics.toggleCapability(.multisample, true);
 }
 
@@ -334,6 +332,7 @@ fn beforeRenderingOutlined(ctx: *Context, custom: ?*anyopaque) void {
         }
     }
 
+    // BUG: stencil-test fails most of the time becuase wall occupies background
     ctx.setStencilOption(.{
         .test_func = .not_equal,
         .test_ref = 1,
@@ -436,6 +435,11 @@ fn loop(ctx: *zp.Context) void {
         3,
     );
 
+    // draw fps
+    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
+        .color = [3]f32{ 1, 1, 1 },
+    });
+
     // settings
     dig.beginFrame();
     {
@@ -477,5 +481,6 @@ pub fn main() anyerror!void {
         .width = 1600,
         .height = 900,
         .enable_msaa = true,
+        .enable_console = true,
     });
 }

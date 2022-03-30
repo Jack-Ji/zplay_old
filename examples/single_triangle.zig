@@ -1,6 +1,5 @@
 const std = @import("std");
 const zp = @import("zplay");
-const gl = zp.deps.gl;
 const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
@@ -95,8 +94,13 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    ctx.graphics.clear(true, false, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
     simple_renderer.draw(&ctx.graphics, render_data) catch unreachable;
+
+    // draw fps
+    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
+        .color = [3]f32{ 1, 1, 1 },
+    });
 }
 
 fn quit(ctx: *zp.Context) void {
@@ -110,5 +114,6 @@ pub fn main() anyerror!void {
         .loopFn = loop,
         .quitFn = quit,
         .enable_resizable = true,
+        .enable_console = true,
     });
 }

@@ -44,9 +44,6 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // load scene
     try loadScene(ctx);
-
-    // enable depth test
-    ctx.graphics.toggleCapability(.depth_test, true);
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -89,6 +86,9 @@ fn loop(ctx: *zp.Context) void {
     }
 
     scene.draw(&ctx.graphics) catch unreachable;
+
+    // draw fps
+    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{});
 
     // settings
     dig.beginFrame();
@@ -298,5 +298,6 @@ pub fn main() anyerror!void {
         .width = 1600,
         .height = 900,
         .enable_vsync = false,
+        .enable_console = true,
     });
 }

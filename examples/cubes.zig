@@ -151,9 +151,6 @@ fn init(ctx: *zp.Context) anyerror!void {
             .rdata = &render_data_screen,
         },
     });
-
-    // toggle graphics caps
-    ctx.graphics.toggleCapability(.depth_test, true);
 }
 
 fn beforeSceneRendering(ctx: *GraphicsContext, custom: ?*anyopaque) void {
@@ -259,6 +256,9 @@ fn loop(ctx: *zp.Context) void {
     // render the scene
     scene.draw(&ctx.graphics) catch unreachable;
 
+    // draw fps
+    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{});
+
     // settings
     dig.beginFrame();
     {
@@ -300,5 +300,6 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .enable_console = true,
     });
 }

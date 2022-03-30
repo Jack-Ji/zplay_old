@@ -119,6 +119,11 @@ fn loop(ctx: *zp.Context) void {
         }
     }
     nvg.endFrame();
+
+    // draw fps
+    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
+        .color = [3]f32{ 1, 1, 1 },
+    });
 }
 
 fn quit(ctx: *zp.Context) void {
@@ -134,5 +139,6 @@ pub fn main() anyerror!void {
         .width = 1000,
         .height = 600,
         .enable_vsync = false,
+        .enable_console = true,
     });
 }

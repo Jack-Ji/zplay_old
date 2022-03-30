@@ -113,9 +113,6 @@ fn init(ctx: *zp.Context) anyerror!void {
         &box_material,
         null,
     );
-
-    // enable depth testing
-    ctx.graphics.toggleCapability(.depth_test, true);
 }
 
 fn loop(ctx: *zp.Context) void {
