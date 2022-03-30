@@ -37,7 +37,7 @@ var material: Material = undefined;
 var render_data: Renderer.Input = undefined;
 
 /// text format buffer
-var text_buf: [1024]u8 = undefined;
+var text_buf: [512]u8 = undefined;
 
 /// maximum number of texts to be rendered
 const maxTextNum = 1000;
@@ -83,7 +83,7 @@ pub fn clear() void {
     vattrib.clearRetainingCapacity();
 }
 
-/// add draw data, return next xpos
+/// add draw data, return metrics of text
 pub const DrawOption = struct {
     xpos: f32 = 0,
     ypos: f32 = 0,
