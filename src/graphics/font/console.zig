@@ -119,6 +119,6 @@ pub fn submitAndRender(ctx: *Context) void {
     if (vattrib.items.len == 0) return;
     vertex_array.vbos[0].updateData(0, f32, vattrib.items);
     render_data.vds.?.items[0].count =
-        @intCast(u32, vattrib.items.len) / FontRenderer.FloatNumOfVertexAttrib;
+        @intCast(u32, vattrib.items.len) / FontRenderer.floatNumOfVertexAttrib;
     renderer.draw(ctx, render_data) catch unreachable;
 }
