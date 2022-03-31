@@ -14,6 +14,7 @@ const SimpleRenderer = gfx.@"3d".SimpleRenderer;
 
 var simple_renderer: SimpleRenderer = undefined;
 var render_data: Renderer.Input = undefined;
+var camera: Camera = undefined;
 var vertex_array: VertexArray = undefined;
 var material: Material = undefined;
 
@@ -23,6 +24,21 @@ fn init(ctx: *zp.Context) anyerror!void {
 
     // create renderer
     simple_renderer = SimpleRenderer.init(.{ .mix_factor = 1.0 });
+    camera = Camera.fromPositionAndTarget(
+        .{
+            .orthographic = .{
+                .left = -1,
+                .right = 1,
+                .bottom = -1,
+                .top = 1,
+                .near = -1,
+                .far = 1,
+            },
+        },
+        Vec3.zero(),
+        Vec3.back(),
+        null,
+    );
 
     // vertex array
     const vertices = [_]f32{
@@ -63,7 +79,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .count = 3,
             .material = &material,
         }},
-        null,
+        &camera,
         null,
         null,
     );
@@ -94,7 +110,10 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
+    ctx.graphics.clear(true, true, false, [_]f32{ 0.3, 0.3, 0.3, 1.0 });
+    render_data.vds.?.items[0].transform = .{
+        .single = Mat4.fromRotation(ctx.tick, Vec3.up()),
+    };
     simple_renderer.draw(&ctx.graphics, render_data) catch unreachable;
 
     // draw fps

@@ -1,6 +1,20 @@
 const std = @import("std");
-const Rectangle = @import("Rectangle.zig");
 const Self = @This();
 
-rect: Rectangle,
+pub const Point = struct {
+    x: f32,
+    y: f32,
+};
+
+pub const Rectangle = struct {
+    topleft: Point,
+    width: f32,
+    height: f32,
+};
+
+area: Rectangle,
 uv: Rectangle,
+
+pub fn init() Self {
+    return .{};
+}

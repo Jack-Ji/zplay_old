@@ -29,6 +29,9 @@ pub const Context = struct {
     tick: f32 = undefined,
     delta_tick: f32 = undefined,
 
+    /// text buffer for rendering console font
+    text_buf: [512]u8 = undefined,
+
     /// kill app
     pub fn kill(self: *Context) void {
         self.quit = true;
@@ -128,13 +131,13 @@ pub const Context = struct {
 
     /// convenient text drawing
     pub fn drawText(
-        self: Context,
+        self: *Context,
         comptime fmt: []const u8,
         args: anytype,
         opt: console.DrawOption,
     ) console.DrawRect {
-        _ = self;
-        return console.drawText(fmt, args, opt) catch unreachable;
+        const text = std.fmt.bufPrint(&self.text_buf, fmt, args) catch unreachable;
+        return console.drawText(text, opt) catch unreachable;
     }
 };
 
@@ -254,7 +257,7 @@ pub fn run(g: Game) !void {
 
     // init console
     if (g.enable_console) {
-        console.init(std.heap.c_allocator, &context.graphics, g.console_font_size);
+        console.init(std.heap.c_allocator, g.console_font_size);
     }
 
     // init before loop
@@ -282,7 +285,7 @@ pub fn run(g: Game) !void {
             g.loopFn(&context);
 
             // render console text
-            console.submitAndRender();
+            console.submitAndRender(&context.graphics);
 
             // swap buffers
             context.graphics.swap();

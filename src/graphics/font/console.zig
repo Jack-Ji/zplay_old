@@ -12,9 +12,6 @@ const Self = @This();
 
 const font_data = @embedFile("clacon2.ttf");
 
-/// graphics context
-var ctx: *Context = undefined;
-
 /// font 
 var font: ?*Font = null;
 
@@ -36,15 +33,11 @@ var material: Material = undefined;
 /// renderer's input 
 var render_data: Renderer.Input = undefined;
 
-/// text format buffer
-var text_buf: [512]u8 = undefined;
-
 /// maximum number of texts to be rendered
 const maxTextNum = 1000;
 
 /// init module
-pub fn init(allocator: std.mem.Allocator, _ctx: *Context, size: u32) void {
-    ctx = _ctx;
+pub fn init(allocator: std.mem.Allocator, size: u32) void {
     font = Font.fromTrueTypeData(allocator, font_data) catch unreachable;
     atlas = font.?.createAtlas(
         size,
@@ -98,10 +91,9 @@ pub const DrawRect = struct {
     next_xpos: f32,
     next_line_ypos: f32,
 };
-pub fn drawText(comptime fmt: []const u8, args: anytype, opt: DrawOption) !DrawRect {
+pub fn drawText(text: []const u8, opt: DrawOption) !DrawRect {
     assert(font != null);
     assert(vattrib.items.len / 48 < maxTextNum);
-    const text = try std.fmt.bufPrint(&text_buf, fmt, args);
     var next_xpos = try atlas.appendDrawDataFromUTF8String(
         text,
         opt.xpos,
@@ -122,7 +114,7 @@ pub fn drawText(comptime fmt: []const u8, args: anytype, opt: DrawOption) !DrawR
 }
 
 /// send batched data to gpu, issue draw command
-pub fn submitAndRender() void {
+pub fn submitAndRender(ctx: *Context) void {
     assert(font != null);
     if (vattrib.items.len == 0) return;
     vertex_array.vbos[0].updateData(0, f32, vattrib.items);
