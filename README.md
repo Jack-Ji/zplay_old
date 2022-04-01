@@ -20,6 +20,7 @@ A simple framework intended for game/tool creation.
 * TrueType font loading and rendering
 * Particle system (TODO)
 * SpriteBatch system (TODO)
+* Texture packer used to programmatically create sprite sheet
 * 2D physics (TODO)
 * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
