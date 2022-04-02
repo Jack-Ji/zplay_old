@@ -38,6 +38,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         "ogre",
         .{ .x = 50, .y = 500 },
     );
+    sprite.setAnchorPoint(.{ .x = 0.5, .y = 0.5 });
     sprite_batch = try SpriteBatch.init(
         std.testing.allocator,
         10,
@@ -72,8 +73,10 @@ fn loop(ctx: *zp.Context) void {
                 .single_texture = sprite_sheet.tex,
             },
         ),
+        .custom = &Mat4.fromScale(Vec3.new(0.5, 0.5, 1)).translate(Vec3.new(0.5, 0.5, 0)),
     }) catch unreachable;
 
+    sprite.rotate(ctx.tick * 30);
     sprite_batch.clear();
     sprite_batch.drawSprite(sprite) catch unreachable;
     sprite_batch.submitAndRender(&ctx.graphics) catch unreachable;

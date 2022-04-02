@@ -91,13 +91,15 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     defer self.program.disuse();
 
     // apply common uniform vars
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.getDrawableSize(&width, &height);
     self.program.setUniformByName("u_project", if (input.camera) |c|
         c.getProjectMatrix()
-    else
-        Mat4.orthographic(0, @intToFloat(f32, width), 0, @intToFloat(f32, height), 0, 100));
+    else blk: {
+        var width: u32 = undefined;
+        var height: u32 = undefined;
+        ctx.getDrawableSize(&width, &height);
+        var mat = Mat4.orthographic(0, @intToFloat(f32, width), @intToFloat(f32, height), 0, -1, 1);
+        break :blk mat;
+    });
 
     // render vertex data one by one
     var current_material: *Material = undefined;
