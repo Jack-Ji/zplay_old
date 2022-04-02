@@ -18,9 +18,9 @@ A simple framework intended for game/tool creation.
 * Flexible render-passes pipeline, greatly simplify rendering code
 * 3D model loading and rendering (only glTF 2.0 for now)
 * TrueType font loading and rendering
+* 2D Sprite and SpriteBatch system
+* 2D Texture packer used to programmatically create sprite-sheet
 * Particle system (TODO)
-* SpriteBatch system (TODO)
-* Texture packer used to programmatically create sprite sheet
 * 2D physics (TODO)
 * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))

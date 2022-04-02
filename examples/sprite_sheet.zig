@@ -11,9 +11,13 @@ const Camera = gfx.Camera;
 const Material = gfx.Material;
 const TextureDisplay = gfx.post_processing.TextureDisplay;
 const SpriteSheet = gfx.@"2d".SpriteSheet;
+const Sprite = gfx.@"2d".Sprite;
+const SpriteBatch = gfx.@"2d".SpriteBatch;
 
-var sprite_sheet: SpriteSheet = undefined;
+var sprite_sheet: *SpriteSheet = undefined;
 var tex_display: TextureDisplay = undefined;
+var sprite: Sprite = undefined;
+var sprite_batch: SpriteBatch = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
@@ -29,6 +33,15 @@ fn init(ctx: *zp.Context) anyerror!void {
         "assets/images",
         width,
         height,
+    );
+    sprite = try sprite_sheet.createSprite(
+        "ogre",
+        .{ .x = 50, .y = 500 },
+    );
+    sprite_batch = try SpriteBatch.init(
+        std.testing.allocator,
+        10,
+        1000,
     );
 
     // create renderer
@@ -60,6 +73,10 @@ fn loop(ctx: *zp.Context) void {
             },
         ),
     }) catch unreachable;
+
+    sprite_batch.clear();
+    sprite_batch.drawSprite(sprite) catch unreachable;
+    sprite_batch.submitAndRender(&ctx.graphics) catch unreachable;
 
     // draw fps
     _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{

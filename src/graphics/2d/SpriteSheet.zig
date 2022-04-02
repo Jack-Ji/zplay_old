@@ -1,5 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const Sprite = @import("Sprite.zig");
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
 const Texture = gfx.gpu.Texture;
@@ -7,8 +8,9 @@ const stb_rect_pack = zp.deps.stb.rect_pack;
 const stb_image = zp.deps.stb.image;
 const Self = @This();
 
-pub const PackError = error{
+pub const Error = error{
     TextureNotLargeEnough,
+    SpriteNotExist,
 };
 
 /// image pixels
@@ -60,7 +62,7 @@ pub fn init(
     sources: []const ImageSource,
     width: u32,
     height: u32,
-) !Self {
+) !*Self {
     assert(sources.len > 0);
     const ImageData = struct {
         is_file: bool,
@@ -83,7 +85,8 @@ pub fn init(
     var images = try allocator.alloc(ImageData, sources.len);
     defer allocator.free(images);
 
-    // flip image files, cause stb_image use top-left pixel as first one
+    // flip image files, cause stb_image use top-left pixel as first one,
+    // opengl use bottom-left.
     stb_image.stbi_set_flip_vertically_on_load(1);
 
     // load images' data
@@ -203,12 +206,14 @@ pub fn init(
         );
     }
 
-    return Self{
+    var self = allocator.create(Self) catch unreachable;
+    self.* = .{
         .allocator = allocator,
         .tex = tex,
         .rects = rects,
         .search_tree = tree,
     };
+    return self;
 }
 
 /// create sprite-sheet with all picture files in given directory
@@ -218,7 +223,7 @@ pub fn fromPicturesInDir(
     dir_path: []const u8,
     width: u32,
     height: u32,
-) !Self {
+) !*Self {
     var curdir = std.fs.cwd();
     var dir = try curdir.openDir(dir_path, .{ .iterate = true, .no_follow = true });
     defer dir.close();
@@ -268,6 +273,26 @@ pub fn deinit(self: *Self) void {
         self.allocator.free(entry.key_ptr.*);
     }
     self.search_tree.deinit();
+    self.allocator.destroy(self);
+}
+
+/// create sprite
+pub fn createSprite(
+    self: *Self,
+    name: []const u8,
+    pos: Sprite.Point,
+) !Sprite {
+    if (self.getSpriteRect(name)) |rect| {
+        return Sprite{
+            .pos = pos,
+            .width = rect.width,
+            .height = rect.height,
+            .uv0 = .{ .x = rect.s0, .y = rect.t0 },
+            .uv1 = .{ .x = rect.s1, .y = rect.t1 },
+            .sheet = self,
+        };
+    }
+    return error.SpriteNotExist;
 }
 
 /// get sprite rectangle by name

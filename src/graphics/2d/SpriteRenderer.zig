@@ -3,6 +3,7 @@ const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const gfx = zp.graphics;
 const Context = gfx.gpu.Context;
+const VertexArray = gfx.gpu.VertexArray;
 const drawcall = gfx.gpu.drawcall;
 const ShaderProgram = gfx.gpu.ShaderProgram;
 const Material = gfx.Material;
@@ -15,11 +16,10 @@ const Mat4 = alg.Mat4;
 const Self = @This();
 
 const vs_body =
-    \\layout (location = 0) in vec3 a_pos;
+    \\layout (location = 0) in vec2 a_pos;
     \\layout (location = 1) in vec2 a_tex;
-    \\layout (location = 10) in mat4 a_transform;
+    \\layout (location = 2) in mat4 a_transform;
     \\
-    \\uniform mat4 u_model;
     \\uniform mat4 u_project;
     \\
     \\out vec3 v_pos;
@@ -27,13 +27,9 @@ const vs_body =
     \\
     \\void main()
     \\{
-    \\#ifdef INSTANCED_DRAW
-    \\    v_pos = vec3(a_transform * vec4(a_pos, 1.0));
-    \\#else
-    \\    v_pos = vec3(u_model * vec4(a_pos, 1.0));
-    \\#endif
-    \\    gl_Position = u_project * vec4(v_pos, 1.0);
+    \\    v_pos = vec3(a_transform * vec4(a_pos, 0.0, 1.0));
     \\    v_tex = a_tex;
+    \\    gl_Position = u_project * vec4(v_pos, 1.0);
     \\}
 ;
 
@@ -52,25 +48,34 @@ const fs_body =
 ;
 
 const vs = Renderer.shader_head ++ vs_body;
-const vs_instanced = Renderer.shader_head ++ "\n#define INSTANCED_DRAW\n" ++ vs_body;
 const fs = Renderer.shader_head ++ fs_body;
 
 /// shader programs
 program: ShaderProgram = undefined,
-program_instanced: ShaderProgram = undefined,
 
 /// create a simple renderer
 pub fn init() Self {
     var self = Self{};
     self.program = ShaderProgram.init(vs, fs, null);
-    self.program_instanced = ShaderProgram.init(vs_instanced, fs, null);
     return self;
 }
 
 /// free resources
 pub fn deinit(self: *Self) void {
     self.program.deinit();
-    self.program_instanced.deinit();
+}
+
+/// get vertex array ready for rendering sprites
+pub fn setupVertexArray(va: VertexArray) void {
+    assert(va.vbo_num > 1);
+    va.use();
+    defer va.disuse();
+    va.setAttribute(0, 0, 2, f32, false, 4 * @sizeOf(f32), 0);
+    va.setAttribute(0, 1, 2, f32, false, 4 * @sizeOf(f32), 2 * @sizeOf(f32));
+    va.setAttribute(1, 2, 4, f32, false, @sizeOf(Mat4), 0);
+    va.setAttribute(1, 3, 4, f32, false, @sizeOf(Mat4), 4 * @sizeOf(f32));
+    va.setAttribute(1, 4, 4, f32, false, @sizeOf(Mat4), 8 * @sizeOf(f32));
+    va.setAttribute(1, 5, 4, f32, false, @sizeOf(Mat4), 12 * @sizeOf(f32));
 }
 
 /// get renderer instance
@@ -82,16 +87,14 @@ pub fn renderer(self: *Self) Renderer {
 pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     _ = ctx;
     if (input.vds == null or input.vds.?.items.len == 0) return;
-    var is_instanced_drawing = input.vds.?.items[0].transform == .instanced;
-    var prog = if (is_instanced_drawing) &self.program_instanced else &self.program;
-    prog.use();
-    defer prog.disuse();
+    self.program.use();
+    defer self.program.disuse();
 
     // apply common uniform vars
     var width: u32 = undefined;
     var height: u32 = undefined;
     ctx.getDrawableSize(&width, &height);
-    prog.setUniformByName("u_project", if (input.camera) |c|
+    self.program.setUniformByName("u_project", if (input.camera) |c|
         c.getProjectMatrix()
     else
         Mat4.orthographic(0, @intToFloat(f32, width), 0, @intToFloat(f32, height), 0, 100));
@@ -100,6 +103,7 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     var current_material: *Material = undefined;
     for (input.vds.?.items) |vd| {
         if (!vd.valid) continue;
+        if (vd.count == 0) continue;
         vd.vertex_array.use();
         defer vd.vertex_array.disuse();
 
@@ -111,10 +115,10 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
                 _ = current_material.allocTextureUnit(0);
                 switch (mr.data) {
                     .phong => |m| {
-                        prog.setUniformByName("u_texture", m.diffuse_map.getTextureUnit());
+                        self.program.setUniformByName("u_texture", m.diffuse_map.getTextureUnit());
                     },
                     .single_texture => |tex| {
-                        prog.setUniformByName("u_texture", tex.getTextureUnit());
+                        self.program.setUniformByName("u_texture", tex.getTextureUnit());
                     },
                     else => {
                         std.debug.panic("unsupported material type", .{});
@@ -124,31 +128,6 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
         }
 
         // send draw command
-        if (is_instanced_drawing) {
-            vd.transform.instanced.enableAttributes(10);
-            if (vd.element_draw) {
-                drawcall.drawElementsInstanced(
-                    vd.primitive,
-                    vd.offset,
-                    vd.count,
-                    u32,
-                    vd.transform.instanced.count,
-                );
-            } else {
-                drawcall.drawBufferInstanced(
-                    vd.primitive,
-                    vd.offset,
-                    vd.count,
-                    vd.transform.instanced.count,
-                );
-            }
-        } else {
-            prog.setUniformByName("u_model", vd.transform.single);
-            if (vd.element_draw) {
-                drawcall.drawElements(vd.primitive, vd.offset, vd.count, u32);
-            } else {
-                drawcall.drawBuffer(vd.primitive, vd.offset, vd.count);
-            }
-        }
+        drawcall.drawBuffer(vd.primitive, vd.offset, vd.count);
     }
 }

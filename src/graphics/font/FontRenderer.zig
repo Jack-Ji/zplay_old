@@ -115,6 +115,7 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     var current_material: *Material = undefined;
     for (input.vds.?.items) |vd| {
         if (!vd.valid) continue;
+        if (vd.count == 0) continue;
         vd.vertex_array.use();
         defer vd.vertex_array.disuse();
 
@@ -136,10 +137,6 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
         }
 
         // send draw command
-        if (vd.element_draw) {
-            drawcall.drawElements(vd.primitive, vd.offset, vd.count, u32);
-        } else {
-            drawcall.drawBuffer(vd.primitive, vd.offset, vd.count);
-        }
+        drawcall.drawBuffer(vd.primitive, vd.offset, vd.count);
     }
 }
