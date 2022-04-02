@@ -35,6 +35,7 @@ pub fn build(b: *std.build.Builder) void {
         "bullet_test",
         "file_dialog",
         "cube_cross",
+        "sprite_sheet",
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |name| {

@@ -39,7 +39,7 @@ pub extern fn stbi_is_hdr_from_memory(buffer: [*c]const stbi_uc, len: c_int) c_i
 pub extern fn stbi_is_hdr(filename: [*c]const u8) c_int;
 pub extern fn stbi_is_hdr_from_file(f: [*c]FILE) c_int;
 pub extern fn stbi_failure_reason() [*c]const u8;
-pub extern fn stbi_image_free(retval_from_stbi_load: ?*anyopaque) void;
+pub extern fn stbi_image_free(retval_from_stbi_load: ?*const anyopaque) void;
 pub extern fn stbi_info_from_memory(buffer: [*c]const stbi_uc, len: c_int, x: [*c]c_int, y: [*c]c_int, comp: [*c]c_int) c_int;
 pub extern fn stbi_info_from_callbacks(clbk: [*c]const stbi_io_callbacks, user: ?*anyopaque, x: [*c]c_int, y: [*c]c_int, comp: [*c]c_int) c_int;
 pub extern fn stbi_is_16_bit_from_memory(buffer: [*c]const stbi_uc, len: c_int) c_int;

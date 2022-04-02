@@ -319,7 +319,7 @@ pub fn init2DFromPixels(
 /// create 2d texture with path to image file
 pub fn init2DFromFilePath(
     allocator: std.mem.Allocator,
-    file_path: [:0]const u8,
+    file_path: []const u8,
     flip: bool,
     option: Option,
 ) !*Self {
@@ -514,12 +514,12 @@ pub fn initCubeFromPixels(
 /// create cube texture with path to image files
 pub fn initCubeFromFilePaths(
     allocator: std.mem.Allocator,
-    right_file_path: [:0]const u8,
-    left_file_path: [:0]const u8,
-    top_file_path: [:0]const u8,
-    bottom_file_path: [:0]const u8,
-    front_file_path: [:0]const u8,
-    back_file_path: [:0]const u8,
+    right_file_path: []const u8,
+    left_file_path: []const u8,
+    top_file_path: []const u8,
+    bottom_file_path: []const u8,
+    front_file_path: []const u8,
+    back_file_path: []const u8,
     need_linearization: bool,
 ) !*Self {
     var width: c_int = undefined;

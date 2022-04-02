@@ -5,4 +5,4 @@ pub const SpriteRenderer = @import("2d/SpriteRenderer.zig");
 pub const Sprite = @import("2d/Sprite.zig");
 
 /// sprite sheet
-pub const SpriteSheet = @import("2d/texture_packer.zig");
+pub const SpriteSheet = @import("2d/SpriteSheet.zig");
