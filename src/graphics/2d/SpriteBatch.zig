@@ -132,7 +132,7 @@ pub fn submitAndRender(self: *Self, ctx: *Context) !void {
             f32,
             self.batches[i].vattrib.items,
         );
-        self.batches[i].vertex_array.vbos[0].updateData(
+        self.batches[i].vertex_array.vbos[1].updateData(
             0,
             Mat4,
             self.batches[i].vtransforms.items,
