@@ -22,6 +22,10 @@ height: f32,
 uv0: Point,
 uv1: Point,
 
+/// scale of width/height
+scale_w: f32 = 1.0,
+scale_h: f32 = 1.0,
+
 /// rotation around anchor-point (center by default)
 rotate_degree: f32 = 0,
 
@@ -42,8 +46,8 @@ pub fn appendDrawData(self: Self, va: *std.ArrayList(f32), tr: *std.ArrayList(Ma
         1 - self.anchor_point.x, 1 - self.anchor_point.y, self.uv1.x, self.uv1.y,
         1 - self.anchor_point.x, -self.anchor_point.y,    self.uv1.x, self.uv0.y,
     });
-    const mat = Mat4.fromScale(Vec3.new(self.width, self.height, 1))
-        .rotate(self.rotate_degree, Vec3.forward())
+    const mat = Mat4.fromScale(Vec3.new(self.width * self.scale_w, self.height * self.scale_h, 1))
+        .rotate(self.rotate_degree, Vec3.back())
         .translate(Vec3.new(self.pos.x, self.pos.y, 0));
     try tr.appendSlice(
         &.{ mat, mat, mat, mat, mat, mat },
@@ -67,9 +71,9 @@ pub fn rotate(self: *Self, degree: f32) void {
     self.rotate_degree = degree;
 }
 
-pub fn scale(self: *Self, scale_width: f32, scale_height: f32) void {
-    self.width *= scale_width;
-    self.height *= scale_height;
+pub fn scale(self: *Self, scale_w: f32, scale_h: f32) void {
+    self.scale_w = scale_w;
+    self.scale_h = scale_h;
 }
 
 pub fn flipH(self: *Self) void {

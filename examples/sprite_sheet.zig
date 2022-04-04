@@ -39,6 +39,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         .{ .x = 50, .y = 500 },
     );
     sprite.setAnchorPoint(.{ .x = 0.5, .y = 0.5 });
+    sprite.scale(2, 2);
     sprite_batch = try SpriteBatch.init(
         std.testing.allocator,
         10,
