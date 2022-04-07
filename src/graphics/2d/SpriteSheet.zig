@@ -284,11 +284,9 @@ pub fn deinit(self: *Self) void {
 pub fn createSprite(
     self: *Self,
     name: []const u8,
-    pos: Sprite.Point,
 ) !Sprite {
     if (self.getSpriteRect(name)) |rect| {
         return Sprite{
-            .pos = pos,
             .width = rect.width,
             .height = rect.height,
             .uv0 = .{ .x = rect.s0, .y = rect.t0 },

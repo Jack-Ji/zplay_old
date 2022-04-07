@@ -185,13 +185,14 @@ pub fn init(window: sdl.Window, g: zp.Game) !Self {
         .gl_ctx = gl_ctx,
     };
     self.toggleCapability(.depth_test, g.enable_depth_test);
+    self.toggleCapability(.cull_face, g.enable_face_culling);
     self.toggleCapability(.stencil_test, g.enable_stencil_test);
     self.toggleCapability(.blend, g.enable_color_blend);
-    self.setPolygonMode(.fill);
     self.setDepthOption(.{});
+    self.setCullingOption(.{});
     self.setStencilOption(.{});
     self.setBlendOption(.{});
-    self.setCullingOption(.{});
+    self.setPolygonMode(.fill);
 
     // output graphics info
     const gl_vendor = @ptrCast([*:0]const u8, gl.getString(gl.GL_VENDOR));

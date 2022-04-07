@@ -300,6 +300,7 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .enable_depth_test = true,
         .enable_console = true,
     });
 }

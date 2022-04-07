@@ -481,6 +481,8 @@ pub fn main() anyerror!void {
         .width = 1600,
         .height = 900,
         .enable_msaa = true,
+        .enable_depth_test = true,
+        .enable_stencil_test = true,
         .enable_console = true,
     });
 }

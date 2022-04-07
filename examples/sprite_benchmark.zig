@@ -9,6 +9,7 @@ const SpriteBatch = gfx.@"2d".SpriteBatch;
 
 const Actor = struct {
     sprite: Sprite,
+    pos: Sprite.Point,
     velocity: Sprite.Point,
 };
 
@@ -41,6 +42,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     sprite_batch = try SpriteBatch.init(
         std.testing.allocator,
+        &ctx.graphics,
         10,
         1000000,
     );
@@ -86,10 +88,8 @@ fn loop(ctx: *zp.Context) void {
                                 const angle = rd.float(f32) * 2 * std.math.pi;
                                 const name = all_names.items[index];
                                 characters.append(.{
-                                    .sprite = sprite_sheet.createSprite(
-                                        name,
-                                        pos,
-                                    ) catch unreachable,
+                                    .sprite = sprite_sheet.createSprite(name) catch unreachable,
+                                    .pos = pos,
                                     .velocity = .{
                                         .x = 5 * std.math.cos(angle),
                                         .y = 5 * std.math.sin(angle),
@@ -110,23 +110,23 @@ fn loop(ctx: *zp.Context) void {
     var height: u32 = undefined;
     ctx.graphics.getDrawableSize(&width, &height);
     for (characters.items) |*c| {
-        const curpos = c.sprite.pos;
+        const curpos = c.pos;
         if (curpos.x < 0 or curpos.x + c.sprite.width > @intToFloat(f32, width))
             c.velocity.x = -c.velocity.x;
         if (curpos.y < 0 or curpos.y + c.sprite.height > @intToFloat(f32, height))
             c.velocity.y = -c.velocity.y;
-        c.sprite.moveBy(.{
-            .x = c.velocity.x,
-            .y = c.velocity.y,
-        });
+        c.pos.x += c.velocity.x;
+        c.pos.y += c.velocity.y;
     }
 
     ctx.graphics.clear(true, true, false, [_]f32{ 0.3, 0.3, 0.3, 1.0 });
-    sprite_batch.clear();
+    sprite_batch.begin(.none);
     for (characters.items) |c| {
-        sprite_batch.drawSprite(c.sprite, .{}) catch unreachable;
+        sprite_batch.drawSprite(c.sprite, .{
+            .pos = c.pos,
+        }) catch unreachable;
     }
-    sprite_batch.submitAndRender(&ctx.graphics) catch unreachable;
+    sprite_batch.end() catch unreachable;
 
     // draw fps
     var opt = gfx.font.console.DrawOption{

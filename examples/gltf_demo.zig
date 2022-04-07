@@ -298,6 +298,7 @@ pub fn main() anyerror!void {
         .width = 1600,
         .height = 900,
         .enable_vsync = false,
+        .enable_depth_test = true,
         .enable_console = true,
     });
 }

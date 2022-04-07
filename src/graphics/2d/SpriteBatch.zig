@@ -17,7 +17,29 @@ pub const Error = error{
     TooMuchSprite,
 };
 
+pub const DepthSortMethod = enum {
+    none,
+    back_to_forth,
+    forth_to_back,
+};
+
+pub const DrawOption = struct {
+    pos: Sprite.Point,
+    color: [4]f32 = [_]f32{ 1, 1, 1, 1 },
+    scale_w: f32 = 1.0,
+    scale_h: f32 = 1.0,
+    rotate_degree: f32 = 0,
+    anchor_point: Sprite.Point = .{ .x = 0, .y = 0 },
+    depth: f32 = 0.5,
+};
+
 const BatchData = struct {
+    const SpriteData = struct {
+        sprite: Sprite,
+        draw_option: DrawOption,
+    };
+
+    sprites_data: std.ArrayList(SpriteData),
     vertex_array: VertexArray,
     vattrib: std.ArrayList(f32),
     vtransforms: std.ArrayList(Mat4),
@@ -26,6 +48,9 @@ const BatchData = struct {
 
 /// memory allocator
 allocator: std.mem.Allocator,
+
+/// graphics context
+gctx: *Context,
 
 /// renderer
 renderer: SpriteRenderer,
@@ -42,14 +67,19 @@ search_tree: std.AutoHashMap(*SpriteSheet, u32),
 /// maximum limit
 max_sprites_per_drawcall: u32,
 
+///  sort by depth
+depth_sort: DepthSortMethod,
+
 /// create sprite-batch
 pub fn init(
     allocator: std.mem.Allocator,
+    ctx: *Context,
     max_sheet_num: u32,
     max_sprites_per_drawcall: u32,
 ) !Self {
     var self = Self{
         .allocator = allocator,
+        .gctx = ctx,
         .renderer = SpriteRenderer.init(),
         .batches = try allocator.alloc(BatchData, max_sheet_num),
         .render_data = try Renderer.Input.init(
@@ -61,10 +91,12 @@ pub fn init(
         ),
         .search_tree = std.AutoHashMap(*SpriteSheet, u32).init(allocator),
         .max_sprites_per_drawcall = max_sprites_per_drawcall,
+        .depth_sort = .none,
     };
     for (self.batches) |*b| {
+        b.sprites_data = try std.ArrayList(BatchData.SpriteData).initCapacity(allocator, 1000);
         b.vertex_array = VertexArray.init(allocator, 2);
-        b.vertex_array.vbos[0].allocData(max_sprites_per_drawcall * 16, .dynamic_draw);
+        b.vertex_array.vbos[0].allocData(max_sprites_per_drawcall * 32, .dynamic_draw);
         b.vertex_array.vbos[1].allocData(max_sprites_per_drawcall * 64, .dynamic_draw);
         SpriteRenderer.setupVertexArray(b.vertex_array);
         b.vattrib = try std.ArrayList(f32).initCapacity(allocator, 32000);
@@ -75,6 +107,7 @@ pub fn init(
 
 pub fn deinit(self: *Self) void {
     for (self.batches) |b| {
+        b.sprites_data.deinit();
         b.vertex_array.deinit();
         b.vattrib.deinit();
         b.vtransforms.deinit();
@@ -85,9 +118,11 @@ pub fn deinit(self: *Self) void {
     self.search_tree.deinit();
 }
 
-/// clear batched data
-pub fn clear(self: *Self) void {
+/// begin batched data
+pub fn begin(self: *Self, depth_sort: DepthSortMethod) void {
+    self.depth_sort = depth_sort;
     for (self.render_data.vds.?.items) |_, i| {
+        self.batches[i].sprites_data.clearRetainingCapacity();
         self.batches[i].vattrib.clearRetainingCapacity();
         self.batches[i].vtransforms.clearRetainingCapacity();
     }
@@ -96,10 +131,6 @@ pub fn clear(self: *Self) void {
 }
 
 /// add sprite to next batch
-pub const DrawOption = struct {
-    tint_color: [4]f32 = [_]f32{ 1, 1, 1, 1 },
-    depth: f32 = 0.5,
-};
 pub fn drawSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
     var index = self.search_tree.get(sprite.sheet) orelse blk: {
         var count = self.search_tree.count();
@@ -121,17 +152,68 @@ pub fn drawSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
     if (self.batches[index].vtransforms.items.len >= self.max_sprites_per_drawcall) {
         return error.TooMuchSprite;
     }
-    try sprite.appendDrawData(
-        opt.tint_color,
-        opt.depth,
-        &self.batches[index].vattrib,
-        &self.batches[index].vtransforms,
-    );
+    try self.batches[index].sprites_data.append(.{
+        .sprite = sprite,
+        .draw_option = opt,
+    });
+}
+
+fn ascendCompare(self: *Self, lhs: BatchData.SpriteData, rhs: BatchData.SpriteData) bool {
+    _ = self;
+    return lhs.draw_option.depth < rhs.draw_option.depth;
+}
+
+fn descendCompare(self: *Self, lhs: BatchData.SpriteData, rhs: BatchData.SpriteData) bool {
+    _ = self;
+    return lhs.draw_option.depth > rhs.draw_option.depth;
 }
 
 /// send batched data to gpu, issue draw command
-pub fn submitAndRender(self: *Self, ctx: *Context) !void {
+pub fn end(self: *Self) !void {
     if (self.render_data.vds.?.items.len == 0) return;
+
+    // generate draw data
+    for (self.batches) |*b| {
+        // sort sprites when needed
+        switch (self.depth_sort) {
+            .back_to_forth => {
+                // sort depth value in descending order
+                std.sort.sort(
+                    BatchData.SpriteData,
+                    b.sprites_data.items,
+                    self,
+                    descendCompare,
+                );
+            },
+            .forth_to_back => {
+                // sort depth value in ascending order
+                std.sort.sort(
+                    BatchData.SpriteData,
+                    b.sprites_data.items,
+                    self,
+                    ascendCompare,
+                );
+            },
+            else => {},
+        }
+
+        for (b.sprites_data.items) |data| {
+            try data.sprite.appendDrawData(
+                &b.vattrib,
+                &b.vtransforms,
+                .{
+                    .pos = data.draw_option.pos,
+                    .color = data.draw_option.color,
+                    .scale_w = data.draw_option.scale_w,
+                    .scale_h = data.draw_option.scale_h,
+                    .rotate_degree = data.draw_option.rotate_degree,
+                    .anchor_point = data.draw_option.anchor_point,
+                },
+            );
+        }
+    }
+
+    // upload vertex data
     for (self.render_data.vds.?.items) |*vd, i| {
         self.batches[i].vertex_array.vbos[0].updateData(
             0,
@@ -145,5 +227,7 @@ pub fn submitAndRender(self: *Self, ctx: *Context) !void {
         );
         vd.count = @intCast(u32, self.batches[i].vtransforms.items.len);
     }
-    try self.renderer.draw(ctx, self.render_data);
+
+    // send draw command
+    try self.renderer.draw(self.gctx, self.render_data);
 }

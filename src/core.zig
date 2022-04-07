@@ -184,13 +184,16 @@ pub const Game = struct {
     /// graphics api
     graphics_api: GraphicsContext.Api = .opengl,
 
-    /// enable depth-testing capability
-    enable_depth_test: bool = true,
+    /// depth-testing capability
+    enable_depth_test: bool = false,
 
-    /// enable stencil-testing capability
-    enable_stencil_test: bool = true,
+    /// face-culling capability
+    enable_face_culling: bool = false,
 
-    /// enable blending capability
+    /// stencil-testing capability
+    enable_stencil_test: bool = false,
+
+    /// blending capability
     enable_color_blend: bool = true,
 
     // vsync switch

@@ -254,8 +254,9 @@ pub fn main() anyerror!void {
     try zp.run(.{
         .initFn = init,
         .loopFn = loop,
+        .quitFn = quit,
         .width = 1600,
         .height = 900,
-        .quitFn = quit,
+        .enable_depth_test = true,
     });
 }

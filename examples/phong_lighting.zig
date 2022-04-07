@@ -675,6 +675,7 @@ pub fn main() anyerror!void {
         .quitFn = quit,
         .width = 1600,
         .height = 900,
+        .enable_depth_test = true,
         .enable_console = true,
     });
 }

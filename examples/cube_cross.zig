@@ -311,6 +311,5 @@ pub fn main() anyerror!void {
         .quitFn = quit,
         .width = 1024,
         .height = 760,
-        .enable_depth_test = false,
     });
 }

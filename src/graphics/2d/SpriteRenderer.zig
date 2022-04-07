@@ -16,7 +16,7 @@ const Mat4 = alg.Mat4;
 const Self = @This();
 
 const vs_body =
-    \\layout (location = 0) in vec3 a_pos;
+    \\layout (location = 0) in vec2 a_pos;
     \\layout (location = 1) in vec4 a_color;
     \\layout (location = 2) in vec2 a_tex;
     \\layout (location = 3) in mat4 a_transform;
@@ -29,7 +29,7 @@ const vs_body =
     \\
     \\void main()
     \\{
-    \\    v_pos = vec3(a_transform * vec4(a_pos, 1.0));
+    \\    v_pos = vec3(a_transform * vec4(vec3(a_pos, 0.0), 1.0));
     \\    v_color = a_color;
     \\    v_tex = a_tex;
     \\    gl_Position = u_project * vec4(v_pos, 1.0);
@@ -74,9 +74,9 @@ pub fn setupVertexArray(va: VertexArray) void {
     assert(va.vbo_num > 1);
     va.use();
     defer va.disuse();
-    va.setAttribute(0, 0, 3, f32, false, 9 * @sizeOf(f32), 0);
-    va.setAttribute(0, 1, 3, f32, false, 9 * @sizeOf(f32), 3 * @sizeOf(f32));
-    va.setAttribute(0, 2, 2, f32, false, 9 * @sizeOf(f32), 7 * @sizeOf(f32));
+    va.setAttribute(0, 0, 2, f32, false, 8 * @sizeOf(f32), 0);
+    va.setAttribute(0, 1, 4, f32, false, 8 * @sizeOf(f32), 2 * @sizeOf(f32));
+    va.setAttribute(0, 2, 2, f32, false, 8 * @sizeOf(f32), 6 * @sizeOf(f32));
     va.setAttribute(1, 3, 4, f32, false, @sizeOf(Mat4), 0);
     va.setAttribute(1, 4, 4, f32, false, @sizeOf(Mat4), 4 * @sizeOf(f32));
     va.setAttribute(1, 5, 4, f32, false, @sizeOf(Mat4), 8 * @sizeOf(f32));

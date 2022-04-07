@@ -31,14 +31,10 @@ fn init(ctx: *zp.Context) anyerror!void {
         height,
         .{},
     );
-    sprite = try sprite_sheet.createSprite(
-        "ogre",
-        .{ .x = 50, .y = 500 },
-    );
-    sprite.setAnchorPoint(.{ .x = 0.5, .y = 0.5 });
-    sprite.scale(2, 2);
+    sprite = try sprite_sheet.createSprite("ogre");
     sprite_batch = try SpriteBatch.init(
         std.testing.allocator,
+        &ctx.graphics,
         10,
         1000,
     );
@@ -74,10 +70,22 @@ fn loop(ctx: *zp.Context) void {
         .custom = &Mat4.fromScale(Vec3.new(0.5, 0.5, 1)).translate(Vec3.new(0.5, 0.5, 0)),
     }) catch unreachable;
 
-    sprite_batch.clear();
-    sprite.rotate(ctx.tick * 30);
-    sprite_batch.drawSprite(sprite, .{}) catch unreachable;
-    sprite_batch.submitAndRender(&ctx.graphics) catch unreachable;
+    sprite_batch.begin(.back_to_forth);
+    sprite_batch.drawSprite(sprite, .{
+        .pos = .{ .x = 100, .y = 400 },
+        .scale_w = 2,
+        .scale_h = 2,
+        .rotate_degree = ctx.tick * 30,
+    }) catch unreachable;
+    sprite_batch.drawSprite(sprite, .{
+        .pos = .{ .x = 100, .y = 400 },
+        .rotate_degree = ctx.tick * 30,
+        .scale_w = 4,
+        .scale_h = 4,
+        .color = [_]f32{ 1, 0, 0, 1 },
+        .depth = 1,
+    }) catch unreachable;
+    sprite_batch.end() catch unreachable;
 
     // draw fps
     _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
@@ -96,5 +104,6 @@ pub fn main() anyerror!void {
         .loopFn = loop,
         .quitFn = quit,
         .enable_console = true,
+        .enable_depth_test = false,
     });
 }
