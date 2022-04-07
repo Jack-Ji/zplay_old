@@ -217,12 +217,16 @@ pub fn init(
 }
 
 /// create sprite-sheet with all picture files in given directory
-/// NOTE: only jpg and png files are accepted
+pub const DirScanOption = struct {
+    accept_png: bool = true,
+    accept_jpg: bool = true,
+};
 pub fn fromPicturesInDir(
     allocator: std.mem.Allocator,
     dir_path: []const u8,
     width: u32,
     height: u32,
+    opt: DirScanOption,
 ) !*Self {
     var curdir = std.fs.cwd();
     var dir = try curdir.openDir(dir_path, .{ .iterate = true, .no_follow = true });
@@ -236,8 +240,8 @@ pub fn fromPicturesInDir(
     while (try it.next()) |entry| {
         if (entry.kind != .File) continue;
         if (entry.name.len < 5) continue;
-        if (std.mem.eql(u8, ".png", entry.name[entry.name.len - 4 ..]) or
-            std.mem.eql(u8, ".jpg", entry.name[entry.name.len - 4 ..]))
+        if ((opt.accept_png and std.mem.eql(u8, ".png", entry.name[entry.name.len - 4 ..])) or
+            (opt.accept_jpg and std.mem.eql(u8, ".jpg", entry.name[entry.name.len - 4 ..])))
         {
             try images.append(.{
                 .name = try std.fmt.allocPrint(

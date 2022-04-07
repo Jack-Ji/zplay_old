@@ -29,6 +29,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         "assets/images",
         width,
         height,
+        .{},
     );
     sprite = try sprite_sheet.createSprite(
         "ogre",

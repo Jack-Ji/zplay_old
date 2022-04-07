@@ -21,8 +21,8 @@ A simple framework intended for game/tool creation.
 * 2D Sprite and SpriteBatch system
 * 2D Texture packer used to programmatically create sprite-sheet
 * Particle system (TODO)
-* 2D physics (TODO)
-* Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
+* 2D Chipmunk physics lib integration (In Progress)
+* 3D Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
 * Image/Audio asset loading/decoding via [great stb](https://github.com/nothings/stb)
 * Hand-crafted integration of [dear-imgui](https://github.com/ocornut/imgui) and popular extensions ([implot](https://github.com/epezent/implot)/[imnodes](https://github.com/Nelarius/imnodes))
@@ -34,6 +34,9 @@ A simple framework intended for game/tool creation.
 2. Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
 
 # Examples
+* sprites benchmark
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/sprites_benchmark.png)
+
 * fake rasterization demonstration (granularity is triangle) (original idea is from [michal-z](https://github.com/michal-z/zig-gamedev/tree/main/samples/rasterization))
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/rasterization.png)
 
