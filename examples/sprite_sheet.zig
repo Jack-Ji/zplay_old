@@ -74,8 +74,8 @@ fn loop(ctx: *zp.Context) void {
         .custom = &Mat4.fromScale(Vec3.new(0.5, 0.5, 1)).translate(Vec3.new(0.5, 0.5, 0)),
     }) catch unreachable;
 
-    sprite.rotate(ctx.tick * 30);
     sprite_batch.clear();
+    sprite.rotate(ctx.tick * 30);
     sprite_batch.drawSprite(sprite, .{}) catch unreachable;
     sprite_batch.submitAndRender(&ctx.graphics) catch unreachable;
 

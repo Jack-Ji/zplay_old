@@ -38,6 +38,7 @@ sheet: *SpriteSheet,
 pub fn appendDrawData(self: Self, color: [4]f32, depth: f32, va: *std.ArrayList(f32), tr: *std.ArrayList(Mat4)) !void {
     assert(self.anchor_point.x >= 0 and self.anchor_point.x <= 1);
     assert(self.anchor_point.y >= 0 and self.anchor_point.y <= 1);
+    assert(depth >= 0 and depth <= 1);
     try va.appendSlice(&.{
         -self.anchor_point.x,    -self.anchor_point.y,    depth, color[0], color[1], color[2], color[3], self.uv0.x, self.uv0.y,
         -self.anchor_point.x,    1 - self.anchor_point.y, depth, color[0], color[1], color[2], color[3], self.uv0.x, self.uv1.y,
