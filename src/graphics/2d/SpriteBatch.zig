@@ -98,7 +98,7 @@ pub fn clear(self: *Self) void {
 /// add sprite to next batch
 pub const DrawOption = struct {
     tint_color: [4]f32 = [_]f32{ 1, 1, 1, 1 },
-    depth: f32 = 0,
+    depth: f32 = 0.5,
 };
 pub fn drawSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
     var index = self.search_tree.get(sprite.sheet) orelse blk: {
