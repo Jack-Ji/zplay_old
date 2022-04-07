@@ -55,7 +55,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         [3]f32{ 1, 1, 0 },
         &vattrib,
     );
-    const vcount1 = @intCast(u32, vattrib.items.len) / FontRenderer.floatNumOfVertexAttrib;
+    const vcount1 = @intCast(u32, vattrib.items.len) / FontRenderer.float_num_of_vertex_attrib;
     vertex_array1 = VertexArray.init(std.testing.allocator, 1);
     FontRenderer.setupVertexArray(vertex_array1);
     vertex_array1.vbos[0].allocInitData(f32, vattrib.items, .static_draw);
@@ -77,7 +77,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         [3]f32{ 1, 0, 0 },
         &vattrib,
     );
-    const vcount2 = @intCast(u32, vattrib.items.len) / FontRenderer.floatNumOfVertexAttrib;
+    const vcount2 = @intCast(u32, vattrib.items.len) / FontRenderer.float_num_of_vertex_attrib;
     vertex_array2 = VertexArray.init(std.testing.allocator, 1);
     FontRenderer.setupVertexArray(vertex_array2);
     vertex_array2.vbos[0].allocInitData(f32, vattrib.items, .static_draw);

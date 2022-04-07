@@ -16,7 +16,7 @@ const Mat4 = alg.Mat4;
 const Self = @This();
 
 /// number of floats per vertex
-pub const floatNumOfVertexAttrib = 8;
+pub const float_num_of_vertex_attrib = 8;
 
 const vs_body =
     \\layout (location = 0) in vec3 a_pos;
