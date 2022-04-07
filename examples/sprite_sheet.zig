@@ -76,7 +76,7 @@ fn loop(ctx: *zp.Context) void {
 
     sprite.rotate(ctx.tick * 30);
     sprite_batch.clear();
-    sprite_batch.drawSprite(sprite) catch unreachable;
+    sprite_batch.drawSprite(sprite, .{}) catch unreachable;
     sprite_batch.submitAndRender(&ctx.graphics) catch unreachable;
 
     // draw fps

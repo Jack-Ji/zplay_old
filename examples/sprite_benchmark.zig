@@ -124,7 +124,7 @@ fn loop(ctx: *zp.Context) void {
     ctx.graphics.clear(true, true, false, [_]f32{ 0.3, 0.3, 0.3, 1.0 });
     sprite_batch.clear();
     for (characters.items) |c| {
-        sprite_batch.drawSprite(c.sprite) catch unreachable;
+        sprite_batch.drawSprite(c.sprite, .{}) catch unreachable;
     }
     sprite_batch.submitAndRender(&ctx.graphics) catch unreachable;
 

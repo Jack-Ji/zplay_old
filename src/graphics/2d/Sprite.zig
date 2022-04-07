@@ -35,16 +35,16 @@ anchor_point: Point = .{ .x = 0, .y = 0 },
 /// reference to sprite-sheet
 sheet: *SpriteSheet,
 
-pub fn appendDrawData(self: Self, va: *std.ArrayList(f32), tr: *std.ArrayList(Mat4)) !void {
+pub fn appendDrawData(self: Self, color: [4]f32, depth: f32, va: *std.ArrayList(f32), tr: *std.ArrayList(Mat4)) !void {
     assert(self.anchor_point.x >= 0 and self.anchor_point.x <= 1);
     assert(self.anchor_point.y >= 0 and self.anchor_point.y <= 1);
     try va.appendSlice(&.{
-        -self.anchor_point.x,    -self.anchor_point.y,    self.uv0.x, self.uv0.y,
-        -self.anchor_point.x,    1 - self.anchor_point.y, self.uv0.x, self.uv1.y,
-        1 - self.anchor_point.x, 1 - self.anchor_point.y, self.uv1.x, self.uv1.y,
-        -self.anchor_point.x,    -self.anchor_point.y,    self.uv0.x, self.uv0.y,
-        1 - self.anchor_point.x, 1 - self.anchor_point.y, self.uv1.x, self.uv1.y,
-        1 - self.anchor_point.x, -self.anchor_point.y,    self.uv1.x, self.uv0.y,
+        -self.anchor_point.x,    -self.anchor_point.y,    depth, color[0], color[1], color[2], color[3], self.uv0.x, self.uv0.y,
+        -self.anchor_point.x,    1 - self.anchor_point.y, depth, color[0], color[1], color[2], color[3], self.uv0.x, self.uv1.y,
+        1 - self.anchor_point.x, 1 - self.anchor_point.y, depth, color[0], color[1], color[2], color[3], self.uv1.x, self.uv1.y,
+        -self.anchor_point.x,    -self.anchor_point.y,    depth, color[0], color[1], color[2], color[3], self.uv0.x, self.uv0.y,
+        1 - self.anchor_point.x, 1 - self.anchor_point.y, depth, color[0], color[1], color[2], color[3], self.uv1.x, self.uv1.y,
+        1 - self.anchor_point.x, -self.anchor_point.y,    depth, color[0], color[1], color[2], color[3], self.uv1.x, self.uv0.y,
     });
     const mat = Mat4.fromScale(Vec3.new(self.width * self.scale_w, self.height * self.scale_h, 1))
         .rotate(self.rotate_degree, Vec3.back())

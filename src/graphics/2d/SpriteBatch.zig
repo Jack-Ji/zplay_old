@@ -67,7 +67,7 @@ pub fn init(
         b.vertex_array.vbos[0].allocData(max_sprites_per_drawcall * 16, .dynamic_draw);
         b.vertex_array.vbos[1].allocData(max_sprites_per_drawcall * 64, .dynamic_draw);
         SpriteRenderer.setupVertexArray(b.vertex_array);
-        b.vattrib = try std.ArrayList(f32).initCapacity(allocator, 16000);
+        b.vattrib = try std.ArrayList(f32).initCapacity(allocator, 32000);
         b.vtransforms = try std.ArrayList(Mat4).initCapacity(allocator, 1000);
     }
     return self;
@@ -96,7 +96,11 @@ pub fn clear(self: *Self) void {
 }
 
 /// add sprite to next batch
-pub fn drawSprite(self: *Self, sprite: Sprite) !void {
+pub const DrawOption = struct {
+    tint_color: [4]f32 = [_]f32{ 1, 1, 1, 1 },
+    depth: f32 = 0,
+};
+pub fn drawSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
     var index = self.search_tree.get(sprite.sheet) orelse blk: {
         var count = self.search_tree.count();
         if (count == self.batches.len) {
@@ -118,6 +122,8 @@ pub fn drawSprite(self: *Self, sprite: Sprite) !void {
         return error.TooMuchSprite;
     }
     try sprite.appendDrawData(
+        opt.tint_color,
+        opt.depth,
         &self.batches[index].vattrib,
         &self.batches[index].vtransforms,
     );
