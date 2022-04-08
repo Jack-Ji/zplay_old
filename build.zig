@@ -46,7 +46,7 @@ pub fn build(b: *std.build.Builder) void {
         );
         exe.setBuildMode(mode);
         exe.setTarget(target);
-        link(b, exe, target);
+        linkZP(exe);
         const install_cmd = b.addInstallArtifact(exe);
         const run_cmd = exe.run();
         run_cmd.step.dependOn(&install_cmd.step);
@@ -62,11 +62,7 @@ pub fn build(b: *std.build.Builder) void {
 }
 
 /// link zplay framework to executable 
-pub fn link(
-    b: *std.build.Builder,
-    exe: *std.build.LibExeObjStep,
-    target: std.zig.CrossTarget,
-) void {
+pub fn linkZP(exe: *std.build.LibExeObjStep) void {
     const root_path = comptime rootPath();
 
     // link dependencies
@@ -83,11 +79,11 @@ pub fn link(
         @import("build/chipmunk.zig"),
     };
     inline for (deps) |d| {
-        d.link(b, exe, target, root_path);
+        d.link(exe, root_path);
     }
 
     // use zplay
-    const sdl = @import("./src/deps/sdl/Sdk.zig").init(b);
+    const sdl = @import("./src/deps/sdl/Sdk.zig").init(exe.builder);
     exe.addPackage(.{
         .name = "zplay",
         .path = .{ .path = root_path ++ "/src/zplay.zig" },
