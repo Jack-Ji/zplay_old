@@ -2,7 +2,7 @@
 A simple framework intended for game/tool creation.
 
 ## Features
-* Little dependency, only SDL2 and OpenGL3 are needed
+* Little external dependency, only SDL2 and OpenGL3
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
 * Hand-crafted OpenGL wrappers: GraphicsContext/FrameBuffer/ShaderProgram/VertexArray/Buffer/Texture
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
@@ -10,6 +10,7 @@ A simple framework intended for game/tool creation.
 * Hand-crafted integration of [dear-imgui](https://github.com/ocornut/imgui) and popular extensions ([implot](https://github.com/epezent/implot)/[imnodes](https://github.com/Nelarius/imnodes))
 * Hand-crafted integration of [NanoVG](https://github.com/memononen/nanovg)/[NanoSVG](https://github.com/memononen/nanosvg)
 * TrueType font loading and rendering
+* (TODO) Audio playback (support midi/mp3/ogg)
 * Flexible render-passes pipeline, greatly simplify rendering code
 * 3D toolkits:
   * Model loading and rendering (only glTF 2.0 for now)
@@ -17,13 +18,13 @@ A simple framework intended for game/tool creation.
   * Blinn-Phong renderer (directional/point/spot light)
   * Environment mapping renderer
   * Skybox renderer
-  * PBR renderer (TODO)
-  * Particle system (TODO)
+  * (TODO) PBR renderer
+  * (TODO) Particle system
 * 2D toolkits:
   * Sprite and SpriteBatch system
   * Texture packer used to programmatically create sprite-sheet
-  * Chipmunk physics lib integration (In Progress)
-  * Particle system (TODO)
+  * (TODO) Chipmunk physics lib integration
+  * (TODO) Particle system
 
 # Install
 1. Download and install zig master branch

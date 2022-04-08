@@ -25,9 +25,9 @@ pub const deps = struct {
     pub const alg = @import("deps/alg/src/main.zig"); // algebra calculation
     pub const stb = @import("deps/stb/stb.zig"); // stb utilities
     pub const dig = @import("deps/imgui/imgui.zig"); // dear-imgui
-    pub const nvg = @import("deps/nanovg/nanovg.zig"); // nanovg
-    pub const nsvg = @import("deps/nanosvg/nanosvg.zig"); // nanosvg
-    pub const gltf = @import("deps/gltf/gltf.zig"); // gltf
+    pub const nvg = @import("deps/nanovg/nanovg.zig"); // nanovg: vector graphics
+    pub const nsvg = @import("deps/nanosvg/nanosvg.zig"); // nanosvg: svg parser
+    pub const gltf = @import("deps/gltf/gltf.zig"); // gltf loader
     pub const bt = @import("deps/bullet/bullet.zig"); // 3d physics
     pub const cp = @import("deps/chipmunk/chipmunk.zig"); // 2d physics
 };
