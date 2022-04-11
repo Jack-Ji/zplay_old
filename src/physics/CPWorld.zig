@@ -98,19 +98,59 @@ pub fn init(allocator: std.mem.Allocator, opt: InitOption) !Self {
 }
 
 pub fn deinit(self: Self) void {
+    cp.spaceEachShape(self.space, postShapeFree, self.space);
+    cp.spaceEachConstraint(self.space, postConstraintFree, self.space);
+    cp.spaceEachBody(self.space, postBodyFree, self.space);
+    cp.spaceFree(self.space);
     for (self.objects.items) |o| {
-        for (o.shapes) |s| {
-            cp.spaceRemoveShape(self.space, s);
-            cp.shapeFree(s);
-        }
-        if (o.body) |bd| {
-            cp.spaceRemoveBody(self.space, bd);
-            cp.bodyFree(bd);
-        }
         self.allocator.free(o.shapes);
     }
     self.objects.deinit();
-    cp.spaceFree(self.space);
+}
+
+fn shapeFree(space: ?*cp.Space, shape: ?*anyopaque, unused: ?*anyopaque) callconv(.C) void {
+    _ = unused;
+    cp.spaceRemoveShape(space, @ptrCast(?*cp.Shape, shape));
+    cp.shapeFree(shape);
+}
+
+fn postShapeFree(shape: ?*cp.Shape, user_data: ?*anyopaque) callconv(.C) void {
+    _ = cp.spaceAddPostStepCallback(
+        @ptrCast(?*cp.Space, user_data),
+        shapeFree,
+        shape,
+        null,
+    );
+}
+
+fn constraintFree(space: ?*cp.Space, constraint: ?*anyopaque, unused: ?*anyopaque) callconv(.C) void {
+    _ = unused;
+    cp.spaceRemoveConstraint(space, @ptrCast(?*cp.Constraint, constraint));
+    cp.constraintFree(constraint);
+}
+
+fn postConstraintFree(constraint: ?*cp.Constraint, user_data: ?*anyopaque) callconv(.C) void {
+    _ = cp.spaceAddPostStepCallback(
+        @ptrCast(?*cp.Space, user_data),
+        constraintFree,
+        constraint,
+        null,
+    );
+}
+
+fn bodyFree(space: ?*cp.Space, body: ?*anyopaque, unused: ?*anyopaque) callconv(.C) void {
+    _ = unused;
+    cp.spaceRemoveBody(space, @ptrCast(?*cp.Body, body));
+    cp.bodyFree(body);
+}
+
+fn postBodyFree(body: ?*cp.Body, user_data: ?*anyopaque) callconv(.C) void {
+    _ = cp.spaceAddPostStepCallback(
+        @ptrCast(?*cp.Space, user_data),
+        bodyFree,
+        body,
+        null,
+    );
 }
 
 /// add object to world
