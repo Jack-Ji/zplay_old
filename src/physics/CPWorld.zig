@@ -27,7 +27,7 @@ pub const Filter = struct {
 
 pub const Object = struct {
     /// object's physics body, null means using global static
-    body: ?*cp.Shape,
+    body: ?*cp.Body,
 
     /// object's shape
     shapes: []*cp.Shape,
@@ -172,6 +172,7 @@ pub const ObjectOption = struct {
     body: BodyProperty,
     shapes: ShapeProperty,
     filter: Filter = .{},
+    user_data: ?*anyopaque = null,
 };
 pub fn addObject(self: Self, opt: ObjectOption) !u32 {
     assert(opt.shapes.len > 0);
@@ -261,11 +262,26 @@ pub fn addObject(self: Self, opt: ObjectOption) !u32 {
         self.allocator.free(shapes);
     }
 
+    // append to object array
     try self.objects.append(.{
         .body = if (use_global_static) null else body,
         .shapes = shapes,
         .filter = opt.filter,
     });
+
+    // set user data of body/shapes, equal to
+    // index/id of object by default.
+    var ud = opt.user_data orelse @intToPtr(
+        *allowzero anyopaque,
+        self.objects.items.len - 1,
+    );
+    if (!use_global_static) {
+        cp.bodySetUserData(body, ud);
+    }
+    for (shapes) |s| {
+        cp.shapeSetUserData(s, ud);
+    }
+
     return self.objects.items.len - 1;
 }
 
