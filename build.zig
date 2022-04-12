@@ -33,6 +33,7 @@ pub fn build(b: *std.build.Builder) void {
         "post_processing",
         "rasterization",
         "bullet_test",
+        "chipmunk_test",
         "file_dialog",
         "cube_cross",
         "sprite_sheet",

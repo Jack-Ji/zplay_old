@@ -202,7 +202,7 @@ pub const ObjectOption = struct {
             physics: Physics = .{},
         },
         polygon: struct {
-            points: []cp.Vert,
+            points: []cp.Vect,
             transform: cp.Transform = cp.transformIdentity,
             radius: f32 = 0,
             physics: Physics = .{},
@@ -210,45 +210,45 @@ pub const ObjectOption = struct {
     };
 
     body: BodyProperty,
-    shapes: ShapeProperty,
+    shapes: []const ShapeProperty,
     filter: Filter = .{},
     user_data: ?*anyopaque = null,
 };
-pub fn addObject(self: Self, opt: ObjectOption) !u32 {
+pub fn addObject(self: *Self, opt: ObjectOption) !u32 {
     assert(opt.shapes.len > 0);
 
     // create physics body
     var use_global_static = false;
     var body: *cp.Body = switch (opt.body) {
         .dynamic => |prop| blk: {
-            var bd: *cp.Body = cp.bodyNew(0, 0).?;
+            var bd = cp.bodyNew(0, 0).?;
             cp.bodySetPosition(bd, prop.position);
             cp.bodySetVelocity(bd, prop.velocity);
             cp.bodySetAngularVelocity(bd, prop.angular_velocity);
-            break :blk bd.?;
+            break :blk bd;
         },
         .kinematic => |prop| blk: {
-            var bd: *cp.Body = cp.bodyNewKinematic(0, 0).?;
+            var bd = cp.bodyNewKinematic().?;
             cp.bodySetPosition(bd, prop.position);
             cp.bodySetVelocity(bd, prop.velocity);
             cp.bodySetAngularVelocity(bd, prop.angular_velocity);
-            break :blk bd.?;
+            break :blk bd;
         },
         .static => |prop| blk: {
             var bd: *cp.Body = undefined;
             if (prop == null) {
-                bd = cp.spaceGetStaticBody(self.space);
+                bd = cp.spaceGetStaticBody(self.space).?;
                 use_global_static = true;
             } else {
-                bd = cp.bodyNewStatic(self.space).?;
-                cp.bodySetPosition(bd, prop.position);
+                bd = cp.bodyNewStatic().?;
+                cp.bodySetPosition(bd, prop.?.position);
             }
-            break :blk bd.?;
+            break :blk bd;
         },
     };
     if (!use_global_static) _ = cp.spaceAddBody(self.space, body);
     errdefer {
-        cp.spaceRemoveBody(body);
+        cp.spaceRemoveBody(self.space, body);
         cp.bodyFree(body);
     }
 
@@ -272,7 +272,7 @@ pub fn addObject(self: Self, opt: ObjectOption) !u32 {
                 break :blk shape;
             },
             .circle => |prop| blk: {
-                var shape = cp.circleShapeNew(body, prop.radius, prop.offset);
+                var shape = cp.circleShapeNew(body, prop.radius, prop.offset).?;
                 initPhysicsOfShape(shape, prop.physics);
                 break :blk shape;
             },
@@ -283,7 +283,7 @@ pub fn addObject(self: Self, opt: ObjectOption) !u32 {
                     prop.points.ptr,
                     prop.transform,
                     prop.radius,
-                );
+                ).?;
                 initPhysicsOfShape(shape, prop.physics);
                 break :blk shape;
             },
@@ -322,7 +322,7 @@ pub fn addObject(self: Self, opt: ObjectOption) !u32 {
         cp.shapeSetUserData(s, ud);
     }
 
-    return self.objects.items.len - 1;
+    return @intCast(u32, self.objects.items.len - 1);
 }
 
 fn initPhysicsOfShape(shape: *cp.Shape, phy: ObjectOption.ShapeProperty.Physics) void {

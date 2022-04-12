@@ -5,7 +5,10 @@ pub fn link(
     comptime root_path: []const u8,
 ) void {
     var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
-    if (exe.builder.is_release) flags.append("-Os") catch unreachable;
+    if (exe.builder.is_release) {
+        flags.append("-Os") catch unreachable;
+        flags.append("-DNDEBUG") catch unreachable;
+    }
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
     flags.append("-fno-sanitize=undefined") catch unreachable;
 
