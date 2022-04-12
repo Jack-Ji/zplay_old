@@ -47,6 +47,11 @@ pub const __builtin_inff = @import("std").zig.c_builtins.__builtin_inff;
 pub const __builtin_isnan = @import("std").zig.c_builtins.__builtin_isnan;
 pub const __builtin_isinf = @import("std").zig.c_builtins.__builtin_isinf;
 pub const __builtin_isinf_sign = @import("std").zig.c_builtins.__builtin_isinf_sign;
+pub const __has_builtin = @import("std").zig.c_builtins.__has_builtin;
+pub const __builtin_assume = @import("std").zig.c_builtins.__builtin_assume;
+pub const __builtin_unreachable = @import("std").zig.c_builtins.__builtin_unreachable;
+pub const __builtin_constant_p = @import("std").zig.c_builtins.__builtin_constant_p;
+pub const __builtin_mul_overflow = @import("std").zig.c_builtins.__builtin_mul_overflow;
 pub const __builtin_va_list = [*c]u8;
 pub const __gnuc_va_list = __builtin_va_list;
 pub const va_list = __gnuc_va_list; // D:\DevTools\zig\lib\libc\include\any-windows-any\_mingw.h:584:3: warning: TODO implement translation of stmt class GCCAsmStmtClass
@@ -339,6 +344,9 @@ pub extern fn _wmakepath(_ResultPath: [*c]wchar_t, _Drive: [*c]const wchar_t, _D
 pub extern fn _wperror(_ErrMsg: [*c]const wchar_t) void;
 pub extern fn _wsearchenv(_Filename: [*c]const wchar_t, _EnvVar: [*c]const wchar_t, _ResultPath: [*c]wchar_t) void;
 pub extern fn _wsplitpath(_FullPath: [*c]const wchar_t, _Drive: [*c]wchar_t, _Dir: [*c]wchar_t, _Filename: [*c]wchar_t, _Ext: [*c]wchar_t) void;
+pub const _beep = @compileError("unable to resolve function type clang.TypeClass.MacroQualified"); // D:\DevTools\zig\lib\libc\include\any-windows-any\stdlib.h:681:24
+pub const _seterrormode = @compileError("unable to resolve function type clang.TypeClass.MacroQualified"); // D:\DevTools\zig\lib\libc\include\any-windows-any\stdlib.h:683:24
+pub const _sleep = @compileError("unable to resolve function type clang.TypeClass.MacroQualified"); // D:\DevTools\zig\lib\libc\include\any-windows-any\stdlib.h:684:24
 pub extern fn ecvt(_Val: f64, _NumOfDigits: c_int, _PtDec: [*c]c_int, _PtSign: [*c]c_int) [*c]u8;
 pub extern fn fcvt(_Val: f64, _NumOfDec: c_int, _PtDec: [*c]c_int, _PtSign: [*c]c_int) [*c]u8;
 pub extern fn gcvt(_Val: f64, _NumOfDigits: c_int, _DstBuf: [*c]u8) [*c]u8;
@@ -528,7 +536,7 @@ pub extern fn floor(_X: f64) f64;
 pub fn fabsf(arg_x: f32) callconv(.C) f32 {
     var x = arg_x;
     return __builtin_fabsf(x);
-} // D:\DevTools\zig\lib\libc\include\any-windows-any\math.h:219:23: warning: unsupported floating point constant format APFloatBaseSemantics.x86DoubleExtended
+} // D:\DevTools\zig\lib\libc\include\any-windows-any\math.h:219:23: warning: unsupported floating point constant format clang.APFloatBaseSemantics.x86DoubleExtended
 // D:\DevTools\zig\lib\libc\include\any-windows-any\math.h:214:36: warning: unable to translate function, demoted to extern
 pub extern fn fabsl(arg_x: c_longdouble) callconv(.C) c_longdouble;
 pub fn fabs(arg_x: f64) callconv(.C) f64 {
@@ -890,7 +898,7 @@ pub extern fn _statusfp() c_uint;
 pub extern fn _fpreset() void;
 pub extern fn fpreset() void;
 pub extern fn __fpecode() [*c]c_int;
-pub const cpFloat = f64;
+pub const cpFloat = f32;
 pub fn cpfmax(arg_a: cpFloat, arg_b: cpFloat) callconv(.C) cpFloat {
     var a = arg_a;
     var b = arg_b;
@@ -903,7 +911,7 @@ pub fn cpfmin(arg_a: cpFloat, arg_b: cpFloat) callconv(.C) cpFloat {
 }
 pub fn cpfabs(arg_f: cpFloat) callconv(.C) cpFloat {
     var f = arg_f;
-    return if (f < @intToFloat(f64, @as(c_int, 0))) -f else f;
+    return if (f < @intToFloat(f32, @as(c_int, 0))) -f else f;
 }
 pub fn cpfclamp(arg_f: cpFloat, arg_min: cpFloat, arg_max: cpFloat) callconv(.C) cpFloat {
     var f = arg_f;
@@ -913,13 +921,13 @@ pub fn cpfclamp(arg_f: cpFloat, arg_min: cpFloat, arg_max: cpFloat) callconv(.C)
 }
 pub fn cpfclamp01(arg_f: cpFloat) callconv(.C) cpFloat {
     var f = arg_f;
-    return cpfmax(@floatCast(cpFloat, 0.0), cpfmin(f, @floatCast(cpFloat, 1.0)));
+    return cpfmax(0.0, cpfmin(f, 1.0));
 }
 pub fn cpflerp(arg_f1: cpFloat, arg_f2: cpFloat, arg_t: cpFloat) callconv(.C) cpFloat {
     var f1 = arg_f1;
     var f2 = arg_f2;
     var t = arg_t;
-    return (f1 * (@floatCast(f64, 1.0) - t)) + (f2 * t);
+    return (f1 * (1.0 - t)) + (f2 * t);
 }
 pub fn cpflerpconst(arg_f1: cpFloat, arg_f2: cpFloat, arg_d: cpFloat) callconv(.C) cpFloat {
     var f1 = arg_f1;
@@ -1022,8 +1030,8 @@ pub const struct_cpContactPointSet = extern struct {
 };
 pub const cpContactPointSet = struct_cpContactPointSet;
 pub const cpvzero: cpVect = cpVect{
-    .x = @floatCast(cpFloat, 0.0),
-    .y = @floatCast(cpFloat, 0.0),
+    .x = 0.0,
+    .y = 0.0,
 };
 pub fn cpv(x: cpFloat, y: cpFloat) callconv(.C) cpVect {
     var v: cpVect = cpVect{
@@ -1063,10 +1071,10 @@ pub fn cpvproject(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
     return cpvmult(v2, cpvdot(v1, v2) / cpvdot(v2, v2));
 }
 pub fn cpvforangle(a: cpFloat) callconv(.C) cpVect {
-    return cpv(cos(a), sin(a));
+    return cpv(cosf(a), sinf(a));
 }
 pub fn cpvtoangle(v: cpVect) callconv(.C) cpFloat {
-    return atan2(v.y, v.x);
+    return atan2f(v.y, v.x);
 }
 pub fn cpvrotate(v1: cpVect, v2: cpVect) callconv(.C) cpVect {
     return cpv((v1.x * v2.x) - (v1.y * v2.y), (v1.x * v2.y) + (v1.y * v2.x));
@@ -1078,28 +1086,28 @@ pub fn cpvlengthsq(v: cpVect) callconv(.C) cpFloat {
     return cpvdot(v, v);
 }
 pub fn cpvlength(v: cpVect) callconv(.C) cpFloat {
-    return sqrt(cpvdot(v, v));
+    return sqrtf(cpvdot(v, v));
 }
 pub fn cpvlerp(v1: cpVect, v2: cpVect, t: cpFloat) callconv(.C) cpVect {
-    return cpvadd(cpvmult(v1, @floatCast(f64, 1.0) - t), cpvmult(v2, t));
+    return cpvadd(cpvmult(v1, 1.0 - t), cpvmult(v2, t));
 }
 pub fn cpvnormalize(v: cpVect) callconv(.C) cpVect {
-    return cpvmult(v, @floatCast(f64, 1.0) / (cpvlength(v) + 0.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000022250738585072014));
+    return cpvmult(v, 1.0 / (cpvlength(v) + 0.000000000000000000000000000000000000011754943508222875));
 }
 pub fn cpvslerp(v1: cpVect, v2: cpVect, t: cpFloat) callconv(.C) cpVect {
     var dot: cpFloat = cpvdot(cpvnormalize(v1), cpvnormalize(v2));
-    var omega: cpFloat = acos(cpfclamp(dot, @floatCast(cpFloat, -1.0), @floatCast(cpFloat, 1.0)));
-    if (omega < 0.001) {
+    var omega: cpFloat = acosf(cpfclamp(dot, -1.0, 1.0));
+    if (@floatCast(f64, omega) < 0.001) {
         return cpvlerp(v1, v2, t);
     } else {
-        var denom: cpFloat = @floatCast(f64, 1.0) / sin(omega);
-        return cpvadd(cpvmult(v1, sin((@floatCast(f64, 1.0) - t) * omega) * denom), cpvmult(v2, sin(t * omega) * denom));
+        var denom: cpFloat = 1.0 / sinf(omega);
+        return cpvadd(cpvmult(v1, sinf((1.0 - t) * omega) * denom), cpvmult(v2, sinf(t * omega) * denom));
     }
     return @import("std").mem.zeroes(struct_cpVect);
 }
 pub fn cpvslerpconst(v1: cpVect, v2: cpVect, a: cpFloat) callconv(.C) cpVect {
     var dot: cpFloat = cpvdot(cpvnormalize(v1), cpvnormalize(v2));
-    var omega: cpFloat = acos(cpfclamp(dot, @floatCast(cpFloat, -1.0), @floatCast(cpFloat, 1.0)));
+    var omega: cpFloat = acosf(cpfclamp(dot, -1.0, 1.0));
     return cpvslerp(v1, v2, cpfmin(a, omega) / omega);
 }
 pub fn cpvclamp(v: cpVect, len: cpFloat) callconv(.C) cpVect {
@@ -1177,7 +1185,7 @@ pub fn cpBBExpand(bb: cpBB, v: cpVect) callconv(.C) cpBB {
 }
 pub fn cpBBCenter(arg_bb: cpBB) callconv(.C) cpVect {
     var bb = arg_bb;
-    return cpvlerp(cpv(bb.l, bb.b), cpv(bb.r, bb.t), @floatCast(cpFloat, 0.5));
+    return cpvlerp(cpv(bb.l, bb.b), cpv(bb.r, bb.t), 0.5);
 }
 pub fn cpBBArea(arg_bb: cpBB) callconv(.C) cpFloat {
     var bb = arg_bb;
@@ -1193,28 +1201,28 @@ pub fn cpBBSegmentQuery(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callconv(.C)
     var a = arg_a;
     var b = arg_b;
     var delta: cpVect = cpvsub(b, a);
-    var tmin: cpFloat = @floatCast(cpFloat, -__builtin_inff());
-    var tmax: cpFloat = @floatCast(cpFloat, __builtin_inff());
-    if (delta.x == @floatCast(f64, 0.0)) {
-        if ((a.x < bb.l) or (bb.r < a.x)) return @floatCast(cpFloat, __builtin_inff());
+    var tmin: cpFloat = -__builtin_inff();
+    var tmax: cpFloat = __builtin_inff();
+    if (delta.x == 0.0) {
+        if ((a.x < bb.l) or (bb.r < a.x)) return __builtin_inff();
     } else {
         var t1: cpFloat = (bb.l - a.x) / delta.x;
         var t2: cpFloat = (bb.r - a.x) / delta.x;
         tmin = cpfmax(tmin, cpfmin(t1, t2));
         tmax = cpfmin(tmax, cpfmax(t1, t2));
     }
-    if (delta.y == @floatCast(f64, 0.0)) {
-        if ((a.y < bb.b) or (bb.t < a.y)) return @floatCast(cpFloat, __builtin_inff());
+    if (delta.y == 0.0) {
+        if ((a.y < bb.b) or (bb.t < a.y)) return __builtin_inff();
     } else {
         var t1: cpFloat = (bb.b - a.y) / delta.y;
         var t2: cpFloat = (bb.t - a.y) / delta.y;
         tmin = cpfmax(tmin, cpfmin(t1, t2));
         tmax = cpfmin(tmax, cpfmax(t1, t2));
     }
-    if (((tmin <= tmax) and (@floatCast(f64, 0.0) <= tmax)) and (tmin <= @floatCast(f64, 1.0))) {
-        return cpfmax(tmin, @floatCast(cpFloat, 0.0));
+    if (((tmin <= tmax) and (0.0 <= tmax)) and (tmin <= 1.0)) {
+        return cpfmax(tmin, 0.0);
     } else {
-        return @floatCast(cpFloat, __builtin_inff());
+        return __builtin_inff();
     }
     return 0;
 }
@@ -1222,30 +1230,30 @@ pub fn cpBBIntersectsSegment(arg_bb: cpBB, arg_a: cpVect, arg_b: cpVect) callcon
     var bb = arg_bb;
     var a = arg_a;
     var b = arg_b;
-    return @bitCast(cpBool, @truncate(i8, @boolToInt(cpBBSegmentQuery(bb, a, b) != @floatCast(f64, __builtin_inff()))));
+    return @bitCast(cpBool, @truncate(i8, @boolToInt(cpBBSegmentQuery(bb, a, b) != __builtin_inff())));
 }
 pub fn cpBBClampVect(bb: cpBB, v: cpVect) callconv(.C) cpVect {
     return cpv(cpfclamp(v.x, bb.l, bb.r), cpfclamp(v.y, bb.b, bb.t));
 }
 pub fn cpBBWrapVect(bb: cpBB, v: cpVect) callconv(.C) cpVect {
     var dx: cpFloat = cpfabs(bb.r - bb.l);
-    var modx: cpFloat = fmod(v.x - bb.l, dx);
-    var x: cpFloat = if (modx > @floatCast(f64, 0.0)) modx else modx + dx;
+    var modx: cpFloat = fmodf(v.x - bb.l, dx);
+    var x: cpFloat = if (modx > 0.0) modx else modx + dx;
     var dy: cpFloat = cpfabs(bb.t - bb.b);
-    var mody: cpFloat = fmod(v.y - bb.b, dy);
-    var y: cpFloat = if (mody > @floatCast(f64, 0.0)) mody else mody + dy;
+    var mody: cpFloat = fmodf(v.y - bb.b, dy);
+    var y: cpFloat = if (mody > 0.0) mody else mody + dy;
     return cpv(x + bb.l, y + bb.b);
 }
 pub fn cpBBOffset(bb: cpBB, v: cpVect) callconv(.C) cpBB {
     return cpBBNew(bb.l + v.x, bb.b + v.y, bb.r + v.x, bb.t + v.y);
 }
 pub const cpTransformIdentity: cpTransform = cpTransform{
-    .a = @floatCast(cpFloat, 1.0),
-    .b = @floatCast(cpFloat, 0.0),
-    .c = @floatCast(cpFloat, 0.0),
-    .d = @floatCast(cpFloat, 1.0),
-    .tx = @floatCast(cpFloat, 0.0),
-    .ty = @floatCast(cpFloat, 0.0),
+    .a = 1.0,
+    .b = 0.0,
+    .c = 0.0,
+    .d = 1.0,
+    .tx = 0.0,
+    .ty = 0.0,
 };
 pub fn cpTransformNew(arg_a: cpFloat, arg_b: cpFloat, arg_c: cpFloat, arg_d: cpFloat, arg_tx: cpFloat, arg_ty: cpFloat) callconv(.C) cpTransform {
     var a = arg_a;
@@ -1283,7 +1291,7 @@ pub fn cpTransformNewTranspose(arg_a: cpFloat, arg_c: cpFloat, arg_tx: cpFloat, 
 }
 pub fn cpTransformInverse(arg_t: cpTransform) callconv(.C) cpTransform {
     var t = arg_t;
-    var inv_det: cpFloat = 1.0 / ((t.a * t.d) - (t.c * t.b));
+    var inv_det: cpFloat = @floatCast(cpFloat, 1.0 / @floatCast(f64, (t.a * t.d) - (t.c * t.b)));
     return cpTransformNewTranspose(t.d * inv_det, -t.c * inv_det, ((t.c * t.ty) - (t.tx * t.d)) * inv_det, -t.b * inv_det, t.a * inv_det, ((t.tx * t.b) - (t.a * t.ty)) * inv_det);
 }
 pub fn cpTransformMult(arg_t1: cpTransform, arg_t2: cpTransform) callconv(.C) cpTransform {
@@ -1305,8 +1313,8 @@ pub fn cpTransformbBB(arg_t: cpTransform, arg_bb: cpBB) callconv(.C) cpBB {
     var t = arg_t;
     var bb = arg_bb;
     var center: cpVect = cpBBCenter(bb);
-    var hw: cpFloat = (bb.r - bb.l) * 0.5;
-    var hh: cpFloat = (bb.t - bb.b) * 0.5;
+    var hw: cpFloat = @floatCast(cpFloat, @floatCast(f64, bb.r - bb.l) * 0.5);
+    var hh: cpFloat = @floatCast(cpFloat, @floatCast(f64, bb.t - bb.b) * 0.5);
     var a: cpFloat = t.a * hw;
     var b: cpFloat = t.c * hh;
     var d: cpFloat = t.b * hw;
@@ -1317,17 +1325,17 @@ pub fn cpTransformbBB(arg_t: cpTransform, arg_bb: cpBB) callconv(.C) cpBB {
 }
 pub fn cpTransformTranslate(arg_translate: cpVect) callconv(.C) cpTransform {
     var translate = arg_translate;
-    return cpTransformNewTranspose(1.0, 0.0, translate.x, 0.0, 1.0, translate.y);
+    return cpTransformNewTranspose(@floatCast(cpFloat, 1.0), @floatCast(cpFloat, 0.0), translate.x, @floatCast(cpFloat, 0.0), @floatCast(cpFloat, 1.0), translate.y);
 }
 pub fn cpTransformScale(arg_scaleX: cpFloat, arg_scaleY: cpFloat) callconv(.C) cpTransform {
     var scaleX = arg_scaleX;
     var scaleY = arg_scaleY;
-    return cpTransformNewTranspose(scaleX, 0.0, 0.0, 0.0, scaleY, 0.0);
+    return cpTransformNewTranspose(scaleX, @floatCast(cpFloat, 0.0), @floatCast(cpFloat, 0.0), @floatCast(cpFloat, 0.0), scaleY, @floatCast(cpFloat, 0.0));
 }
 pub fn cpTransformRotate(arg_radians: cpFloat) callconv(.C) cpTransform {
     var radians = arg_radians;
     var rot: cpVect = cpvforangle(radians);
-    return cpTransformNewTranspose(rot.x, -rot.y, 0.0, rot.y, rot.x, 0.0);
+    return cpTransformNewTranspose(rot.x, -rot.y, @floatCast(cpFloat, 0.0), rot.y, rot.x, @floatCast(cpFloat, 0.0));
 }
 pub fn cpTransformRigid(arg_translate: cpVect, arg_radians: cpFloat) callconv(.C) cpTransform {
     var translate = arg_translate;
@@ -1351,7 +1359,7 @@ pub fn cpTransformWrapInverse(arg_outer: cpTransform, arg_inner: cpTransform) ca
 }
 pub fn cpTransformOrtho(arg_bb: cpBB) callconv(.C) cpTransform {
     var bb = arg_bb;
-    return cpTransformNewTranspose(2.0 / (bb.r - bb.l), 0.0, -(bb.r + bb.l) / (bb.r - bb.l), 0.0, 2.0 / (bb.t - bb.b), -(bb.t + bb.b) / (bb.t - bb.b));
+    return cpTransformNewTranspose(@floatCast(cpFloat, 2.0 / @floatCast(f64, bb.r - bb.l)), @floatCast(cpFloat, 0.0), -(bb.r + bb.l) / (bb.r - bb.l), @floatCast(cpFloat, 0.0), @floatCast(cpFloat, 2.0 / @floatCast(f64, bb.t - bb.b)), -(bb.t + bb.b) / (bb.t - bb.b));
 }
 pub fn cpTransformBoneScale(arg_v0: cpVect, arg_v1: cpVect) callconv(.C) cpTransform {
     var v0 = arg_v0;
@@ -1363,8 +1371,8 @@ pub fn cpTransformAxialScale(arg_axis: cpVect, arg_pivot: cpVect, arg_scale: cpF
     var axis = arg_axis;
     var pivot = arg_pivot;
     var scale = arg_scale;
-    var A: cpFloat = (axis.x * axis.y) * (scale - 1.0);
-    var B: cpFloat = cpvdot(axis, pivot) * (1.0 - scale);
+    var A: cpFloat = @floatCast(cpFloat, @floatCast(f64, axis.x * axis.y) * (@floatCast(f64, scale) - 1.0));
+    var B: cpFloat = @floatCast(cpFloat, @floatCast(f64, cpvdot(axis, pivot)) * (1.0 - @floatCast(f64, scale)));
     return cpTransformNewTranspose(((scale * axis.x) * axis.x) + (axis.y * axis.y), A, axis.x * B, A, (axis.x * axis.x) + ((scale * axis.y) * axis.y), axis.y * B);
 }
 pub const cpSpatialIndexBBFunc = ?fn (?*anyopaque) callconv(.C) cpBB;
@@ -1919,10 +1927,3 @@ pub fn cpClosetPointOnSegment(p: cpVect, a: cpVect, b: cpVect) callconv(.C) cpVe
     var t: cpFloat = cpfclamp01(cpvdot(delta, cpvsub(p, b)) / cpvlengthsq(delta));
     return cpvadd(b, cpvmult(delta, t));
 }
-pub extern fn cpCircleShapeSetRadius(shape: ?*cpShape, radius: cpFloat) void;
-pub extern fn cpCircleShapeSetOffset(shape: ?*cpShape, offset: cpVect) void;
-pub extern fn cpSegmentShapeSetEndpoints(shape: ?*cpShape, a: cpVect, b: cpVect) void;
-pub extern fn cpSegmentShapeSetRadius(shape: ?*cpShape, radius: cpFloat) void;
-pub extern fn cpPolyShapeSetVerts(shape: ?*cpShape, count: c_int, verts: [*c]cpVect, transform: cpTransform) void;
-pub extern fn cpPolyShapeSetVertsRaw(shape: ?*cpShape, count: c_int, verts: [*c]cpVect) void;
-pub extern fn cpPolyShapeSetRadius(shape: ?*cpShape, radius: cpFloat) void;

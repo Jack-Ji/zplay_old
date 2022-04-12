@@ -110,7 +110,7 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    ctx.graphics.clear(true, true, false, [_]f32{ 0.3, 0.3, 0.3, 1.0 });
+    ctx.graphics.clear(true, false, false, [_]f32{ 0.3, 0.3, 0.3, 1.0 });
     render_data.vds.?.items[0].transform = .{
         .single = Mat4.fromRotation(ctx.tick, Vec3.up()),
     };

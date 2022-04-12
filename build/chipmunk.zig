@@ -9,6 +9,7 @@ pub fn link(
         flags.append("-Os") catch unreachable;
         flags.append("-DNDEBUG") catch unreachable;
     }
+    flags.append("-DCP_USE_DOUBLES=0") catch unreachable;
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
     flags.append("-fno-sanitize=undefined") catch unreachable;
 
