@@ -3,6 +3,7 @@ const zp = @import("zplay");
 const cp = zp.deps.cp;
 const CPWorld = zp.physics.CPWorld;
 
+var rng: std.rand.Xoshiro256 = std.rand.DefaultPrng.init(333);
 var world: CPWorld = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -15,29 +16,116 @@ fn init(ctx: *zp.Context) anyerror!void {
     world = try CPWorld.init(std.testing.allocator, .{
         .gravity = .{ .x = 0, .y = 600 },
     });
-    _ = try world.addObject(.{
-        .body = .{
-            .dynamic = .{
-                .position = .{
-                    .x = @intToFloat(cp.Float, width) / 2,
-                    .y = 10,
-                },
+
+    const dynamic_body: CPWorld.ObjectOption.BodyProperty = .{
+        .dynamic = .{
+            .position = .{
+                .x = @intToFloat(cp.Float, width) / 2,
+                .y = 10,
             },
         },
-        .shapes = &.{
-            .{ .circle = .{ .radius = 10, .physics = .{ .weight = .{ .mass = 1 } } } },
-        },
-    });
+    };
+    const physics: CPWorld.ObjectOption.ShapeProperty.Physics = .{
+        .weight = .{ .mass = 1 },
+        .elasticity = 0.5,
+    };
+    var i: u32 = 0;
+    while (i < 100) : (i += 1) {
+        const t = rng.random().intRangeAtMost(u32, 0, 30);
+        if (t < 10) {
+            _ = try world.addObject(.{
+                .body = dynamic_body,
+                .shapes = &.{
+                    .{
+                        .circle = .{
+                            .radius = 15,
+                            .physics = physics,
+                        },
+                    },
+                },
+            });
+        } else if (t < 20) {
+            _ = try world.addObject(.{
+                .body = dynamic_body,
+                .shapes = &.{
+                    .{
+                        .box = .{
+                            .width = 30,
+                            .height = 30,
+                            .physics = physics,
+                        },
+                    },
+                },
+            });
+        } else {
+            _ = try world.addObject(.{
+                .body = dynamic_body,
+                .shapes = &.{
+                    .{
+                        .polygon = .{
+                            .verts = &[_]cp.Vect{
+                                .{ .x = 0, .y = 0 },
+                                .{ .x = 30, .y = 0 },
+                                .{ .x = 35, .y = 25 },
+                                .{ .x = 30, .y = 50 },
+                            },
+                            .physics = physics,
+                        },
+                    },
+                },
+            });
+        }
+    }
     _ = try world.addObject(.{
         .body = .{
             .global_static = 1,
         },
-        .shapes = &.{
+        .shapes = &[_]CPWorld.ObjectOption.ShapeProperty{
             .{
                 .segment = .{
-                    .a = .{ .x = 50, .y = 450 },
-                    .b = .{ .x = 500, .y = 350 },
+                    .a = .{ .x = 50, .y = 200 },
+                    .b = .{ .x = 400, .y = 250 },
                     .radius = 10,
+                    .physics = .{
+                        .elasticity = 1.0,
+                    },
+                },
+            },
+            .{
+                .segment = .{
+                    .a = .{ .x = 250, .y = 450 },
+                    .b = .{ .x = 700, .y = 350 },
+                    .radius = 10,
+                    .physics = .{
+                        .elasticity = 1.0,
+                    },
+                },
+            },
+            .{
+                .segment = .{
+                    .a = .{ .x = 0, .y = 0 },
+                    .b = .{ .x = 0, .y = @intToFloat(f32, height) },
+                    .physics = .{
+                        .elasticity = 1.0,
+                    },
+                },
+            },
+            .{
+                .segment = .{
+                    .a = .{ .x = 0, .y = @intToFloat(f32, height) },
+                    .b = .{ .x = @intToFloat(f32, width), .y = @intToFloat(f32, height) },
+                    .physics = .{
+                        .elasticity = 1.0,
+                    },
+                },
+            },
+            .{
+                .segment = .{
+                    .a = .{ .x = @intToFloat(f32, width), .y = 0 },
+                    .b = .{ .x = @intToFloat(f32, width), .y = @intToFloat(f32, height) },
+                    .physics = .{
+                        .elasticity = 1.0,
+                    },
                 },
             },
         },

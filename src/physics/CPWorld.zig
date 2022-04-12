@@ -68,7 +68,7 @@ pub const CollisionCallback = struct {
 pub const InitOption = struct {
     fixed_dt: f32 = 1.0 / 60.0,
     gravity: cp.Vect = cp.vzero,
-    dumping: f32 = 0,
+    dumping: f32 = 1.0,
     iteration: u32 = 10,
     user_data: cp.DataPointer = null,
     collision_callbacks: []CollisionCallback = &.{},
@@ -197,8 +197,8 @@ pub const ObjectOption = struct {
             density: f32,
         };
         pub const Physics = struct {
-            weight: Weight = .{ .mass = 0 },
-            elasticity: f32 = 0,
+            weight: Weight = .{ .mass = 1 },
+            elasticity: f32 = 0.1,
             friction: f32 = 0.7,
             is_sensor: bool = false,
         };
@@ -206,14 +206,12 @@ pub const ObjectOption = struct {
         segment: struct {
             a: cp.Vect,
             b: cp.Vect,
-            radius: f32 = 1,
+            radius: f32 = 0,
             physics: Physics = .{},
         },
         box: struct {
-            left: f32,
-            right: f32,
-            top: f32,
-            bottom: f32,
+            width: f32,
+            height: f32,
             radius: f32 = 0,
             physics: Physics = .{},
         },
@@ -223,7 +221,7 @@ pub const ObjectOption = struct {
             physics: Physics = .{},
         },
         polygon: struct {
-            points: []cp.Vect,
+            verts: []const cp.Vect,
             transform: cp.Transform = cp.transformIdentity,
             radius: f32 = 0,
             physics: Physics = .{},
@@ -284,12 +282,8 @@ pub fn addObject(self: *Self, opt: ObjectOption) !u32 {
                 break :blk shape;
             },
             .box => |prop| blk: {
-                var shape = cp.boxShapeNew2(body, .{
-                    .l = prop.left,
-                    .b = prop.bottom,
-                    .r = prop.right,
-                    .t = prop.top,
-                }, prop.radius).?;
+                assert(opt.body != .global_static);
+                var shape = cp.boxShapeNew(body, prop.width, prop.height, prop.radius).?;
                 initPhysicsOfShape(shape, prop.physics);
                 break :blk shape;
             },
@@ -302,8 +296,8 @@ pub fn addObject(self: *Self, opt: ObjectOption) !u32 {
             .polygon => |prop| blk: {
                 var shape = cp.polyShapeNew(
                     body,
-                    @intCast(c_int, prop.points.len),
-                    prop.points.ptr,
+                    @intCast(c_int, prop.verts.len),
+                    prop.verts.ptr,
                     prop.transform,
                     prop.radius,
                 ).?;
@@ -378,7 +372,8 @@ pub fn debugDraw(self: Self, gctx: *Context, camera: ?*Camera) void {
 
 /// debug draw
 const PhysicsDebug = struct {
-    const draw_alpha = 0.8;
+    const draw_alpha = 0.6;
+    const draw_color = cp.SpaceDebugColor{ .r = 1, .g = 1, .b = 0, .a = draw_alpha };
 
     allocator: std.mem.Allocator,
     max_vertex_num: u32,
@@ -469,9 +464,9 @@ const PhysicsDebug = struct {
             .drawDot = drawDot,
             .flags = cp.c.CP_SPACE_DEBUG_DRAW_SHAPES | cp.c.CP_SPACE_DEBUG_DRAW_CONSTRAINTS | cp.c.CP_SPACE_DEBUG_DRAW_COLLISION_POINTS,
             .shapeOutlineColor = .{
-                .r = @intToFloat(f32, 0xee) / 255.0,
-                .g = @intToFloat(f32, 0xe8) / 255.0,
-                .b = @intToFloat(f32, 0xd5) / 255.0,
+                .r = 0.2,
+                .g = 0.91,
+                .b = 0.84,
                 .a = draw_alpha,
             }, // outline color
             .colorForShape = drawColorForShape,
@@ -543,6 +538,8 @@ const PhysicsDebug = struct {
         fill_color: cp.SpaceDebugColor,
         outline_color: cp.SpaceDebugColor,
     ) void {
+        _ = fill_color; // TODO: c-abi issue, need fix
+
         const i = index * 13;
         assert(i + 13 <= @intCast(u32, vs.len));
         vs[i] = pos_x;
@@ -550,10 +547,10 @@ const PhysicsDebug = struct {
         vs[i + 2] = u;
         vs[i + 3] = v;
         vs[i + 4] = radius;
-        vs[i + 5] = fill_color.r;
-        vs[i + 6] = fill_color.g;
-        vs[i + 7] = fill_color.b;
-        vs[i + 8] = fill_color.a;
+        vs[i + 5] = draw_color.r;
+        vs[i + 6] = draw_color.g;
+        vs[i + 7] = draw_color.b;
+        vs[i + 8] = draw_color.a;
         vs[i + 9] = outline_color.r;
         vs[i + 10] = outline_color.g;
         vs[i + 11] = outline_color.b;
@@ -624,19 +621,66 @@ const PhysicsDebug = struct {
     }
 
     fn drawPolygon(
-        count: c_int,
+        _count: c_int,
         verts: [*c]const cp.Vect,
         radius: cp.Float,
         outline_color: cp.SpaceDebugColor,
         fill_color: cp.SpaceDebugColor,
         data: cp.DataPointer,
     ) callconv(.C) void {
-        _ = count;
-        _ = verts;
-        _ = radius;
-        _ = outline_color;
-        _ = fill_color;
-        _ = data;
+        var debug = @ptrCast(*PhysicsDebug, @alignCast(@alignOf(*PhysicsDebug), data));
+        const count = @intCast(u32, _count);
+        const max_poly_vertex = 64;
+        const max_poly_indices = 3 * ((5 * max_poly_vertex) - 2);
+        var indexes: [max_poly_indices]u32 = undefined;
+
+        // Polygon fill triangles.
+        var i: u32 = 0;
+        while (i < count - 2) : (i += 1) {
+            indexes[3 * i + 0] = 0;
+            indexes[3 * i + 1] = 4 * (i + 1);
+            indexes[3 * i + 2] = 4 * (i + 2);
+        }
+
+        // Polygon outline triangles.
+        const cursor = indexes[@intCast(u32, 3 * (count - 2))..];
+        i = 0;
+        while (i < count) : (i += 1) {
+            const j = (i + 1) % count;
+            cursor[12 * i + 0] = 4 * i + 0;
+            cursor[12 * i + 1] = 4 * i + 1;
+            cursor[12 * i + 2] = 4 * i + 2;
+            cursor[12 * i + 3] = 4 * i + 0;
+            cursor[12 * i + 4] = 4 * i + 2;
+            cursor[12 * i + 5] = 4 * i + 3;
+            cursor[12 * i + 6] = 4 * i + 0;
+            cursor[12 * i + 7] = 4 * i + 3;
+            cursor[12 * i + 8] = 4 * j + 0;
+            cursor[12 * i + 9] = 4 * i + 3;
+            cursor[12 * i + 10] = 4 * j + 0;
+            cursor[12 * i + 11] = 4 * j + 1;
+        }
+
+        const inset = -cp.fmax(0, 2 - radius);
+        const outset = radius + 1;
+        const r = outset - inset;
+        const vs = debug.pushVertexes(4 * count, &indexes);
+        i = 0;
+        while (i < count) : (i += 1) {
+            const v0 = verts[i];
+            const v_prev = verts[(i + (count - 1)) % count];
+            const v_next = verts[(i + (count + 1)) % count];
+
+            const n1 = cp.vnormalize(cp.vrperp(cp.vsub(v0, v_prev)));
+            const n2 = cp.vnormalize(cp.vrperp(cp.vsub(v_next, v0)));
+            const of = cp.vmult(cp.vadd(n1, n2), 1.0 / (cp.vdot(n1, n2) + 1.0));
+            const v = cp.vadd(v0, cp.vmult(of, inset));
+
+            setVertexAttrib(vs, 4 * i, v.x, v.y, 0, 0, 0, fill_color, outline_color);
+            setVertexAttrib(vs, 4 * i + 1, v.x, v.y, n1.x, n1.y, r, fill_color, outline_color);
+            setVertexAttrib(vs, 4 * i + 2, v.x, v.y, of.x, of.y, r, fill_color, outline_color);
+            setVertexAttrib(vs, 4 * i + 3, v.x, v.y, n2.x, n2.y, r, fill_color, outline_color);
+        }
     }
 
     fn drawDot(
@@ -645,10 +689,15 @@ const PhysicsDebug = struct {
         color: cp.SpaceDebugColor,
         data: cp.DataPointer,
     ) callconv(.C) void {
-        _ = size;
-        _ = pos;
-        _ = color;
-        _ = data;
+        var debug = @ptrCast(*PhysicsDebug, @alignCast(@alignOf(*PhysicsDebug), data));
+        const vs = debug.pushVertexes(4, &[_]u32{ 0, 1, 2, 0, 2, 3 });
+        const pos_x = @floatCast(f32, pos.x);
+        const pos_y = @floatCast(f32, pos.y);
+        const r = size * 0.5;
+        setVertexAttrib(vs, 0, pos_x, pos_y, -1, -1, r, color, color);
+        setVertexAttrib(vs, 1, pos_x, pos_y, -1, 1, r, color, color);
+        setVertexAttrib(vs, 2, pos_x, pos_y, 1, 1, r, color, color);
+        setVertexAttrib(vs, 3, pos_x, pos_y, 1, -1, r, color, color);
     }
 
     fn drawColorForShape(
@@ -657,23 +706,13 @@ const PhysicsDebug = struct {
     ) callconv(.C) cp.SpaceDebugColor {
         _ = data;
         if (cp.shapeGetSensor(shape) == 1) {
-            return .{ .r = 1, .g = 1, .b = 1, .a = 1 };
+            return .{ .r = 1, .g = 1, .b = 1, .a = draw_alpha };
         } else {
             var body = cp.shapeGetBody(shape);
             if (cp.bodyIsSleeping(body) == 1) {
-                return .{
-                    .r = @intToFloat(f32, 0x58) / 255.0,
-                    .g = @intToFloat(f32, 0x6e) / 255.0,
-                    .b = @intToFloat(f32, 0x75) / 255.0,
-                    .a = draw_alpha,
-                };
+                return .{ .r = 0.35, .g = 0.43, .b = 0.46, .a = draw_alpha };
             } else {
-                return .{
-                    .r = 1,
-                    .g = 1,
-                    .b = 0,
-                    .a = draw_alpha,
-                };
+                return .{ .r = 1, .g = 1, .b = 0, .a = draw_alpha };
             }
         }
     }

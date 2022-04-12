@@ -23,7 +23,7 @@ A simple framework intended for game/tool creation.
 * 2D toolkits:
   * Sprite and SpriteBatch system
   * Texture packer used to programmatically create sprite-sheet
-  * (TODO) Chipmunk physics lib integration
+  * Chipmunk physics lib integration
   * (TODO) Particle system
 
 # Install
@@ -33,6 +33,9 @@ A simple framework intended for game/tool creation.
 # Examples
 * sprites benchmark
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/sprites_benchmark.png)
+
+* chipmunk test
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/chipmunk_test.gif)
 
 * fake rasterization demonstration (granularity is triangle) (original idea is from [michal-z](https://github.com/michal-z/zig-gamedev/tree/main/samples/rasterization))
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/rasterization.png)
