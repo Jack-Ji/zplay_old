@@ -63,7 +63,7 @@ pub fn deinit(self: *Self) void {
 
 /// enable physics debug rendering
 pub fn enableDebugDraw(self: *Self, allocator: std.mem.Allocator) !void {
-    self.debug = try PhysicsDebug.init(allocator);
+    self.debug = try PhysicsDebug.init(allocator, 1000);
     bt.worldDebugSetCallbacks(self.world, &.{
         .drawLine1 = PhysicsDebug.drawLine1Callback,
         .drawLine2 = PhysicsDebug.drawLine2Callback,
@@ -328,18 +328,20 @@ pub fn debugDraw(self: Self, ctx: *Context, camera: *Camera, line_width: f32) vo
 /// debug draw
 const PhysicsDebug = struct {
     allocator: std.mem.Allocator,
+    max_vertex_num: u32,
     vertex_array: VertexArray,
     render_data: Renderer.Input,
     positions: std.ArrayList(f32),
     colors: std.ArrayList(f32),
     renderer: SimpleRenderer,
 
-    fn init(allocator: std.mem.Allocator) !*PhysicsDebug {
+    fn init(allocator: std.mem.Allocator, max_vertex_num: u32) !*PhysicsDebug {
         var debug = try allocator.create(PhysicsDebug);
         debug.allocator = allocator;
+        debug.max_vertex_num = max_vertex_num;
         debug.vertex_array = VertexArray.init(allocator, 2);
-        debug.vertex_array.vbos[0].allocData(100 * @sizeOf(Vec3), .dynamic_draw);
-        debug.vertex_array.vbos[1].allocData(100 * @sizeOf(Vec4), .dynamic_draw);
+        debug.vertex_array.vbos[0].allocData(max_vertex_num * @sizeOf(Vec3), .dynamic_draw);
+        debug.vertex_array.vbos[1].allocData(max_vertex_num * @sizeOf(Vec4), .dynamic_draw);
         debug.render_data = try Renderer.Input.init(
             allocator,
             &[_]Renderer.Input.VertexData{
@@ -399,6 +401,7 @@ const PhysicsDebug = struct {
         if (debug.positions.items.len == 0) return;
 
         // upload vertex data
+        assert(debug.positions.items.len <= debug.max_vertex_num);
         debug.vertex_array.vbos[0].updateData(0, f32, debug.positions.items);
         debug.vertex_array.vbos[1].updateData(0, f32, debug.colors.items);
         debug.render_data.camera = camera;

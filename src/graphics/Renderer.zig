@@ -151,7 +151,7 @@ pub const Input = struct {
     /// allocate renderer's input container
     pub fn init(
         allocator: std.mem.Allocator,
-        vds: []VertexData,
+        vds: []const VertexData,
         camera: ?*Camera,
         material: ?*Material,
         custom: ?*anyopaque,

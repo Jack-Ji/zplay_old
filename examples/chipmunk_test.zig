@@ -34,6 +34,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     world.update(ctx.delta_tick);
+    world.debugDraw(&ctx.graphics, null);
 }
 
 fn quit(ctx: *zp.Context) void {

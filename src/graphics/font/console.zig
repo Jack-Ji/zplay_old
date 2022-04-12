@@ -34,7 +34,7 @@ var material: Material = undefined;
 var render_data: Renderer.Input = undefined;
 
 /// maximum number of texts to be rendered
-const maxTextNum = 1000;
+const max_text_num = 1000;
 
 /// init module
 pub fn init(allocator: std.mem.Allocator, size: u32) void {
@@ -52,7 +52,7 @@ pub fn init(allocator: std.mem.Allocator, size: u32) void {
     renderer = FontRenderer.init();
     vattrib = std.ArrayList(f32).initCapacity(allocator, 1000) catch unreachable;
     vertex_array = VertexArray.init(std.testing.allocator, 1);
-    vertex_array.vbos[0].allocData(maxTextNum * 48 * @sizeOf(f32), .dynamic_draw);
+    vertex_array.vbos[0].allocData(max_text_num * 48 * @sizeOf(f32), .dynamic_draw);
     FontRenderer.setupVertexArray(vertex_array);
     material = Material.init(.{ .single_texture = atlas.tex });
     render_data = Renderer.Input.init(
@@ -93,7 +93,7 @@ pub const DrawRect = struct {
 };
 pub fn drawText(text: []const u8, opt: DrawOption) !DrawRect {
     assert(font != null);
-    assert(vattrib.items.len / 48 < maxTextNum);
+    assert(vattrib.items.len / 48 <= max_text_num - text.len);
     var next_xpos = try atlas.appendDrawDataFromUTF8String(
         text,
         opt.xpos,

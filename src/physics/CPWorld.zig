@@ -3,7 +3,9 @@ const assert = std.debug.assert;
 const zp = @import("../zplay.zig");
 const gfx = zp.graphics;
 const Context = gfx.gpu.Context;
+const ShaderProgram = gfx.gpu.ShaderProgram;
 const VertexArray = gfx.gpu.VertexArray;
+const Buffer = gfx.gpu.Buffer;
 const Renderer = gfx.Renderer;
 const Camera = gfx.Camera;
 const alg = zp.deps.alg;
@@ -45,6 +47,9 @@ space: *cp.Space,
 /// objects in the world
 objects: std.ArrayList(Object),
 
+/// internal debug rendering
+debug: ?*PhysicsDebug = null,
+
 /// init chipmunk world
 pub const CollisionCallback = struct {
     type_a: ?cp.CollisionType = null,
@@ -62,6 +67,7 @@ pub const InitOption = struct {
     user_data: cp.DataPointer = null,
     collision_callbacks: []CollisionCallback = &.{},
     prealloc_objects_num: u32 = 100,
+    enable_debug_draw: bool = true,
 };
 pub fn init(allocator: std.mem.Allocator, opt: InitOption) !Self {
     var space = cp.spaceNew();
@@ -87,7 +93,7 @@ pub fn init(allocator: std.mem.Allocator, opt: InitOption) !Self {
         handler.userData = cb.user_data;
     }
 
-    return Self{
+    var self = Self{
         .allocator = allocator,
         .space = space.?,
         .objects = try std.ArrayList(Object).initCapacity(
@@ -95,6 +101,11 @@ pub fn init(allocator: std.mem.Allocator, opt: InitOption) !Self {
             opt.prealloc_objects_num,
         ),
     };
+    if (opt.enable_debug_draw) {
+        self.debug = try PhysicsDebug.init(allocator, 1000);
+    }
+
+    return self;
 }
 
 pub fn deinit(self: Self) void {
@@ -106,6 +117,7 @@ pub fn deinit(self: Self) void {
         self.allocator.free(o.shapes);
     }
     self.objects.deinit();
+    if (self.debug) |dbg| dbg.deinit();
 }
 
 fn shapeFree(space: ?*cp.Space, shape: ?*anyopaque, unused: ?*anyopaque) callconv(.C) void {
@@ -341,6 +353,104 @@ pub fn update(self: Self, delta_tick: f32) void {
 }
 
 /// debug draw
-pub fn debugDraw(self: Self) void {
+pub fn debugDraw(self: Self, gctx: *Context, camera: ?*Camera) void {
     _ = self;
+    _ = gctx;
+    _ = camera;
 }
+
+/// debug draw
+const PhysicsDebug = struct {
+    allocator: std.mem.Allocator,
+    max_vertex_num: u32,
+    vattribs: std.ArrayList(f32),
+    program: ShaderProgram,
+    vertex_array: VertexArray,
+    input: Renderer.Input,
+
+    fn init(allocator: std.mem.Allocator, max_vertex_num: u32) !*PhysicsDebug {
+        var debug = try allocator.create(PhysicsDebug);
+        debug.allocator = allocator;
+        debug.max_vertex_num = max_vertex_num;
+        debug.vattribs = std.ArrayList(f32).initCapacity(allocator, 1000) catch unreachable;
+        debug.program = ShaderProgram.init(
+            Renderer.shader_head ++
+                \\layout(location = 0) in vec2 a_pos;
+                \\layout(location = 1) in vec2 a_uv;
+                \\layout(location = 2) in float a_radius;
+                \\layout(location = 3) in vec4 a_fill;
+                \\layout(location = 4) in vec4 a_outline;
+                \\
+                \\uniform mat4 u_vp_matrix;
+                \\out struct {
+                \\    vec2 uv;
+                \\    vec4 fill;
+                \\    vec4 outline;
+                \\} FRAG;
+                \\
+                \\void main() {
+                \\    gl_Position = u_vp_matrix * vec4(a_pos + a_radius * a_uv, 0, 1);
+                \\    FRAG.uv = a_uv;
+                \\    FRAG.fill = a_fill;
+                \\    FRAG.fill.rgb *= a_fill.a;
+                \\    FRAG.outline = a_outline;
+                \\    FRAG.outline.a *= a_outline.a;
+                \\}
+            ,
+            Renderer.shader_head ++
+                \\out vec4 frag_color;
+                \\
+                \\in struct {
+                \\    vec2 uv;
+                \\    vec4 fill;
+                \\    vec4 outline;
+                \\} FRAG;
+                \\
+                \\void main() {
+                \\    float len = length(FRAG.uv);
+                \\    float fw = length(fwidth(FRAG.uv));
+                \\    float mask = smoothstep(-1, fw - 1, -len);
+                \\    float outline = 1 - fw;
+                \\    float outline_mask = smoothstep(outline - fw, outline, len);
+                \\    vec4 color = FRAG.fill + (FRAG.outline - FRAG.fill * FRAG.outline.a) * outline_mask;
+                \\    frag_color = color*mask;
+                \\}
+            ,
+            null,
+        );
+        debug.vertex_array = VertexArray.init(allocator, 2);
+        debug.vertex_array.vbos[0].allocData(max_vertex_num * 13 * @sizeOf(f32), .dynamic_draw);
+        debug.vertex_array.use();
+        debug.vertex_array.setAttribute(0, 0, 2, f32, false, 13 * @sizeOf(f32), 0);
+        debug.vertex_array.setAttribute(0, 1, 2, f32, false, 13 * @sizeOf(f32), 2 * @sizeOf(f32));
+        debug.vertex_array.setAttribute(0, 2, 1, f32, false, 13 * @sizeOf(f32), 4 * @sizeOf(f32));
+        debug.vertex_array.setAttribute(0, 3, 4, f32, false, 13 * @sizeOf(f32), 5 * @sizeOf(f32));
+        debug.vertex_array.setAttribute(0, 4, 4, f32, false, 13 * @sizeOf(f32), 9 * @sizeOf(f32));
+        Buffer.Target.element_array_buffer.setBinding(
+            debug.vertex_array.vbos[1].id,
+        );
+        debug.vertex_array.disuse();
+        Buffer.Target.element_array_buffer.setBinding(0);
+        debug.input = Renderer.Input.init(
+            allocator,
+            &[_]Renderer.Input.VertexData{
+                .{
+                    .vertex_array = debug.vertex_array,
+                    .count = 0,
+                },
+            },
+            null,
+            null,
+            null,
+        ) catch unreachable;
+        return debug;
+    }
+
+    fn deinit(debug: *PhysicsDebug) void {
+        debug.vattribs.deinit();
+        debug.program.deinit();
+        debug.vertex_array.deinit();
+        debug.input.deinit();
+        debug.allocator.destroy(debug);
+    }
+};
