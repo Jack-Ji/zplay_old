@@ -47,8 +47,8 @@ pub fn init(allocator: std.mem.Allocator, gravity: ?f32) !Self {
 
 /// destroy physics world
 pub fn deinit(self: *Self) void {
-    self.debug.deinit();
-    for (self.objects) |o| {
+    for (self.objects.items) |o| {
+        bt.worldRemoveBody(self.world, o.body);
         if (bt.shapeGetType(o.shape) == bt.c.CBT_SHAPE_TYPE_TRIANGLE_MESH) {
             bt.shapeTriMeshDestroy(o.shape);
         } else {
@@ -58,6 +58,7 @@ pub fn deinit(self: *Self) void {
     }
     self.objects.deinit();
     bt.worldDestroy(self.world);
+    if (self.debug) |dbg| dbg.deinit();
 }
 
 /// enable physics debug rendering
