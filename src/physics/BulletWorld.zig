@@ -299,6 +299,10 @@ pub const UpdateOption = struct {
 };
 pub fn update(self: Self, option: UpdateOption) void {
     _ = bt.worldStepSimulation(self.world, option.delta_time, 1, 1.0 / 60.0);
+}
+
+/// draw debug lines
+pub fn debugDraw(self: Self, ctx: *Context, camera: *Camera, line_width: f32) void {
     if (self.debug) |dbg| {
         dbg.clear();
         for (self.objects.items) |obj| {
@@ -315,12 +319,6 @@ pub fn update(self: Self, option: UpdateOption) void {
             bt.worldDebugDrawLine1(self.world, &position, &p1_linear.toArray(), &color_linear);
             bt.worldDebugDrawLine1(self.world, &position, &p1_angular.toArray(), &color_angular);
         }
-    }
-}
-
-/// draw debug lines
-pub fn debugDraw(self: Self, ctx: *Context, camera: *Camera, line_width: f32) void {
-    if (self.debug) |dbg| {
         bt.worldDebugDraw(self.world);
         dbg.render(ctx, camera, line_width);
     }
