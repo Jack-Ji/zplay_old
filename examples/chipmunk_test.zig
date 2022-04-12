@@ -39,6 +39,7 @@ fn loop(ctx: *zp.Context) void {
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+    world.deinit();
 }
 
 pub fn main() anyerror!void {

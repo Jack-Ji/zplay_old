@@ -111,7 +111,7 @@ pub fn deinit(self: Self) void {
 fn shapeFree(space: ?*cp.Space, shape: ?*anyopaque, unused: ?*anyopaque) callconv(.C) void {
     _ = unused;
     cp.spaceRemoveShape(space, @ptrCast(?*cp.Shape, shape));
-    cp.shapeFree(shape);
+    cp.shapeFree(@ptrCast(?*cp.Shape, shape));
 }
 
 fn postShapeFree(shape: ?*cp.Shape, user_data: ?*anyopaque) callconv(.C) void {
@@ -126,7 +126,7 @@ fn postShapeFree(shape: ?*cp.Shape, user_data: ?*anyopaque) callconv(.C) void {
 fn constraintFree(space: ?*cp.Space, constraint: ?*anyopaque, unused: ?*anyopaque) callconv(.C) void {
     _ = unused;
     cp.spaceRemoveConstraint(space, @ptrCast(?*cp.Constraint, constraint));
-    cp.constraintFree(constraint);
+    cp.constraintFree(@ptrCast(?*cp.Constraint, constraint));
 }
 
 fn postConstraintFree(constraint: ?*cp.Constraint, user_data: ?*anyopaque) callconv(.C) void {
@@ -141,7 +141,7 @@ fn postConstraintFree(constraint: ?*cp.Constraint, user_data: ?*anyopaque) callc
 fn bodyFree(space: ?*cp.Space, body: ?*anyopaque, unused: ?*anyopaque) callconv(.C) void {
     _ = unused;
     cp.spaceRemoveBody(space, @ptrCast(?*cp.Body, body));
-    cp.bodyFree(body);
+    cp.bodyFree(@ptrCast(?*cp.Body, body));
 }
 
 fn postBodyFree(body: ?*cp.Body, user_data: ?*anyopaque) callconv(.C) void {
