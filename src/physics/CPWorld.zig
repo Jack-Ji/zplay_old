@@ -231,6 +231,7 @@ pub const ObjectOption = struct {
     body: BodyProperty = .{.global_static},
     shapes: []const ShapeProperty,
     filter: Filter = .{},
+    never_rotate: bool = false,
     user_data: ?*anyopaque = null,
 };
 pub fn addObject(self: *Self, opt: ObjectOption) !u32 {
@@ -318,6 +319,11 @@ pub fn addObject(self: *Self, opt: ObjectOption) !u32 {
             cp.shapeFree(s);
         }
         self.allocator.free(shapes);
+    }
+
+    // prevent rotation if needed
+    if (opt.never_rotate) {
+        cp.bodySetMoment(body, std.math.f32_max);
     }
 
     // append to object array
