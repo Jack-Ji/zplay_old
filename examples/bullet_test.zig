@@ -471,6 +471,7 @@ fn loop(ctx: *zp.Context) void {
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+    physics_world.deinit();
 }
 
 pub fn main() anyerror!void {
