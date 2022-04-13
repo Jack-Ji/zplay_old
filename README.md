@@ -5,13 +5,18 @@ A simple framework intended for game/tool creation.
 * Little external dependency, only SDL2 and OpenGL3
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
 * Hand-crafted OpenGL wrappers: GraphicsContext/FrameBuffer/ShaderProgram/VertexArray/Buffer/Texture
-* Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
-* Image asset loading/decoding and writing via [stb headers](https://github.com/nothings/stb)
 * Hand-crafted integration of [dear-imgui](https://github.com/ocornut/imgui) and popular extensions ([implot](https://github.com/epezent/implot)/[imnodes](https://github.com/Nelarius/imnodes))
 * Hand-crafted integration of [NanoVG](https://github.com/memononen/nanovg)/[NanoSVG](https://github.com/memononen/nanosvg)
+* Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
+* Flexible render-passes pipeline, greatly simplify rendering code
+* Image asset loading/decoding and writing via [stb headers](https://github.com/nothings/stb)
 * TrueType font loading and rendering
 * (TODO) Audio playback (support midi/mp3/ogg)
-* Flexible render-passes pipeline, greatly simplify rendering code
+* 2D toolkits:
+  * Sprite and SpriteBatch system
+  * Texture packer used to programmatically create sprite-sheet
+  * Chipmunk physics lib integration
+  * (TODO) Particle system
 * 3D toolkits:
   * Model loading and rendering (only glTF 2.0 for now)
   * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
@@ -19,11 +24,6 @@ A simple framework intended for game/tool creation.
   * Environment mapping renderer
   * Skybox renderer
   * (TODO) PBR renderer
-  * (TODO) Particle system
-* 2D toolkits:
-  * Sprite and SpriteBatch system
-  * Texture packer used to programmatically create sprite-sheet
-  * Chipmunk physics lib integration
   * (TODO) Particle system
 
 # Install
