@@ -25,12 +25,12 @@ fn init(ctx: *zp.Context) anyerror!void {
 }
 
 fn printSection(title: [:0]const u8, text: [:0]const u8) void {
-    dig.pushFont(big_font);
-    defer dig.popFont();
+    //dig.pushFont(big_font);
+    //defer dig.popFont();
     if (dig.collapsingHeader_TreeNodeFlags(title, null)) {
-        dig.pushFont(small_font);
+        //dig.pushFont(small_font);
         dig.textWrapped(text.ptr);
-        dig.popFont();
+        //dig.popFont();
     }
 }
 

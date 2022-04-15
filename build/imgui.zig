@@ -20,7 +20,7 @@ pub fn link(
         imgui.linkSystemLibrary("gdi32");
     }
     imgui.addIncludeDir(root_path ++ "/src/deps/gl/c/include");
-    imgui.addIncludeDir("src/deps/imgui/c");
+    imgui.addIncludeDir(root_path ++ "/src/deps/imgui/c");
     imgui.addCSourceFiles(&.{
         root_path ++ "/src/deps/imgui/c/imgui.cpp",
         root_path ++ "/src/deps/imgui/c/imgui_demo.cpp",
