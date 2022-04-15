@@ -5,10 +5,10 @@ A simple framework intended for game/tool creation.
 * Little external dependency, only SDL2 and OpenGL3
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
 * Flexible render-passes pipeline, greatly simplify rendering code
-* Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion (credit to [zalgebra](https://github.com/kooparse/zalgebra))
-* Vector graphics drawing ([nanovg](https://github.com/memononen/nanovg))
-* Immediate GUI toolkits ([dear-imgui](https://github.com/ocornut/imgui))
-* Realtime data visualization ([ImPlot](https://github.com/epezent/implot))
+* Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion
+* Vector graphics drawing (credit to [nanovg](https://github.com/memononen/nanovg))
+* Immediate Mode GUI toolkits (credit to [dear-imgui](https://github.com/ocornut/imgui))
+* Realtime data visualization (credit to [ImPlot](https://github.com/epezent/implot))
 * Image picture loading/decoding/writing (support png/jpg/bmp/tga)
 * TrueType font loading and rendering
 * (TODO) Audio playback (support wav/flac/mp3/vorbis)
@@ -26,7 +26,7 @@ A simple framework intended for game/tool creation.
   * (TODO) PBR renderer
   * (TODO) Particle system
 
-## Third-party Libraries
+## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
 * [nfd-zig](https://github.com/fabioarnold/nfd-zig) (MIT license)
 * [known-folders](https://github.com/ziglibs/known-folders) (MIT license)
@@ -43,9 +43,82 @@ A simple framework intended for game/tool creation.
 * [bullet3](https://github.com/bulletphysics/bullet3) (zlib license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 
-## Install
-1. Download and install zig master branch
-2. Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
+## Getting started
+Copy `zplay` folder to a `libs` subdirectory of the root of your project.
+
+Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
+
+Then in your `build.zig` add:
+
+```zig
+const std = @import("std");
+const zplay = @import("libs/zplay/build.zig");
+
+pub fn build(b: *std.build.Builder) void {
+    const exe = b.addExecutable("your_bin", "src/main.zig");
+
+    exe.setBuildMode(b.standardReleaseOptions());
+    exe.setTarget(b.standardTargetOptions(.{}));
+    exe.install();
+
+    zplay.linkZP(exe);
+
+    const run_cmd = exe.run();
+    run_cmd.step.dependOn(b.getInstallStep());
+
+    const run_step = b.step("run", "Run the app");
+    run_step.dependOn(&run_cmd.step);
+}
+```
+
+Now in your code you may import and use zplay:
+
+```zig
+const std = @import("std");
+const zp = @import("zplay");
+
+fn init(ctx: *zp.Context) anyerror!void {
+    _ = ctx;
+    std.log.info("game init", .{});
+
+    // your init code
+}
+
+fn loop(ctx: *zp.Context) void {
+    while (ctx.pollEvent()) |e| {
+        switch (e) {
+            .keyboard_event => |key| {
+                if (key.trigger_type == .up) {
+                    switch (key.scan_code) {
+                        .escape => ctx.kill(),
+                        .f1 => ctx.toggleFullscreeen(null),
+                        else => {},
+                    }
+                }
+            },
+            .quit_event => ctx.kill(),
+            else => {},
+        }
+    }
+
+    // your rendering code
+}
+
+fn quit(ctx: *zp.Context) void {
+    _ = ctx;
+    std.log.info("game quit", .{});
+
+    // your deinit code
+}
+
+pub fn main() anyerror!void {
+    try zp.run(.{
+        .initFn = init,
+        .loopFn = loop,
+        .quitFn = quit,
+    });
+}
+```
 
 ## Examples
 * sprites benchmark
