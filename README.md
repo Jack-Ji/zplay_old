@@ -44,7 +44,7 @@ A simple framework intended for game/tool creation.
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 
 ## Getting started
-Copy `zplay` folder to a `libs` subdirectory of the root of your project.
+Copy `zplay` folder or clone repo into `libs` subdirectory of the root of your project.
 
 Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
 
