@@ -6,9 +6,9 @@ A simple framework intended for game/tool creation.
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
 * Flexible render-passes pipeline, greatly simplify rendering code
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion
-* Vector graphics drawing (credit to [nanovg](https://github.com/memononen/nanovg))
-* Immediate Mode GUI toolkits (credit to [dear-imgui](https://github.com/ocornut/imgui))
-* Realtime data visualization (credit to [ImPlot](https://github.com/epezent/implot))
+* Vector graphics drawing ([nanovg](https://github.com/memononen/nanovg))
+* Immediate Mode GUI toolkits ([dear-imgui](https://github.com/ocornut/imgui))
+* Realtime data visualization ([ImPlot](https://github.com/epezent/implot))
 * Image picture loading/decoding/writing (support png/jpg/bmp/tga)
 * TrueType font loading and rendering
 * (TODO) Audio playback (support wav/flac/mp3/vorbis)
