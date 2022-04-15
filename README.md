@@ -28,9 +28,7 @@ A simple framework intended for game/tool creation.
 
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
-* [nfd-zig](https://github.com/fabioarnold/nfd-zig) (MIT license)
-* [known-folders](https://github.com/ziglibs/known-folders) (MIT license)
-* [glad](https://glad.dav1d.de) (Apache Version 2.0 license)
+* [glad-generated OpenGL3 loader](https://glad.dav1d.de) (Apache Version 2.0 license)
 * [zalgebra](https://github.com/kooparse/zalgebra) (MIT license)
 * [miniaudio](https://miniaud.io/index.html) (MIT license)
 * [cgltf](https://github.com/jkuhlmann/cgltf) (MIT license)
@@ -42,9 +40,11 @@ A simple framework intended for game/tool creation.
 * [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
 * [bullet3](https://github.com/bulletphysics/bullet3) (zlib license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
+* [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)
+* [known-folders](https://github.com/ziglibs/known-folders) (MIT license)
 
 ## Getting started
-Copy `zplay` folder or clone repo into `libs` subdirectory of the root of your project.
+Copy `zplay` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
 
 Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
 
