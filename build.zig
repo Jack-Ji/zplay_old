@@ -62,18 +62,19 @@ pub fn build(b: *std.build.Builder) void {
     }
 }
 
-/// link zplay framework to executable 
+/// link zplay framework to executable
 pub fn linkZP(exe: *std.build.LibExeObjStep) void {
     const root_path = comptime rootPath();
 
     // link dependencies
     const deps = .{
         @import("build/sdl.zig"),
-        @import("build/nfd.zig"),
         @import("build/opengl.zig"),
+        @import("build/miniaudio.zig"),
         @import("build/stb.zig"),
-        @import("build/imgui.zig"),
         @import("build/gltf.zig"),
+        @import("build/nfd.zig"),
+        @import("build/imgui.zig"),
         @import("build/nanovg.zig"),
         @import("build/nanosvg.zig"),
         @import("build/bullet.zig"),
