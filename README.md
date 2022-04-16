@@ -26,23 +26,6 @@ A simple framework intended for game/tool creation.
   * (TODO) PBR renderer
   * (TODO) Particle system
 
-## Third-Party Libraries
-* [SDL2](https://www.libsdl.org) (zlib license)
-* [glad-generated OpenGL3 loader](https://glad.dav1d.de) (Apache Version 2.0 license)
-* [zalgebra](https://github.com/kooparse/zalgebra) (MIT license)
-* [miniaudio](https://miniaud.io/index.html) (MIT license)
-* [cgltf](https://github.com/jkuhlmann/cgltf) (MIT license)
-* [stb headers](https://github.com/nothings/stb) (MIT license)
-* [dear-imgui](https://github.com/ocornut/imgui) (MIT license)
-* [ImPlot](https://github.com/epezent/implot) (MIT license)
-* [imnodes](https://github.com/Nelarius/imnodes) (MIT license)
-* [nanovg](https://github.com/memononen/nanovg) (zlib license)
-* [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
-* [bullet3](https://github.com/bulletphysics/bullet3) (zlib license)
-* [chipmunk](https://chipmunk-physics.net/) (MIT license)
-* [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)
-* [known-folders](https://github.com/ziglibs/known-folders) (MIT license)
-
 ## Getting started
 Copy `zplay` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
 
@@ -153,4 +136,21 @@ pub fn main() anyerror!void {
 
 * vector graphics
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/vector_graphics.png)
+
+## Third-Party Libraries
+* [SDL2](https://www.libsdl.org) (zlib license)
+* [glad-generated OpenGL3 loader](https://glad.dav1d.de) (Apache Version 2.0 license)
+* [zalgebra](https://github.com/kooparse/zalgebra) (MIT license)
+* [miniaudio](https://miniaud.io/index.html) (MIT license)
+* [cgltf](https://github.com/jkuhlmann/cgltf) (MIT license)
+* [stb headers](https://github.com/nothings/stb) (MIT license)
+* [dear-imgui](https://github.com/ocornut/imgui) (MIT license)
+* [ImPlot](https://github.com/epezent/implot) (MIT license)
+* [imnodes](https://github.com/Nelarius/imnodes) (MIT license)
+* [nanovg](https://github.com/memononen/nanovg) (zlib license)
+* [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
+* [bullet3](https://github.com/bulletphysics/bullet3) (zlib license)
+* [chipmunk](https://chipmunk-physics.net/) (MIT license)
+* [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)
+* [known-folders](https://github.com/ziglibs/known-folders) (MIT license)
 
