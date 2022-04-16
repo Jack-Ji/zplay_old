@@ -226,6 +226,18 @@ pub const Engine = struct {
         }
         return node;
     }
+
+    pub fn destroySound(e: *Engine, sound: *Sound) void {
+        miniaudio.ma_sound_uninit(&sound.sound);
+        e.sound_list.remove(sound);
+        e.allocator.destroy(sound);
+    }
+
+    pub fn destroySoundGroup(e: *Engine, sound_group: *SoundGroup) void {
+        miniaudio.ma_sound_group_uninit(&sound_group.group);
+        e.sound_group_list.remove(sound_group);
+        e.allocator.destroy(sound_group);
+    }
 };
 
 pub const TimeUnit = union(enum) {
