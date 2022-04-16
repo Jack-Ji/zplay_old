@@ -11,7 +11,7 @@ A simple framework intended for game/tool creation.
 * Realtime data visualization ([ImPlot](https://github.com/epezent/implot))
 * Image picture loading/decoding/writing (support png/jpg/bmp/tga)
 * TrueType font loading and rendering
-* (TODO) Audio playback (support wav/flac/mp3/vorbis)
+* Audio playback (support wav/flac/mp3/vorbis)
 * 2D toolkits:
   * Sprite and SpriteBatch system
   * Texture packer used to programmatically create sprite-sheet

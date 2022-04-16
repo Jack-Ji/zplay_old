@@ -3,6 +3,7 @@ const zp = @import("zplay.zig");
 const GraphicsContext = zp.graphics.gpu.Context;
 const console = zp.graphics.font.console;
 const event = zp.event;
+const audio = zp.audio;
 const sdl = zp.deps.sdl;
 
 /// application context
@@ -12,6 +13,9 @@ pub const Context = struct {
 
     /// graphics context
     graphics: GraphicsContext = undefined,
+
+    /// audio engine
+    audio: *audio.Engine = undefined,
 
     /// quit switch
     quit: bool = false,
@@ -143,6 +147,9 @@ pub const Context = struct {
 
 /// application configurations
 pub const Game = struct {
+    /// default memory allocator
+    allocator: std.mem.Allocator = std.heap.c_allocator,
+
     /// called once before rendering loop starts
     initFn: fn (ctx: *Context) anyerror!void,
 
@@ -252,6 +259,10 @@ pub fn run(g: Game) !void {
     context.graphics = try GraphicsContext.init(context.window, g);
     defer context.graphics.deinit();
     context.graphics.setVsyncMode(g.enable_vsync);
+
+    // allocate audio engine
+    context.audio = try audio.Engine.init(g.allocator, .{});
+    defer context.audio.deinit();
 
     // apply window options, still changable through Context's methods
     context.toggleResizable(g.enable_resizable);

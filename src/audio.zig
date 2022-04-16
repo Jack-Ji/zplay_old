@@ -37,12 +37,14 @@ pub const Engine = struct {
         var engine = try allocator.create(Engine);
         engine.allocator = allocator;
         engine.option = opt;
-        engine.sound_list = std.TailQueue(miniaudio.ma_sound){};
+        engine.sound_list = SoundList{};
+        engine.sound_group_list = SoundGroupList{};
         errdefer allocator.destroy(engine);
 
         // create internal engine
-        const config = miniaudio.ma_engine_config_init();
-        config.noDevice = 1;
+        assert(opt.channels > 0);
+        assert(opt.listener_num > 0);
+        var config = miniaudio.ma_engine_config_init();
         config.channels = @intCast(c_uint, opt.channels);
         config.sampleRate = @intCast(c_uint, opt.sample_rate);
         config.listenerCount = @intCast(c_uint, opt.listener_num);
@@ -51,8 +53,7 @@ pub const Engine = struct {
         if (rc != miniaudio.MA_SUCCESS) {
             return error.InitEngineFailed;
         }
-
-        return allocator;
+        return engine;
     }
 
     pub fn deinit(e: *Engine) void {
@@ -142,7 +143,7 @@ pub const Engine = struct {
         const rc = miniaudio.ma_engine_play_sound(
             &e.engine,
             path.ptr,
-            if (group) |g| g.group else null,
+            if (group) |g| &g.group else null,
         );
         if (rc != miniaudio.MA_SUCCESS) {
             return error.DecodeFileFailed;
@@ -197,7 +198,7 @@ pub const Engine = struct {
             &e.engine,
             path,
             opt.toInt(),
-            group,
+            if (group) |g| &g.group else null,
             null,
             &node.data.sound,
         );
@@ -207,7 +208,7 @@ pub const Engine = struct {
         return &node.data;
     }
 
-    pub fn createSoundGroup(e: *Engine, parent: ?*miniaudio.ma_sound_group) !*SoundGroup {
+    pub fn createSoundGroup(e: *Engine, parent: ?*SoundGroup) !*SoundGroup {
         var node = try e.allocator.create(SoundGroupList.Node);
         errdefer e.allocator.destroy(node);
 
@@ -218,7 +219,7 @@ pub const Engine = struct {
         const rc = miniaudio.ma_sound_group_init(
             &e.engine,
             0,
-            parent,
+            if (parent) |g| &g.group else null,
             &node.data.group,
         );
         if (rc != miniaudio.MA_SUCCESS) {
