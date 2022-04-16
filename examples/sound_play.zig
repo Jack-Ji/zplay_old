@@ -13,6 +13,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         null,
         .{},
     );
+    sound.setLooping(true);
     sound.start();
 }
 
