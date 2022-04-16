@@ -164,7 +164,7 @@ pub const Engine = struct {
         no_spatialization: bool = false,
 
         /// no doppler effect
-        no_doppler: bool = true,
+        no_doppler: bool = false,
 
         fn toInt(o: SoundOption) c_uint {
             var flags: c_uint = 0;
@@ -273,12 +273,48 @@ pub const Sound = struct {
         return if (miniaudio.ma_sound_is_looping(&snd.sound) == 1) true else false;
     }
 
-    pub fn seekTo(snd: *Sound, frames: u64) void {
-        miniaudio.ma_sound_seek_to_pcm_frame(&snd.sound, @intCast(c_ulonglong, frames));
-    }
-
     pub fn isAtEnd(snd: Sound) bool {
         return if (miniaudio.ma_sound_at_end(&snd.sound) == 1) true else false;
+    }
+
+    pub fn seekTo(snd: *Sound, t: TimeUnit) void {
+        switch (t) {
+            .pcm_frames => |frames| {
+                miniaudio.ma_sound_seek_to_pcm_frame(&snd.sound, @intCast(c_ulonglong, frames));
+            },
+            .milliseconds => |ms| {
+                const frames = @floatToInt(c_ulonglong, @intToFloat(f32, ms) / 1000 * snd.sound.engineNode.sampleRate);
+                miniaudio.ma_sound_seek_to_pcm_frame(&snd.sound, frames);
+            },
+        }
+    }
+
+    /// return cursor in pcm frames
+    pub fn getCursorInFrames(snd: *Sound) u64 {
+        var frames: miniaudio.ma_uint64 = undefined;
+        _ = miniaudio.ma_sound_get_cursor_in_pcm_frames(&snd.sound, &frames);
+        return @intCast(u64, frames);
+    }
+
+    /// return total pcm frames
+    pub fn getLengthInFrames(snd: *Sound) u64 {
+        var frames: miniaudio.ma_uint64 = undefined;
+        _ = miniaudio.ma_sound_get_length_in_pcm_frames(&snd.sound, &frames);
+        return @intCast(u64, frames);
+    }
+
+    /// return cursor in milliseconds
+    pub fn getCursorInMilliseconds(snd: *Sound) u64 {
+        var seconds: f32 = undefined;
+        _ = miniaudio.ma_sound_get_cursor_in_seconds(&snd.sound, &seconds);
+        return @floatToInt(u64, seconds * 1000);
+    }
+
+    /// return total milliseconds
+    pub fn getLengthInMilliseconds(snd: *Sound) u64 {
+        var seconds: f32 = undefined;
+        _ = miniaudio.ma_sound_get_length_in_seconds(&snd.sound, &seconds);
+        return @floatToInt(u64, seconds * 1000);
     }
 
     pub fn setStartTime(snd: *Sound, t: TimeUnit) void {
@@ -338,7 +374,7 @@ pub const Sound = struct {
         return miniaudio.ma_sound_get_velocity(&snd.sound);
     }
 
-    pub fn setPan(snd: *Sound, pan: f32) f32 {
+    pub fn setPan(snd: *Sound, pan: f32) void {
         assert(pan >= -1.0 and pan <= 1.0);
         miniaudio.ma_sound_set_pan(&snd.sound, pan);
     }
@@ -347,7 +383,7 @@ pub const Sound = struct {
         return miniaudio.ma_sound_get_pan(&snd.sound);
     }
 
-    pub fn setPitch(snd: *Sound, pitch: f32) f32 {
+    pub fn setPitch(snd: *Sound, pitch: f32) void {
         assert(pitch > 0);
         miniaudio.ma_sound_set_pitch(&snd.sound, pitch);
     }
@@ -453,7 +489,7 @@ pub const SoundGroup = struct {
         return miniaudio.ma_sound_group_get_velocity(&grp.group);
     }
 
-    pub fn setPan(grp: *SoundGroup, pan: f32) f32 {
+    pub fn setPan(grp: *SoundGroup, pan: f32) void {
         assert(pan >= -1.0 and pan <= 1.0);
         miniaudio.ma_sound_group_set_pan(&grp.group, pan);
     }
@@ -462,7 +498,7 @@ pub const SoundGroup = struct {
         return miniaudio.ma_sound_group_get_pan(&grp.group);
     }
 
-    pub fn setPitch(grp: *SoundGroup, pitch: f32) f32 {
+    pub fn setPitch(grp: *SoundGroup, pitch: f32) void {
         assert(pitch > 0);
         miniaudio.ma_sound_group_set_pitch(&grp.group, pitch);
     }
