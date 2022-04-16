@@ -1,9 +1,4 @@
-pub const ptrdiff_t = c_longlong;
 pub const wchar_t = c_ushort;
-pub const max_align_t = extern struct {
-    __clang_max_align_nonce1: c_longlong align(8),
-    __clang_max_align_nonce2: c_longdouble align(16),
-};
 pub const ma_int8 = i8;
 pub const ma_uint8 = u8;
 pub const ma_int16 = c_short;

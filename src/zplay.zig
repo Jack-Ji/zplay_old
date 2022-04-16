@@ -22,6 +22,7 @@ pub const deps = struct {
     pub const kf = @import("deps/known_folders/known-folders.zig"); // known sys dir
     pub const nfd = @import("deps/nfd/nfd.zig"); // native file dialog
     pub const gl = @import("deps/gl/gl.zig"); // opengl 3.3 core definitions
+    pub const miniaudio = @import("deps/miniaudio/miniaudio.zig"); // audio library
     pub const alg = @import("deps/alg/src/main.zig"); // algebra calculation
     pub const stb = @import("deps/stb/stb.zig"); // stb utilities
     pub const dig = @import("deps/imgui/imgui.zig"); // dear-imgui
