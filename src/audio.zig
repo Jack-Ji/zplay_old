@@ -81,13 +81,23 @@ pub const Engine = struct {
         _ = miniaudio.ma_engine_set_volume(&e.engine, volume);
     }
 
-    pub fn setTime(e: *Engine) u64 {
+    pub fn setTimeInFrames(e: *Engine, frames: u64) u64 {
+        return @intCast(u64, miniaudio.ma_engine_set_time(&e.engine, @intCast(c_ulonglong, frames)));
+    }
+
+    pub fn setTimeInMilliseconds(e: *Engine, ms: u64) u64 {
+        return @intCast(u64, miniaudio.ma_engine_set_time(
+            &e.engine,
+            @intCast(c_ulonglong, ms / 1000 * @as(u64, e.getSampleRate())),
+        ));
+    }
+
+    pub fn getTimeInFrames(e: *Engine) u64 {
         return @intCast(u64, miniaudio.ma_engine_get_time(&e.engine));
     }
 
-    /// return global pcm frames
-    pub fn getTime(e: *Engine) u64 {
-        return @intCast(u64, miniaudio.ma_engine_get_time(&e.engine));
+    pub fn getTimeInMilliseconds(e: *Engine) u64 {
+        return @intCast(u64, miniaudio.ma_engine_get_time(&e.engine)) / @as(u64, e.getSampleRate());
     }
 
     pub fn getSampleRate(e: *Engine) u32 {
@@ -289,28 +299,24 @@ pub const Sound = struct {
         }
     }
 
-    /// return cursor in pcm frames
     pub fn getCursorInFrames(snd: *Sound) u64 {
         var frames: miniaudio.ma_uint64 = undefined;
         _ = miniaudio.ma_sound_get_cursor_in_pcm_frames(&snd.sound, &frames);
         return @intCast(u64, frames);
     }
 
-    /// return total pcm frames
-    pub fn getLengthInFrames(snd: *Sound) u64 {
-        var frames: miniaudio.ma_uint64 = undefined;
-        _ = miniaudio.ma_sound_get_length_in_pcm_frames(&snd.sound, &frames);
-        return @intCast(u64, frames);
-    }
-
-    /// return cursor in milliseconds
     pub fn getCursorInMilliseconds(snd: *Sound) u64 {
         var seconds: f32 = undefined;
         _ = miniaudio.ma_sound_get_cursor_in_seconds(&snd.sound, &seconds);
         return @floatToInt(u64, seconds * 1000);
     }
 
-    /// return total milliseconds
+    pub fn getLengthInFrames(snd: *Sound) u64 {
+        var frames: miniaudio.ma_uint64 = undefined;
+        _ = miniaudio.ma_sound_get_length_in_pcm_frames(&snd.sound, &frames);
+        return @intCast(u64, frames);
+    }
+
     pub fn getLengthInMilliseconds(snd: *Sound) u64 {
         var seconds: f32 = undefined;
         _ = miniaudio.ma_sound_get_length_in_seconds(&snd.sound, &seconds);
