@@ -9,6 +9,7 @@ const Self = @This();
 pub const Error = error{
     LoadImageError,
     TextureUnitUsed,
+    EncodeTextureFailed,
 };
 
 pub const TextureType = enum(c_uint) {
@@ -777,9 +778,84 @@ pub fn initCubeFromFileData(
     );
 }
 
+/// save texture into encoded format (png/bmp/tga/jpg) on disk
+pub const SaveOption = struct {
+    format: enum { png, bmp, tga, jpg } = .png,
+    png_compress_level: u8 = 8,
+    tga_rle_compress: bool = true,
+    jpg_quality: u8 = 75, // between 1 and 100
+    flip_on_write: bool = true, // flip by default
+};
+pub fn saveToFile(
+    self: Self,
+    allocator: std.mem.Allocator,
+    path: [:0]const u8,
+    option: SaveOption,
+) !void {
+    assert(self.type == .texture_2d);
+    assert(self.format == .rgb or self.format == .rgba);
+    assert(self.width > 0 and self.height.? > 0);
+    var buf = try allocator.alloc(u8, self.width * self.height.? * self.format.getChannels());
+    defer allocator.free(buf);
+
+    // read pixels
+    self.getPixels(u8, buf);
+
+    // encode file
+    var result: c_int = undefined;
+    stb_image.stbi_flip_vertically_on_write(@boolToInt(option.flip_on_write));
+    switch (option.format) {
+        .png => {
+            stb_image.stbi_write_png_compression_level =
+                @intCast(c_int, option.png_compress_level);
+            result = stb_image.stbi_write_png(
+                path,
+                @intCast(c_int, self.width),
+                @intCast(c_int, self.height.?),
+                @intCast(c_int, self.format.getChannels()),
+                buf.ptr,
+                @intCast(c_int, self.width * self.format.getChannels()),
+            );
+        },
+        .bmp => {
+            result = stb_image.stbi_write_bmp(
+                path,
+                @intCast(c_int, self.width),
+                @intCast(c_int, self.height.?),
+                @intCast(c_int, self.format.getChannels()),
+                buf.ptr,
+            );
+        },
+        .tga => {
+            stb_image.stbi_write_tga_with_rle =
+                if (option.tga_rle_compress) 1 else 0;
+            result = stb_image.stbi_write_tga(
+                path,
+                @intCast(c_int, self.width),
+                @intCast(c_int, self.height.?),
+                @intCast(c_int, self.format.getChannels()),
+                buf.ptr,
+            );
+        },
+        .jpg => {
+            result = stb_image.stbi_write_jpg(
+                path,
+                @intCast(c_int, self.width),
+                @intCast(c_int, self.height.?),
+                @intCast(c_int, self.format.getChannels()),
+                buf.ptr,
+                @intCast(c_int, @intCast(c_int, std.math.clamp(option.jpg_quality, 1, 100))),
+            );
+        },
+    }
+    if (result == 0) {
+        return error.EncodeTextureFailed;
+    }
+}
+
 /// activate and bind to given texture unit
 /// NOTE: because a texture unit can be stolen anytime
-/// by other textures, we just blindly bind them everytime. 
+/// by other textures, we just blindly bind them everytime.
 /// Maybe we need to look out for performance issue.
 pub fn bindToTextureUnit(self: *Self, unit: TextureUnit) void {
     TextureUnit.alloc(unit, self);

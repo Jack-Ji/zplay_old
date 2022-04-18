@@ -219,27 +219,23 @@ fn loop(ctx: *zp.Context) void {
                         .escape => ctx.kill(),
                         .f1 => ctx.toggleFullscreeen(null),
                         .f2 => {
-                            zp.utils.dumpTexture(
+                            fb.tex.?.saveToFile(
                                 std.testing.allocator,
-                                fb.tex.?,
                                 "test.png",
                                 .{},
                             ) catch unreachable;
-                            zp.utils.dumpTexture(
+                            fb.tex.?.saveToFile(
                                 std.testing.allocator,
-                                fb.tex.?,
                                 "test.bmp",
                                 .{ .format = .bmp },
                             ) catch unreachable;
-                            zp.utils.dumpTexture(
+                            fb.tex.?.saveToFile(
                                 std.testing.allocator,
-                                fb.tex.?,
                                 "test.tga",
                                 .{ .format = .tga },
                             ) catch unreachable;
-                            zp.utils.dumpTexture(
+                            fb.tex.?.saveToFile(
                                 std.testing.allocator,
-                                fb.tex.?,
                                 "test.jpg",
                                 .{ .format = .jpg },
                             ) catch unreachable;
