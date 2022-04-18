@@ -31,6 +31,10 @@ fn init(ctx: *zp.Context) anyerror!void {
         height,
         .{},
     );
+    //sprite_sheet = try SpriteSheet.fromSheetFiles(
+    //    std.testing.allocator,
+    //    "sheet",
+    //);
     sprite = try sprite_sheet.createSprite("ogre");
     sprite_batch = try SpriteBatch.init(
         std.testing.allocator,
@@ -51,6 +55,7 @@ fn loop(ctx: *zp.Context) void {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
                         .f1 => ctx.toggleFullscreeen(null),
+                        .f2 => sprite_sheet.saveToFiles("sheet") catch unreachable,
                         else => {},
                     }
                 }
