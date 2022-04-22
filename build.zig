@@ -48,7 +48,7 @@ pub fn build(b: *std.build.Builder) void {
         );
         exe.setBuildMode(mode);
         exe.setTarget(target);
-        linkZP(exe);
+        link(exe, .{});
         const install_cmd = b.addInstallArtifact(exe);
         const run_cmd = exe.run();
         run_cmd.step.dependOn(&install_cmd.step);
@@ -63,27 +63,31 @@ pub fn build(b: *std.build.Builder) void {
     }
 }
 
+pub const LinkOption = struct {
+    link_nfd: bool = true,
+    link_imgui: bool = true,
+    link_nanovg: bool = true,
+    link_nanosvg: bool = true,
+    link_bullet: bool = true,
+    link_chipmunk: bool = true,
+};
+
 /// link zplay framework to executable
-pub fn linkZP(exe: *std.build.LibExeObjStep) void {
+pub fn link(exe: *std.build.LibExeObjStep, opt: LinkOption) void {
     const root_path = comptime rootPath();
 
     // link dependencies
-    const deps = .{
-        @import("build/sdl.zig"),
-        @import("build/opengl.zig"),
-        @import("build/miniaudio.zig"),
-        @import("build/stb.zig"),
-        @import("build/gltf.zig"),
-        @import("build/nfd.zig"),
-        @import("build/imgui.zig"),
-        @import("build/nanovg.zig"),
-        @import("build/nanosvg.zig"),
-        @import("build/bullet.zig"),
-        @import("build/chipmunk.zig"),
-    };
-    inline for (deps) |d| {
-        d.link(exe, root_path);
-    }
+    @import("build/sdl.zig").link(exe, root_path);
+    @import("build/opengl.zig").link(exe, root_path);
+    @import("build/miniaudio.zig").link(exe, root_path);
+    @import("build/stb.zig").link(exe, root_path);
+    @import("build/gltf.zig").link(exe, root_path);
+    if (opt.link_nfd) @import("build/nfd.zig").link(exe, root_path);
+    if (opt.link_imgui) @import("build/imgui.zig").link(exe, root_path);
+    if (opt.link_nanovg) @import("build/nanovg.zig").link(exe, root_path);
+    if (opt.link_nanosvg) @import("build/nanosvg.zig").link(exe, root_path);
+    if (opt.link_bullet) @import("build/bullet.zig").link(exe, root_path);
+    if (opt.link_chipmunk) @import("build/chipmunk.zig").link(exe, root_path);
 
     // use zplay
     const sdl = @import("./src/deps/sdl/Sdk.zig").init(exe.builder);

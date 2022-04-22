@@ -5,46 +5,47 @@ pub fn link(
     comptime root_path: []const u8,
 ) void {
     var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
-    if (exe.builder.is_release) flags.append("-Os") catch unreachable;
+    defer flags.deinit();
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
     flags.append("-fno-sanitize=undefined") catch unreachable;
 
-    var nfd = exe.builder.addStaticLibrary("nfd", null);
-    nfd.setTarget(exe.target);
-    nfd.linkLibC();
+    var lib = exe.builder.addStaticLibrary("nfd", null);
+    lib.setBuildMode(exe.build_mode);
+    lib.setTarget(exe.target);
+    lib.linkLibC();
     if (exe.target.isDarwin()) {
-        nfd.linkFramework("AppKit");
+        lib.linkFramework("AppKit");
     } else if (exe.target.isWindows()) {
-        nfd.linkSystemLibrary("shell32");
-        nfd.linkSystemLibrary("ole32");
-        nfd.linkSystemLibrary("uuid"); // needed by MinGW
+        lib.linkSystemLibrary("shell32");
+        lib.linkSystemLibrary("ole32");
+        lib.linkSystemLibrary("uuid"); // needed by MinGW
     } else {
-        nfd.linkSystemLibrary("atk-1.0");
-        nfd.linkSystemLibrary("gdk-3");
-        nfd.linkSystemLibrary("gtk-3");
-        nfd.linkSystemLibrary("glib-2.0");
-        nfd.linkSystemLibrary("gobject-2.0");
+        lib.linkSystemLibrary("atk-1.0");
+        lib.linkSystemLibrary("gdk-3");
+        lib.linkSystemLibrary("gtk-3");
+        lib.linkSystemLibrary("glib-2.0");
+        lib.linkSystemLibrary("gobject-2.0");
     }
-    nfd.addIncludeDir(root_path ++ "/src/deps/nfd/c/include");
-    nfd.addCSourceFile(
+    lib.addIncludeDir(root_path ++ "/src/deps/nfd/c/include");
+    lib.addCSourceFile(
         root_path ++ "/src/deps/nfd/c/nfd_common.c",
         flags.items,
     );
     if (exe.target.isDarwin()) {
-        nfd.addCSourceFile(
+        lib.addCSourceFile(
             root_path ++ "/src/deps/nfd/c/nfd_cocoa.m",
             flags.items,
         );
     } else if (exe.target.isWindows()) {
-        nfd.addCSourceFile(
+        lib.addCSourceFile(
             root_path ++ "/src/deps/nfd/c/nfd_win.cpp",
             flags.items,
         );
     } else {
-        nfd.addCSourceFile(
+        lib.addCSourceFile(
             root_path ++ "/src/deps/nfd/c/nfd_gtk.c",
             flags.items,
         );
     }
-    exe.linkLibrary(nfd);
+    exe.linkLibrary(lib);
 }

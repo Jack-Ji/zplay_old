@@ -5,16 +5,17 @@ pub fn link(
     comptime root_path: []const u8,
 ) void {
     var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
-    if (exe.builder.is_release) flags.append("-Os") catch unreachable;
+    defer flags.deinit();
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
 
-    var gltf = exe.builder.addStaticLibrary("gltf", null);
-    gltf.setTarget(exe.target);
-    gltf.linkLibC();
-    gltf.addIncludeDir(root_path ++ "/src/deps/gltf/c");
-    gltf.addCSourceFile(
+    var lib = exe.builder.addStaticLibrary("gltf", null);
+    lib.setBuildMode(exe.build_mode);
+    lib.setTarget(exe.target);
+    lib.linkLibC();
+    lib.addIncludeDir(root_path ++ "/src/deps/gltf/c");
+    lib.addCSourceFile(
         root_path ++ "/src/deps/gltf/c/cgltf_wrapper.c",
         flags.items,
     );
-    exe.linkLibrary(gltf);
+    exe.linkLibrary(lib);
 }

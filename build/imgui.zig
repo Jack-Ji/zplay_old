@@ -5,23 +5,24 @@ pub fn link(
     comptime root_path: []const u8,
 ) void {
     var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
-    if (exe.builder.is_release) flags.append("-Os") catch unreachable;
+    defer flags.deinit();
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
     flags.append("-fno-sanitize=undefined") catch unreachable;
 
-    var imgui = exe.builder.addStaticLibrary("imgui", null);
-    imgui.setTarget(exe.target);
-    imgui.linkLibC();
-    imgui.linkLibCpp();
+    var lib = exe.builder.addStaticLibrary("imgui", null);
+    lib.setBuildMode(exe.build_mode);
+    lib.setTarget(exe.target);
+    lib.linkLibC();
+    lib.linkLibCpp();
     if (exe.target.isWindows()) {
-        imgui.linkSystemLibrary("winmm");
-        imgui.linkSystemLibrary("user32");
-        imgui.linkSystemLibrary("imm32");
-        imgui.linkSystemLibrary("gdi32");
+        lib.linkSystemLibrary("winmm");
+        lib.linkSystemLibrary("user32");
+        lib.linkSystemLibrary("imm32");
+        lib.linkSystemLibrary("gdi32");
     }
-    imgui.addIncludeDir(root_path ++ "/src/deps/gl/c/include");
-    imgui.addIncludeDir(root_path ++ "/src/deps/imgui/c");
-    imgui.addCSourceFiles(&.{
+    lib.addIncludeDir(root_path ++ "/src/deps/gl/c/include");
+    lib.addIncludeDir(root_path ++ "/src/deps/imgui/c");
+    lib.addCSourceFiles(&.{
         root_path ++ "/src/deps/imgui/c/imgui.cpp",
         root_path ++ "/src/deps/imgui/c/imgui_demo.cpp",
         root_path ++ "/src/deps/imgui/c/imgui_draw.cpp",
@@ -31,15 +32,15 @@ pub fn link(
         root_path ++ "/src/deps/imgui/c/imgui_impl_opengl3.cpp",
         root_path ++ "/src/deps/imgui/c/imgui_impl_opengl3_wrapper.cpp",
     }, flags.items);
-    imgui.addCSourceFiles(&.{
+    lib.addCSourceFiles(&.{
         root_path ++ "/src/deps/imgui/ext/implot/c/implot.cpp",
         root_path ++ "/src/deps/imgui/ext/implot/c/implot_items.cpp",
         root_path ++ "/src/deps/imgui/ext/implot/c/implot_demo.cpp",
         root_path ++ "/src/deps/imgui/ext/implot/c/cimplot.cpp",
     }, flags.items);
-    imgui.addCSourceFiles(&.{
+    lib.addCSourceFiles(&.{
         root_path ++ "/src/deps/imgui/ext/imnodes/c/imnodes.cpp",
         root_path ++ "/src/deps/imgui/ext/imnodes/c/cimnodes.cpp",
     }, flags.items);
-    exe.linkLibrary(imgui);
+    exe.linkLibrary(lib);
 }

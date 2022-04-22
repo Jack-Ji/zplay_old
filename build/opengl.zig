@@ -5,24 +5,25 @@ pub fn link(
     comptime root_path: []const u8,
 ) void {
     var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
-    if (exe.builder.is_release) flags.append("-Os") catch unreachable;
+    defer flags.deinit();
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
     flags.append("-fno-sanitize=undefined") catch unreachable;
 
-    var gl = exe.builder.addStaticLibrary("gl", null);
-    gl.setTarget(exe.target);
-    gl.linkLibC();
+    var lib = exe.builder.addStaticLibrary("gl", null);
+    lib.setBuildMode(exe.build_mode);
+    lib.setTarget(exe.target);
+    lib.linkLibC();
     if (exe.target.isWindows()) {
-        gl.linkSystemLibrary("opengl32");
+        lib.linkSystemLibrary("opengl32");
     } else if (exe.target.isDarwin()) {
-        gl.linkFramework("OpenGL");
+        lib.linkFramework("OpenGL");
     } else if (exe.target.isLinux()) {
-        gl.linkSystemLibrary("GL");
+        lib.linkSystemLibrary("GL");
     }
-    gl.addIncludeDir(root_path ++ "/src/deps/gl/c/include");
-    gl.addCSourceFile(
+    lib.addIncludeDir(root_path ++ "/src/deps/gl/c/include");
+    lib.addCSourceFile(
         root_path ++ "/src/deps/gl/c/src/glad.c",
         flags.items,
     );
-    exe.linkLibrary(gl);
+    exe.linkLibrary(lib);
 }

@@ -5,19 +5,20 @@ pub fn link(
     comptime root_path: []const u8,
 ) void {
     var flags = std.ArrayList([]const u8).init(std.heap.page_allocator);
+    defer flags.deinit();
     if (exe.builder.is_release) {
-        flags.append("-Os") catch unreachable;
         flags.append("-DNDEBUG") catch unreachable;
     }
     flags.append("-DCP_USE_DOUBLES=0") catch unreachable;
     flags.append("-Wno-return-type-c-linkage") catch unreachable;
     flags.append("-fno-sanitize=undefined") catch unreachable;
 
-    var chipmunk = exe.builder.addStaticLibrary("chipmunk", null);
-    chipmunk.setTarget(exe.target);
-    chipmunk.linkLibC();
-    chipmunk.addIncludeDir(root_path ++ "/src/deps/chipmunk/c/include");
-    chipmunk.addCSourceFiles(&.{
+    var lib = exe.builder.addStaticLibrary("chipmunk", null);
+    lib.setBuildMode(exe.build_mode);
+    lib.setTarget(exe.target);
+    lib.linkLibC();
+    lib.addIncludeDir(root_path ++ "/src/deps/chipmunk/c/include");
+    lib.addCSourceFiles(&.{
         root_path ++ "/src/deps/chipmunk/c/src/chipmunk.c",
         root_path ++ "/src/deps/chipmunk/c/src/cpArbiter.c",
         root_path ++ "/src/deps/chipmunk/c/src/cpArray.c",
@@ -52,5 +53,5 @@ pub fn link(
         root_path ++ "/src/deps/chipmunk/c/src/cpSweep1D.c",
         root_path ++ "/src/deps/chipmunk/c/src/prime.h",
     }, flags.items);
-    exe.linkLibrary(chipmunk);
+    exe.linkLibrary(lib);
 }
