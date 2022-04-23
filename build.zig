@@ -16,47 +16,47 @@ pub fn build(b: *std.build.Builder) void {
         .install_dir = .bin,
         .install_subdir = "assets",
     });
-    const examples = [_][]const u8{
-        "simple_window",
-        "font",
-        "single_triangle",
-        "cubes",
-        "phong_lighting",
-        "imgui_demo",
-        "imgui_fontawesome",
-        "imgui_ttf",
-        "vector_graphics",
-        "vg_benchmark",
-        "mesh_generation",
-        "gltf_demo",
-        "environment_mapping",
-        "post_processing",
-        "rasterization",
-        "bullet_test",
-        "chipmunk_test",
-        "file_dialog",
-        "cube_cross",
-        "sprite_sheet",
-        "sprite_benchmark",
-        "sound_play",
+    const examples = [_]struct { name: []const u8, link_opt: LinkOption }{
+        .{ .name = "simple_window", .link_opt = .{} },
+        .{ .name = "font", .link_opt = .{} },
+        .{ .name = "single_triangle", .link_opt = .{} },
+        .{ .name = "cubes", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "phong_lighting", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "imgui_demo", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "imgui_fontawesome", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "imgui_ttf", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "vector_graphics", .link_opt = .{ .link_imgui = true, .link_nanovg = true } },
+        .{ .name = "vg_benchmark", .link_opt = .{ .link_imgui = true, .link_nanovg = true } },
+        .{ .name = "mesh_generation", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "gltf_demo", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "environment_mapping", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "post_processing", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "rasterization", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "bullet_test", .link_opt = .{ .link_imgui = true, .link_bullet = true } },
+        .{ .name = "chipmunk_test", .link_opt = .{ .link_imgui = true, .link_chipmunk = true } },
+        .{ .name = "file_dialog", .link_opt = .{ .link_imgui = true, .link_nfd = true } },
+        .{ .name = "cube_cross", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "sprite_sheet", .link_opt = .{} },
+        .{ .name = "sprite_benchmark", .link_opt = .{} },
+        .{ .name = "sound_play", .link_opt = .{} },
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
-    inline for (examples) |name| {
+    inline for (examples) |demo| {
         const exe = b.addExecutable(
-            name,
-            "examples" ++ std.fs.path.sep_str ++ name ++ ".zig",
+            demo.name,
+            "examples" ++ std.fs.path.sep_str ++ demo.name ++ ".zig",
         );
         exe.setBuildMode(mode);
         exe.setTarget(target);
-        link(exe, .{});
+        link(exe, demo.link_opt);
         const install_cmd = b.addInstallArtifact(exe);
         const run_cmd = exe.run();
         run_cmd.step.dependOn(&install_cmd.step);
         run_cmd.step.dependOn(&example_assets_install.step);
         run_cmd.cwd = "zig-out" ++ std.fs.path.sep_str ++ "bin";
         const run_step = b.step(
-            name,
-            "run example " ++ name,
+            demo.name,
+            "run example " ++ demo.name,
         );
         run_step.dependOn(&run_cmd.step);
         build_examples.dependOn(&install_cmd.step);
@@ -64,12 +64,11 @@ pub fn build(b: *std.build.Builder) void {
 }
 
 pub const LinkOption = struct {
-    link_nfd: bool = true,
-    link_imgui: bool = true,
-    link_nanovg: bool = true,
-    link_nanosvg: bool = true,
-    link_bullet: bool = true,
-    link_chipmunk: bool = true,
+    link_nfd: bool = false,
+    link_imgui: bool = false,
+    link_nanovg: bool = false,
+    link_bullet: bool = false,
+    link_chipmunk: bool = false,
 };
 
 /// link zplay framework to executable
@@ -84,8 +83,10 @@ pub fn link(exe: *std.build.LibExeObjStep, opt: LinkOption) void {
     @import("build/gltf.zig").link(exe, root_path);
     if (opt.link_nfd) @import("build/nfd.zig").link(exe, root_path);
     if (opt.link_imgui) @import("build/imgui.zig").link(exe, root_path);
-    if (opt.link_nanovg) @import("build/nanovg.zig").link(exe, root_path);
-    if (opt.link_nanosvg) @import("build/nanosvg.zig").link(exe, root_path);
+    if (opt.link_nanovg) {
+        @import("build/nanovg.zig").link(exe, root_path);
+        @import("build/nanosvg.zig").link(exe, root_path);
+    }
     if (opt.link_bullet) @import("build/bullet.zig").link(exe, root_path);
     if (opt.link_chipmunk) @import("build/chipmunk.zig").link(exe, root_path);
 
