@@ -151,11 +151,6 @@ fn loop(ctx: *zp.Context) void {
     }
     simple_renderer.draw(&ctx.graphics, render_data) catch unreachable;
 
-    // draw fps
-    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
-        .color = [3]f32{ 1, 1, 1 },
-    });
-
     // settings
     dig.beginFrame();
     {
@@ -199,6 +194,5 @@ pub fn main() anyerror!void {
         .loopFn = loop,
         .quitFn = quit,
         .enable_depth_test = true,
-        .enable_console = true,
     });
 }

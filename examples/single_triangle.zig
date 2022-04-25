@@ -112,14 +112,9 @@ fn loop(ctx: *zp.Context) void {
 
     ctx.graphics.clear(true, false, false, [_]f32{ 0.3, 0.3, 0.3, 1.0 });
     render_data.vds.?.items[0].transform = .{
-        .single = Mat4.fromRotation(ctx.tick, Vec3.up()),
+        .single = Mat4.fromRotation(@floatCast(f32, ctx.tick), Vec3.up()),
     };
     simple_renderer.draw(&ctx.graphics, render_data) catch unreachable;
-
-    // draw fps
-    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
-        .color = [3]f32{ 1, 1, 1 },
-    });
 }
 
 fn quit(ctx: *zp.Context) void {
@@ -133,6 +128,5 @@ pub fn main() anyerror!void {
         .loopFn = loop,
         .quitFn = quit,
         .enable_resizable = true,
-        .enable_console = true,
     });
 }

@@ -105,7 +105,7 @@ fn loop(ctx: *zp.Context) void {
             nvg.save();
             nvg.translate(pos.x(), pos.y());
             nvg.scale(0.3, 0.3);
-            nvg.rotate(nvg.degToRad(ctx.tick * 30));
+            nvg.rotate(nvg.degToRad(@floatCast(f32, ctx.tick) * 30));
             nvg.translate(-tiger.image.width / 2, -tiger.image.height / 2);
             nvg.svg(tiger);
             nvg.restore();
@@ -114,8 +114,8 @@ fn loop(ctx: *zp.Context) void {
     nvg.endFrame();
 
     // draw fps
-    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
-        .color = [3]f32{ 1, 1, 1 },
+    _ = ctx.drawText("fps: {d:.1}", .{ctx.fps}, .{
+        .color = .{ 1, 1, 1 },
     });
 }
 

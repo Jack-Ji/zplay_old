@@ -129,6 +129,12 @@ fn loop(ctx: *zp.Context) void {
 
     ctx.graphics.clear(true, true, false, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
     font_renderer.draw(&ctx.graphics, render_data) catch unreachable;
+
+    _ = ctx.drawText(
+        "FPS: {d:.1}  CPU time: {d:.3} ms",
+        .{ ctx.fps, ctx.average_cpu_time },
+        .{ .color = .{ 1, 1, 1 } },
+    );
 }
 
 fn quit(ctx: *zp.Context) void {
@@ -141,5 +147,6 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .enable_console = true,
     });
 }

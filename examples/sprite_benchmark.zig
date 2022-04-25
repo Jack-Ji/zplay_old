@@ -125,12 +125,13 @@ fn loop(ctx: *zp.Context) void {
     sprite_batch.end() catch unreachable;
 
     // draw fps
-    var opt = gfx.font.console.DrawOption{
-        .color = [3]f32{ 1, 1, 1 },
-    };
-    const metric = ctx.drawText("fps: {d:.2}", .{1 / delta_tick}, opt);
-    opt.ypos = metric.next_line_ypos;
-    _ = ctx.drawText("sprites number: {d}", .{characters.items.len}, opt);
+    const rect = ctx.drawText("fps: {d:.1}", .{ctx.fps}, .{
+        .color = .{ 1, 1, 1 },
+    });
+    _ = ctx.drawText("sprites number: {d}", .{characters.items.len}, .{
+        .ypos = rect.next_line_ypos,
+        .color = .{ 1, 1, 1 },
+    });
 }
 
 fn quit(ctx: *zp.Context) void {

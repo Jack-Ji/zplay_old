@@ -420,11 +420,6 @@ fn loop(ctx: *zp.Context) void {
         3,
     );
 
-    // draw fps
-    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
-        .color = [3]f32{ 1, 1, 1 },
-    });
-
     // settings
     dig.beginFrame();
     {
@@ -466,6 +461,5 @@ pub fn main() anyerror!void {
         .enable_msaa = true,
         .enable_depth_test = true,
         .enable_stencil_test = true,
-        .enable_console = true,
     });
 }

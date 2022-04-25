@@ -6,6 +6,8 @@ const event = zp.event;
 const audio = zp.audio;
 const sdl = zp.deps.sdl;
 
+var perf_counter_freq: f64 = undefined;
+
 /// application context
 pub const Context = struct {
     /// internal window
@@ -30,11 +32,47 @@ pub const Context = struct {
     relative_mouse: bool = undefined,
 
     /// number of seconds since launch/last-frame
-    tick: f32 = undefined,
-    delta_tick: f32 = undefined,
+    tick: f64 = 0,
+    delta_tick: f32 = 0,
+    last_perf_counter: u64 = 0,
+
+    /// frames stats
+    fps: f32 = 0,
+    average_cpu_time: f32 = 0,
+    fps_refresh_time: f64 = 0,
+    frame_counter: u32 = 0,
+    frame_number: u64 = 0,
 
     /// text buffer for rendering console font
     text_buf: [512]u8 = undefined,
+
+    /// update frame stats
+    pub fn updateStats(self: *Context) void {
+        const counter = sdl.c.SDL_GetPerformanceCounter();
+        self.delta_tick = @floatCast(
+            f32,
+            @intToFloat(f64, counter - self.last_perf_counter) / perf_counter_freq,
+        );
+        self.last_perf_counter = counter;
+        self.tick += self.delta_tick;
+        if ((self.tick - self.fps_refresh_time) >= 1.0) {
+            const t = self.tick - self.fps_refresh_time;
+            self.fps = @floatCast(
+                f32,
+                @intToFloat(f64, self.frame_counter) / t,
+            );
+            self.average_cpu_time = (1.0 / self.fps) * 1000.0;
+            self.fps_refresh_time = self.tick;
+            self.frame_counter = 0;
+        }
+        self.frame_counter += 1;
+        self.frame_number += 1;
+    }
+
+    /// set title
+    pub fn setTitle(self: *Context, title: [:0]const u8) void {
+        sdl.c.SDL_SetWindowTitle(self.window.ptr, title.ptr);
+    }
 
     /// kill app
     pub fn kill(self: *Context) void {
@@ -288,48 +326,30 @@ pub fn run(g: Game) !void {
     }
 
     // init before loop
+    perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
     try g.initFn(&context);
     defer g.quitFn(&context);
-
-    // init time clock
-    const counter_freq = @intToFloat(f32, sdl.c.SDL_GetPerformanceFrequency());
-    var last_counter = sdl.c.SDL_GetPerformanceCounter();
-    context.tick = 0;
+    _ = context.updateStats();
 
     // game loop
-    if (g.enable_console) {
-        while (!context.quit) {
-            // update tick
-            const counter = sdl.c.SDL_GetPerformanceCounter();
-            context.delta_tick = @intToFloat(f32, counter - last_counter) / counter_freq;
-            context.tick += context.delta_tick;
-            last_counter = counter;
+    while (!context.quit) {
+        // update frame stats
+        context.updateStats();
 
-            // clear console text
+        // clear console text
+        if (g.enable_console) {
             console.clear();
+        }
 
-            // main loop
-            g.loopFn(&context);
+        // main loop
+        g.loopFn(&context);
 
-            // render console text
+        // render console text
+        if (g.enable_console) {
             console.submitAndRender(&context.graphics);
-
-            // swap buffers
-            context.graphics.swap();
         }
-    } else {
-        while (!context.quit) {
-            // update tick
-            const counter = sdl.c.SDL_GetPerformanceCounter();
-            context.delta_tick = @intToFloat(f32, counter - last_counter) / counter_freq;
-            context.tick += context.delta_tick;
-            last_counter = counter;
 
-            // main loop
-            g.loopFn(&context);
-
-            // swap buffers
-            context.graphics.swap();
-        }
+        // swap buffers
+        context.graphics.swap();
     }
 }

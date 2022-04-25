@@ -84,9 +84,6 @@ fn loop(ctx: *zp.Context) void {
 
     scene.draw(&ctx.graphics) catch unreachable;
 
-    // draw fps
-    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{});
-
     // settings
     dig.beginFrame();
     {
@@ -293,6 +290,5 @@ pub fn main() anyerror!void {
         .height = 900,
         .enable_vsync = false,
         .enable_depth_test = true,
-        .enable_console = true,
     });
 }

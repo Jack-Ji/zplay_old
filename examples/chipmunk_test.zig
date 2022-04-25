@@ -151,8 +151,8 @@ fn loop(ctx: *zp.Context) void {
     world.debugDraw(&ctx.graphics, null);
 
     // draw fps
-    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
-        .color = [3]f32{ 1, 1, 1 },
+    _ = ctx.drawText("fps: {d:.1}", .{ctx.fps}, .{
+        .color = .{ 1, 1, 1 },
     });
 }
 

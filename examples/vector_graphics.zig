@@ -98,13 +98,13 @@ fn loop(ctx: *zp.Context) void {
     );
     defer nvg.endFrame();
 
-    drawEyes(@intToFloat(f32, wsize.w) - 250, 50, 150, 100, xpos, ypos, ctx.tick);
-    drawGraph(0, @intToFloat(f32, wsize.h) / 2, @intToFloat(f32, wsize.w), @intToFloat(f32, wsize.h) / 2, ctx.tick);
-    drawColorwheel(@intToFloat(f32, wsize.w) - 300, @intToFloat(f32, wsize.h) - 300, 250, 250, ctx.tick);
-    drawLines(120, @intToFloat(f32, wsize.h) - 50, 600, 50, ctx.tick);
+    drawEyes(@intToFloat(f32, wsize.w) - 250, 50, 150, 100, xpos, ypos, @floatCast(f32, ctx.tick));
+    drawGraph(0, @intToFloat(f32, wsize.h) / 2, @intToFloat(f32, wsize.w), @intToFloat(f32, wsize.h) / 2, @floatCast(f32, ctx.tick));
+    drawColorwheel(@intToFloat(f32, wsize.w) - 300, @intToFloat(f32, wsize.h) - 300, 250, 250, @floatCast(f32, ctx.tick));
+    drawLines(120, @intToFloat(f32, wsize.h) - 50, 600, 50, @floatCast(f32, ctx.tick));
     drawWidths(10, 50, 30);
     drawCaps(10, 300, 30);
-    drawScissor(50, @intToFloat(f32, wsize.h) - 80, ctx.tick);
+    drawScissor(50, @intToFloat(f32, wsize.h) - 80, @floatCast(f32, ctx.tick));
 
     // Form
     var x: f32 = 60;
@@ -116,7 +116,7 @@ fn loop(ctx: *zp.Context) void {
     drawChinese("你好，世界！", x, y, 280, 20);
 
     // Thumbnails box
-    drawThumbnails(500, 50, 160, 300, ctx.tick);
+    drawThumbnails(500, 50, 160, 300, @floatCast(f32, ctx.tick));
 
     // draw svg
     nvg.save();
@@ -126,8 +126,8 @@ fn loop(ctx: *zp.Context) void {
     nvg.restore();
 
     // draw fps
-    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
-        .color = [3]f32{ 1, 1, 1 },
+    _ = ctx.drawText("fps: {d:.1}", .{ctx.fps}, .{
+        .color = .{ 1, 1, 1 },
     });
 }
 

@@ -119,8 +119,10 @@ pub fn addObject(
         for (shapes) |s| {
             sub_shape = if (s.shape == .predefined_shape)
                 s.shape.predefined_shape
-            else
-                createTriangleMeshShape(s.shape.triangle_mesh);
+            else blk: {
+                assert(physics_param.mass == 0);
+                break :blk createTriangleMeshShape(s.shape.triangle_mesh);
+            };
             bt.shapeCompoundAddChild(
                 shape,
                 @ptrCast([*c]const [3]f32, s.transform.getData()),
@@ -130,8 +132,10 @@ pub fn addObject(
     } else {
         shape = if (shapes[0].shape == .predefined_shape)
             shapes[0].shape.predefined_shape
-        else
-            createTriangleMeshShape(shapes[0].shape.triangle_mesh);
+        else blk: {
+            assert(physics_param.mass == 0);
+            break :blk createTriangleMeshShape(shapes[0].shape.triangle_mesh);
+        };
     }
     errdefer bt.shapeDestroy(shape);
 

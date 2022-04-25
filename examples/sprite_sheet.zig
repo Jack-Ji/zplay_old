@@ -91,7 +91,7 @@ fn loop(ctx: *zp.Context) void {
     sprite_batch.end() catch unreachable;
 
     // draw fps
-    _ = ctx.drawText("fps: {d:.2}", .{1 / ctx.delta_tick}, .{
+    _ = ctx.drawText("fps: {d:.1}", .{ctx.fps}, .{
         .color = [3]f32{ 1, 1, 1 },
     });
 }

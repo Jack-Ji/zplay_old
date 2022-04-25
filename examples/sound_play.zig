@@ -61,9 +61,6 @@ fn loop(ctx: *zp.Context) void {
         }
         sound.setPan(S.pan);
     }
-    _ = ctx.drawText("panning: {d}", .{S.pan}, .{
-        .color = [3]f32{ 1, 1, 1 },
-    });
     _ = ctx.drawText("progress: {d}/{d}", .{ S.cur_ms / 1000, S.total_ms / 1000 }, .{
         .color = [3]f32{ 1, 1, 1 },
         .ypos = 18,
