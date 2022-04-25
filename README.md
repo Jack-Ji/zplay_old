@@ -44,7 +44,9 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(b.standardTargetOptions(.{}));
     exe.install();
 
-    zplay.linkZP(exe);
+    zplay.link(exe, .{
+      // link any optional modules as you like (imgui/nanovg etc)
+    });
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
