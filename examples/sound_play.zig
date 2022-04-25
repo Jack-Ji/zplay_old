@@ -74,6 +74,7 @@ fn loop(ctx: *zp.Context) void {
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+    sound.destroy();
 }
 
 pub fn main() anyerror!void {

@@ -215,6 +215,7 @@ pub const Engine = struct {
         if (rc != miniaudio.MA_SUCCESS) {
             return error.DecodeFileFailed;
         }
+        node.data.engine = e;
         return &node.data;
     }
 
@@ -235,19 +236,24 @@ pub const Engine = struct {
         if (rc != miniaudio.MA_SUCCESS) {
             return error.InternalError;
         }
+        node.data.engine = e;
         return node;
     }
 
     pub fn destroySound(e: *Engine, sound: *Sound) void {
+        assert(e == sound.engine);
         miniaudio.ma_sound_uninit(&sound.sound);
-        e.sound_list.remove(sound);
-        e.allocator.destroy(sound);
+        var node = @fieldParentPtr(SoundList.Node, "data", sound);
+        e.sound_list.remove(node);
+        e.allocator.destroy(node);
     }
 
     pub fn destroySoundGroup(e: *Engine, sound_group: *SoundGroup) void {
+        assert(e == sound_group.engine);
         miniaudio.ma_sound_group_uninit(&sound_group.group);
+        var node = @fieldParentPtr(SoundList.Node, "data", sound_group);
         e.sound_group_list.remove(sound_group);
-        e.allocator.destroy(sound_group);
+        e.allocator.destroy(node);
     }
 };
 
@@ -257,7 +263,12 @@ pub const TimeUnit = union(enum) {
 };
 
 pub const Sound = struct {
+    engine: *Engine,
     sound: miniaudio.ma_sound,
+
+    pub fn destroy(snd: *Sound) void {
+        snd.engine.destroySound(snd);
+    }
 
     pub fn start(snd: *Sound) void {
         _ = miniaudio.ma_sound_start(&snd.sound);
@@ -420,7 +431,12 @@ pub const Sound = struct {
 };
 
 pub const SoundGroup = struct {
+    engine: *Engine,
     group: miniaudio.ma_sound_group,
+
+    pub fn destroy(grp: *SoundGroup) void {
+        grp.engine.destroySoundGroup(grp);
+    }
 
     pub fn start(grp: *SoundGroup) void {
         _ = miniaudio.ma_sound_group_start(&grp.group);
