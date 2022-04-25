@@ -85,9 +85,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // allocate framebuffer stuff
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
+    const size = ctx.graphics.getDrawableSize();
     shadow_fb = try Framebuffer.initForShadowMapping(
         std.testing.allocator,
         shadow_width,
@@ -95,8 +93,8 @@ fn init(ctx: *zp.Context) anyerror!void {
     );
     scene_fb = try Framebuffer.init(
         std.testing.allocator,
-        width,
-        height,
+        size.w,
+        size.h,
         .{},
     );
     fb_material = Material.init(.{
@@ -226,7 +224,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         .{
             .perspective = .{
                 .fov = 45,
-                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .aspect_ratio = ctx.graphics.viewport.getAspectRatio(),
                 .near = 0.1,
                 .far = 100,
             },
@@ -341,17 +339,15 @@ fn init(ctx: *zp.Context) anyerror!void {
 
 fn beforeShadowMapGeneration(ctx: *GraphicsContext, custom: ?*anyopaque) void {
     _ = custom;
-    ctx.setViewport(0, 0, shadow_width, shadow_height);
+    ctx.setViewport(.{ .w = shadow_width, .h = shadow_height });
     ctx.clear(false, true, false, null);
     render_data_scene.camera = &light_view_camera;
 }
 
 fn afterShadowMapGeneration(ctx: *GraphicsContext, custom: ?*anyopaque) void {
     _ = custom;
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.getDrawableSize(&width, &height);
-    ctx.setViewport(0, 0, width, height);
+    const size = ctx.getDrawableSize();
+    ctx.setViewport(.{ .w = size.w, .h = size.h });
 }
 
 fn beforeSceneRendering1(ctx: *GraphicsContext, custom: ?*anyopaque) void {
@@ -412,19 +408,10 @@ fn loop(ctx: *zp.Context) void {
     while (ctx.pollEvent()) |e| {
         _ = dig.processEvent(e);
         switch (e) {
-            .window_event => |we| {
-                switch (we.data) {
-                    .resized => |size| {
-                        ctx.graphics.setViewport(0, 0, size.width, size.height);
-                    },
-                    else => {},
-                }
-            },
             .keyboard_event => |key| {
                 if (key.trigger_type == .up) {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
                         else => {},
                     }
                 }
@@ -448,11 +435,8 @@ fn loop(ctx: *zp.Context) void {
 
     dig.beginFrame();
     {
-        var width: u32 = undefined;
-        var height: u32 = undefined;
-        ctx.getWindowSize(&width, &height);
         dig.setNextWindowPos(
-            .{ .x = @intToFloat(f32, width) - 30, .y = 50 },
+            .{ .x = @intToFloat(f32, ctx.graphics.viewport.w) - 30, .y = 50 },
             .{
                 .cond = dig.c.ImGuiCond_Always,
                 .pivot = .{ .x = 1, .y = 0 },

@@ -35,7 +35,6 @@ fn loop(ctx: *zp.Context) void {
                 if (key.trigger_type == .up) {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
                         else => {},
                     }
                 }
@@ -45,13 +44,7 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    var fwidth: u32 = undefined;
-    var fheight: u32 = undefined;
-    ctx.getWindowSize(&width, &height);
-    ctx.graphics.getDrawableSize(&fwidth, &fheight);
-    ctx.graphics.setViewport(0, 0, fwidth, fheight);
+    var wsize = ctx.getWindowSize();
     ctx.graphics.clear(true, true, true, [_]f32{ 0.3, 0.3, 0.32, 1.0 });
 
     const S = struct {
@@ -61,7 +54,7 @@ fn loop(ctx: *zp.Context) void {
     dig.beginFrame();
     {
         dig.setNextWindowPos(
-            .{ .x = @intToFloat(f32, width) - 30, .y = 50 },
+            .{ .x = @intToFloat(f32, ctx.graphics.viewport.w) - 30, .y = 50 },
             .{
                 .cond = dig.c.ImGuiCond_Always,
                 .pivot = .{ .x = 1, .y = 0 },
@@ -92,8 +85,8 @@ fn loop(ctx: *zp.Context) void {
             if (dig.button("clear", null)) S.positions.shrinkRetainingCapacity(0);
             while (count > 0) : (count -= 1) {
                 S.positions.append(Vec2.new(
-                    rg.float(f32) * @intToFloat(f32, fwidth - 200),
-                    rg.float(f32) * @intToFloat(f32, fheight),
+                    rg.float(f32) * @intToFloat(f32, wsize.w - 200),
+                    rg.float(f32) * @intToFloat(f32, wsize.h),
                 )) catch unreachable;
             }
         }
@@ -102,9 +95,9 @@ fn loop(ctx: *zp.Context) void {
     dig.endFrame();
 
     nvg.beginFrame(
-        @intToFloat(f32, width),
-        @intToFloat(f32, height),
-        @intToFloat(f32, fwidth) / @intToFloat(f32, width),
+        @intToFloat(f32, wsize.w),
+        @intToFloat(f32, wsize.h),
+        ctx.getPixelRatio(),
     );
     {
         // draw tigers

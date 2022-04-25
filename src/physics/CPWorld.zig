@@ -512,13 +512,15 @@ const PhysicsDebug = struct {
         defer debug.vertex_array.disuse();
         debug.program.setUniformByName("u_vp_matrix", if (camera) |c|
             c.getProjectMatrix()
-        else blk: {
-            var width: u32 = undefined;
-            var height: u32 = undefined;
-            gctx.getDrawableSize(&width, &height);
-            var mat = Mat4.orthographic(0, @intToFloat(f32, width), @intToFloat(f32, height), 0, -1, 1);
-            break :blk mat;
-        });
+        else
+            Mat4.orthographic(
+                0,
+                @intToFloat(f32, gctx.viewport.w),
+                @intToFloat(f32, gctx.viewport.h),
+                0,
+                -1,
+                1,
+            ));
         drawcall.drawElements(.triangles, 0, @intCast(u32, debug.vindices.items.len), u32);
     }
 

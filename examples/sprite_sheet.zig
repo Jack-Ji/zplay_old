@@ -19,16 +19,14 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
+    const size = ctx.graphics.getDrawableSize();
 
     // create sprite sheet
     sprite_sheet = try SpriteSheet.fromPicturesInDir(
         std.testing.allocator,
         "assets/images",
-        width,
-        height,
+        size.w,
+        size.h,
         .{},
     );
     //sprite_sheet = try SpriteSheet.fromSheetFiles(
@@ -54,7 +52,6 @@ fn loop(ctx: *zp.Context) void {
                 if (key.trigger_type == .up) {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
                         .f2 => sprite_sheet.saveToFiles("sheet") catch unreachable,
                         else => {},
                     }

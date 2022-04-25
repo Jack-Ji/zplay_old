@@ -9,9 +9,7 @@ var world: CPWorld = undefined;
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
+    const size = ctx.graphics.getDrawableSize();
 
     world = try CPWorld.init(std.testing.allocator, .{
         .gravity = .{ .x = 0, .y = 600 },
@@ -20,7 +18,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     const dynamic_body: CPWorld.ObjectOption.BodyProperty = .{
         .dynamic = .{
             .position = .{
-                .x = @intToFloat(cp.Float, width) / 2,
+                .x = @intToFloat(f32, size.w) / 2,
                 .y = 10,
             },
         },
@@ -104,7 +102,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{
                 .segment = .{
                     .a = .{ .x = 0, .y = 0 },
-                    .b = .{ .x = 0, .y = @intToFloat(f32, height) },
+                    .b = .{ .x = 0, .y = @intToFloat(f32, size.h) },
                     .physics = .{
                         .elasticity = 1.0,
                     },
@@ -112,8 +110,8 @@ fn init(ctx: *zp.Context) anyerror!void {
             },
             .{
                 .segment = .{
-                    .a = .{ .x = 0, .y = @intToFloat(f32, height) },
-                    .b = .{ .x = @intToFloat(f32, width), .y = @intToFloat(f32, height) },
+                    .a = .{ .x = 0, .y = @intToFloat(f32, size.h) },
+                    .b = .{ .x = @intToFloat(f32, size.w), .y = @intToFloat(f32, size.h) },
                     .physics = .{
                         .elasticity = 1.0,
                     },
@@ -121,8 +119,8 @@ fn init(ctx: *zp.Context) anyerror!void {
             },
             .{
                 .segment = .{
-                    .a = .{ .x = @intToFloat(f32, width), .y = 0 },
-                    .b = .{ .x = @intToFloat(f32, width), .y = @intToFloat(f32, height) },
+                    .a = .{ .x = @intToFloat(f32, size.w), .y = 0 },
+                    .b = .{ .x = @intToFloat(f32, size.w), .y = @intToFloat(f32, size.h) },
                     .physics = .{
                         .elasticity = 1.0,
                     },

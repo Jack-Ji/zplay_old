@@ -71,7 +71,6 @@ fn loop(ctx: *zp.Context) void {
                 if (key.trigger_type == .up) {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
                         else => {},
                     }
                 }
@@ -81,17 +80,11 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    var fwidth: u32 = undefined;
-    var fheight: u32 = undefined;
-    ctx.getWindowSize(&width, &height);
-    ctx.graphics.getDrawableSize(&fwidth, &fheight);
+    var wsize = ctx.getWindowSize();
     var mouse_state = ctx.getMouseState();
     var xpos = @intToFloat(f32, mouse_state.x);
     var ypos = @intToFloat(f32, mouse_state.y);
 
-    ctx.graphics.setViewport(0, 0, fwidth, fheight);
     ctx.graphics.clear(true, true, true, [_]f32{ 0.3, 0.3, 0.32, 1.0 });
 
     dig.beginFrame();
@@ -99,19 +92,19 @@ fn loop(ctx: *zp.Context) void {
     dig.showMetricsWindow(null);
 
     nvg.beginFrame(
-        @intToFloat(f32, width),
-        @intToFloat(f32, height),
-        @intToFloat(f32, fwidth) / @intToFloat(f32, width),
+        @intToFloat(f32, wsize.w),
+        @intToFloat(f32, wsize.h),
+        ctx.getPixelRatio(),
     );
     defer nvg.endFrame();
 
-    drawEyes(@intToFloat(f32, fwidth) - 250, 50, 150, 100, xpos, ypos, ctx.tick);
-    drawGraph(0, @intToFloat(f32, fheight) / 2, @intToFloat(f32, fwidth), @intToFloat(f32, fheight) / 2, ctx.tick);
-    drawColorwheel(@intToFloat(f32, fwidth) - 300, @intToFloat(f32, fheight) - 300, 250, 250, ctx.tick);
-    drawLines(120, @intToFloat(f32, fheight) - 50, 600, 50, ctx.tick);
+    drawEyes(@intToFloat(f32, wsize.w) - 250, 50, 150, 100, xpos, ypos, ctx.tick);
+    drawGraph(0, @intToFloat(f32, wsize.h) / 2, @intToFloat(f32, wsize.w), @intToFloat(f32, wsize.h) / 2, ctx.tick);
+    drawColorwheel(@intToFloat(f32, wsize.w) - 300, @intToFloat(f32, wsize.h) - 300, 250, 250, ctx.tick);
+    drawLines(120, @intToFloat(f32, wsize.h) - 50, 600, 50, ctx.tick);
     drawWidths(10, 50, 30);
     drawCaps(10, 300, 30);
-    drawScissor(50, @intToFloat(f32, fheight) - 80, ctx.tick);
+    drawScissor(50, @intToFloat(f32, wsize.h) - 80, ctx.tick);
 
     // Form
     var x: f32 = 60;

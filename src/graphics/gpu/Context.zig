@@ -108,6 +108,9 @@ window: sdl.Window,
 /// opengl context
 gl_ctx: sdl.gl.Context,
 
+/// current viewport
+viewport: Viewport = undefined,
+
 /// vsync switch
 vsync: bool = undefined,
 
@@ -175,15 +178,23 @@ pub fn prepare(g: zp.Game) !void {
 /// allocate graphics context
 pub fn init(window: sdl.Window, g: zp.Game) !Self {
     assert(g.graphics_api == .opengl); // only opengl for now
+    const size = window.getSize();
     const gl_ctx = try sdl.gl.createContext(window);
     try sdl.gl.makeCurrent(gl_ctx, window);
     if (gl.gladLoadGLLoader(sdl.c.SDL_GL_GetProcAddress) == 0) {
         @panic("load opengl functions failed!");
     }
+
     var self = Self{
         .window = window,
         .gl_ctx = gl_ctx,
     };
+    self.setViewport(.{
+        .x = 0,
+        .y = 0,
+        .w = @intCast(u32, size.width),
+        .h = @intCast(u32, size.height),
+    });
     self.toggleCapability(.depth_test, g.enable_depth_test);
     self.toggleCapability(.cull_face, g.enable_face_culling);
     self.toggleCapability(.stencil_test, g.enable_stencil_test);
@@ -212,21 +223,24 @@ pub fn deinit(self: Self) void {
     sdl.gl.deleteContext(self.gl_ctx);
 }
 
-/// swap buffer, rendering take effect here 
+/// swap buffer, rendering take effect here
 pub fn swap(self: Self) void {
     sdl.gl.swapWindow(self.window);
 }
 
 /// get size of drawable place
-pub fn getDrawableSize(self: Self, w: *u32, h: *u32) void {
+pub fn getDrawableSize(self: Self) struct { w: u32, h: u32 } {
+    var w: u32 = undefined;
+    var h: u32 = undefined;
     sdl.c.SDL_GL_GetDrawableSize(
         self.window.ptr,
-        @ptrCast(*c_int, w),
-        @ptrCast(*c_int, h),
+        @ptrCast(*c_int, &w),
+        @ptrCast(*c_int, &h),
     );
+    return .{ .w = w, .h = h };
 }
 
-///  set vsync mode 
+///  set vsync mode
 pub fn setVsyncMode(self: *Self, on_off: bool) void {
     _ = self;
     sdl.gl.setSwapInterval(
@@ -268,14 +282,25 @@ pub fn clear(
 }
 
 /// change viewport
-pub fn setViewport(self: Self, x: u32, y: u32, width: u32, height: u32) void {
+pub const Viewport = struct {
+    x: u32 = 0,
+    y: u32 = 0,
+    w: u32,
+    h: u32,
+
+    pub fn getAspectRatio(self: Viewport) f32 {
+        return @intToFloat(f32, self.w) / @intToFloat(f32, self.h);
+    }
+};
+pub fn setViewport(self: *Self, vp: Viewport) void {
     _ = self;
     gl.viewport(
-        @intCast(c_int, x),
-        @intCast(c_int, y),
-        @intCast(c_int, width),
-        @intCast(c_int, height),
+        @intCast(c_int, vp.x),
+        @intCast(c_int, vp.y),
+        @intCast(c_int, vp.w),
+        @intCast(c_int, vp.h),
     );
+    self.viewport = vp;
     gl.util.checkError();
 }
 

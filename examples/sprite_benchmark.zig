@@ -24,16 +24,14 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
+    const size = ctx.graphics.getDrawableSize();
 
     // create sprite sheet
     sprite_sheet = try SpriteSheet.fromPicturesInDir(
         std.testing.allocator,
         "assets/images",
-        width,
-        height,
+        size.w,
+        size.h,
         .{ .accept_jpg = false },
     );
     characters = try std.ArrayList(Actor).initCapacity(
@@ -106,14 +104,12 @@ fn loop(ctx: *zp.Context) void {
         }
     }
 
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
+    const size = ctx.graphics.getDrawableSize();
     for (characters.items) |*c| {
         const curpos = c.pos;
-        if (curpos.x < 0 or curpos.x + c.sprite.width > @intToFloat(f32, width))
+        if (curpos.x < 0 or curpos.x + c.sprite.width > @intToFloat(f32, size.w))
             c.velocity.x = -c.velocity.x;
-        if (curpos.y < 0 or curpos.y + c.sprite.height > @intToFloat(f32, height))
+        if (curpos.y < 0 or curpos.y + c.sprite.height > @intToFloat(f32, size.h))
             c.velocity.y = -c.velocity.y;
         c.pos.x += c.velocity.x;
         c.pos.y += c.velocity.y;

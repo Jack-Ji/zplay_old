@@ -29,7 +29,6 @@ fn loop(ctx: *zp.Context) void {
                 if (key.trigger_type == .up) {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
                         else => {},
                     }
                 }

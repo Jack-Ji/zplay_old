@@ -105,13 +105,15 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     // apply common uniform vars
     self.program.setUniformByName("u_project", if (input.camera) |c|
         c.getProjectMatrix()
-    else blk: {
-        var width: u32 = undefined;
-        var height: u32 = undefined;
-        ctx.getDrawableSize(&width, &height);
-        var mat = Mat4.orthographic(0, @intToFloat(f32, width), @intToFloat(f32, height), 0, -1, 1);
-        break :blk mat;
-    });
+    else
+        Mat4.orthographic(
+            0,
+            @intToFloat(f32, ctx.viewport.w),
+            @intToFloat(f32, ctx.viewport.h),
+            0,
+            -1,
+            1,
+        ));
 
     // render vertex data one by one
     var current_material: *Material = undefined;

@@ -91,21 +91,34 @@ pub const Context = struct {
     }
 
     /// get position of window
-    pub fn getPosition(self: Context, x: *u32, y: *u32) void {
+    pub fn getPosition(self: Context) struct { x: u32, y: u32 } {
+        var x: u32 = undefined;
+        var y: u32 = undefined;
         sdl.c.SDL_GetWindowPosition(
             self.window.ptr,
-            @ptrCast(*c_int, x),
-            @ptrCast(*c_int, y),
+            @ptrCast(*c_int, &x),
+            @ptrCast(*c_int, &y),
         );
+        return .{ .x = x, .y = y };
     }
 
     /// get size of window
-    pub fn getWindowSize(self: Context, w: *u32, h: *u32) void {
+    pub fn getWindowSize(self: Context) struct { w: u32, h: u32 } {
+        var w: u32 = undefined;
+        var h: u32 = undefined;
         sdl.c.SDL_GetWindowSize(
             self.window.ptr,
-            @ptrCast(*c_int, w),
-            @ptrCast(*c_int, h),
+            @ptrCast(*c_int, &w),
+            @ptrCast(*c_int, &h),
         );
+        return .{ .w = w, .h = h };
+    }
+
+    /// get pixel ratio
+    pub fn getPixelRatio(self: Context) f32 {
+        const wsize = self.getWindowSize();
+        const fsize = self.graphics.getDrawableSize();
+        return @intToFloat(f32, fsize.w) / @intToFloat(f32, wsize.w);
     }
 
     /// get key status

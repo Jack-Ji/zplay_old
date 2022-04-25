@@ -48,9 +48,6 @@ fn init(ctx: *zp.Context) anyerror!void {
 
 fn loop(ctx: *zp.Context) void {
     global_tick = ctx.tick;
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
 
     while (ctx.pollEvent()) |e| {
         if (e == .mouse_event and dig.getIO().*.WantCaptureMouse) {
@@ -94,7 +91,7 @@ fn loop(ctx: *zp.Context) void {
     dig.beginFrame();
     {
         dig.setNextWindowPos(
-            .{ .x = @intToFloat(f32, width) - 30, .y = 50 },
+            .{ .x = @intToFloat(f32, ctx.graphics.viewport.w) - 30, .y = 50 },
             .{
                 .cond = dig.c.ImGuiCond_Always,
                 .pivot = .{ .x = 1, .y = 0 },
@@ -220,14 +217,11 @@ fn loadScene(ctx: *zp.Context) !void {
     }
 
     // init scene
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
     scene = try Scene.init(std.testing.allocator, .{
         .viewer_frustrum = .{
             .perspective = .{
                 .fov = 45,
-                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .aspect_ratio = ctx.graphics.viewport.getAspectRatio(),
                 .near = 0.1,
                 .far = 100,
             },

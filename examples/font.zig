@@ -23,9 +23,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
     std.log.info("game init", .{});
 
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
+    const size = ctx.graphics.getDrawableSize();
 
     // create font atlas
     var font = try Font.init(std.testing.allocator, "assets/msyh.ttf");
@@ -50,7 +48,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     _ = try font_atlas1.appendDrawDataFromUTF8String(
         "你好！ABCDEFGHIJKL abcdefghijkl",
         0,
-        @intToFloat(f32, height),
+        @intToFloat(f32, size.h),
         .bottom,
         [3]f32{ 1, 1, 0 },
         &vattrib,
@@ -116,19 +114,10 @@ fn init(ctx: *zp.Context) anyerror!void {
 fn loop(ctx: *zp.Context) void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
-            .window_event => |we| {
-                switch (we.data) {
-                    .resized => |size| {
-                        ctx.graphics.setViewport(0, 0, size.width, size.height);
-                    },
-                    else => {},
-                }
-            },
             .keyboard_event => |key| {
                 if (key.trigger_type == .up) {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
                         else => {},
                     }
                 }

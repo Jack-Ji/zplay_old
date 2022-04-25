@@ -53,9 +53,6 @@ fn init(ctx: *zp.Context) anyerror!void {
     try dig.init(ctx.window);
 
     // allocate framebuffer stuff
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
     shadow_fb = try Framebuffer.initForShadowMapping(
         std.testing.allocator,
         shadow_width,
@@ -84,7 +81,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         .{
             .perspective = .{
                 .fov = 45,
-                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .aspect_ratio = ctx.graphics.viewport.getAspectRatio(),
                 .near = 0.1,
                 .far = 100,
             },
@@ -285,16 +282,14 @@ fn init(ctx: *zp.Context) anyerror!void {
 
 fn beforeShadowMapGeneration(ctx: *Context, custom: ?*anyopaque) void {
     _ = custom;
-    ctx.setViewport(0, 0, shadow_width, shadow_height);
+    ctx.setViewport(.{ .w = shadow_width, .h = shadow_height });
     ctx.clear(false, true, false, null);
 }
 
 fn beforeRenderingScene(ctx: *Context, custom: ?*anyopaque) void {
     _ = custom;
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.getDrawableSize(&width, &height);
-    ctx.setViewport(0, 0, width, height);
+    const size = ctx.getDrawableSize();
+    ctx.setViewport(.{ .w = size.w, .h = size.h });
     ctx.clear(true, true, true, [_]f32{ 0.2, 0.3, 0.3, 1.0 });
     ctx.setStencilOption(.{
         .test_func = .always,
@@ -305,15 +300,13 @@ fn beforeRenderingScene(ctx: *Context, custom: ?*anyopaque) void {
 
 fn beforeRenderingOutlined(ctx: *Context, custom: ?*anyopaque) void {
     _ = custom;
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.getDrawableSize(&width, &height);
+    const size = ctx.getDrawableSize();
     const mouse_state = app_context.getMouseState();
     var result = physics_world.getRayTestResult(
         person_view_camera.position,
         person_view_camera.getRayTestTarget(
-            width,
-            height,
+            size.w,
+            size.h,
             @intCast(u32, mouse_state.x),
             @intCast(u32, mouse_state.y),
         ),
@@ -387,14 +380,6 @@ fn loop(ctx: *zp.Context) void {
 
     while (ctx.pollEvent()) |e| {
         switch (e) {
-            .window_event => |we| {
-                switch (we.data) {
-                    .resized => |size| {
-                        ctx.graphics.setViewport(0, 0, size.width, size.height);
-                    },
-                    else => {},
-                }
-            },
             .keyboard_event => |key| {
                 if (key.trigger_type == .up) {
                     switch (key.scan_code) {
@@ -443,11 +428,8 @@ fn loop(ctx: *zp.Context) void {
     // settings
     dig.beginFrame();
     {
-        var width: u32 = undefined;
-        var height: u32 = undefined;
-        ctx.graphics.getDrawableSize(&width, &height);
         dig.setNextWindowPos(
-            .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
+            .{ .x = @intToFloat(f32, ctx.graphics.viewport.w) - 10, .y = 50 },
             .{
                 .cond = dig.c.ImGuiCond_Always,
                 .pivot = .{ .x = 1, .y = 0 },

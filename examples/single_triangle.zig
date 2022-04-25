@@ -90,8 +90,9 @@ fn loop(ctx: *zp.Context) void {
         switch (e) {
             .window_event => |we| {
                 switch (we.data) {
-                    .resized => |size| {
-                        ctx.graphics.setViewport(0, 0, size.width, size.height);
+                    .resized => {
+                        var size = ctx.graphics.getDrawableSize();
+                        ctx.graphics.setViewport(.{ .w = size.w, .h = size.h });
                     },
                     else => {},
                 }
@@ -100,7 +101,6 @@ fn loop(ctx: *zp.Context) void {
                 if (key.trigger_type == .up) {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
                         else => {},
                     }
                 }

@@ -60,13 +60,11 @@ fn init(ctx: *zp.Context) anyerror!void {
     skybox = SkyboxRenderer.init(std.testing.allocator);
 
     // allocate framebuffer stuff
-    var width: u32 = undefined;
-    var height: u32 = undefined;
-    ctx.graphics.getDrawableSize(&width, &height);
+    const size = ctx.graphics.getDrawableSize();
     fb = try Framebuffer.init(
         std.testing.allocator,
-        width,
-        height,
+        size.w,
+        size.h,
         .{},
     );
 
@@ -111,7 +109,7 @@ fn init(ctx: *zp.Context) anyerror!void {
         .viewer_frustrum = .{
             .perspective = .{
                 .fov = 45,
-                .aspect_ratio = @intToFloat(f32, width) / @intToFloat(f32, height),
+                .aspect_ratio = ctx.graphics.viewport.getAspectRatio(),
                 .near = 0.1,
                 .far = 100,
             },
@@ -205,19 +203,10 @@ fn loop(ctx: *zp.Context) void {
     while (ctx.pollEvent()) |e| {
         _ = dig.processEvent(e);
         switch (e) {
-            .window_event => |we| {
-                switch (we.data) {
-                    .resized => |size| {
-                        ctx.graphics.setViewport(0, 0, size.width, size.height);
-                    },
-                    else => {},
-                }
-            },
             .keyboard_event => |key| {
                 if (key.trigger_type == .up) {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
                         .f2 => {
                             fb.tex.?.saveToFile(
                                 std.testing.allocator,
@@ -258,11 +247,8 @@ fn loop(ctx: *zp.Context) void {
     // settings
     dig.beginFrame();
     {
-        var width: u32 = undefined;
-        var height: u32 = undefined;
-        ctx.graphics.getDrawableSize(&width, &height);
         dig.setNextWindowPos(
-            .{ .x = @intToFloat(f32, width) - 10, .y = 50 },
+            .{ .x = @intToFloat(f32, ctx.graphics.viewport.w) - 10, .y = 50 },
             .{
                 .cond = dig.c.ImGuiCond_Always,
                 .pivot = .{ .x = 1, .y = 0 },
