@@ -5,10 +5,10 @@ const sdl = zp.deps.sdl;
 const sdl_impl = @import("sdl_impl.zig");
 pub const c = @import("c.zig");
 
-/// export friendly api 
+/// export friendly api
 pub usingnamespace @import("api.zig");
 
-/// icon font: font-awesome 
+/// icon font: font-awesome
 pub const fontawesome = @import("fonts/fontawesome.zig");
 
 /// export 3rd-party extensions
@@ -47,8 +47,8 @@ pub fn deinit() void {
     if (!initialized) {
         std.debug.panic("cimgui isn't initialized!", .{});
     }
-    ext.nodes.destroyContext(nodes_ctx);
-    ext.plot.destroyContext(plot_ctx);
+    ext.nodes.destroyContext(nodes_ctx.?);
+    ext.plot.destroyContext(plot_ctx.?);
     sdl_impl.deinit();
     _ImGui_ImplOpenGL3_Shutdown();
     initialized = false;
