@@ -221,6 +221,12 @@ pub const Game = struct {
     width: u32 = 800,
     height: u32 = 600,
 
+    /// mimimum size of window
+    min_size: ?struct { w: u32, h: u32 } = null,
+
+    /// maximumsize of window
+    max_size: ?struct { w: u32, h: u32 } = null,
+
     // resizable switch
     enable_resizable: bool = false,
 
@@ -305,6 +311,22 @@ pub fn run(g: Game) !void {
         ),
     };
     defer context.window.destroy();
+
+    // windows size thresholds
+    if (g.min_size) |size| {
+        sdl.c.SDL_SetWindowMinimumSize(
+            context.window.ptr,
+            @intCast(c_int, size.w),
+            @intCast(c_int, size.h),
+        );
+    }
+    if (g.max_size) |size| {
+        sdl.c.SDL_SetWindowMaximumSize(
+            context.window.ptr,
+            @intCast(c_int, size.w),
+            @intCast(c_int, size.h),
+        );
+    }
 
     // allocate graphics context
     context.graphics = try GraphicsContext.init(context.window, g);

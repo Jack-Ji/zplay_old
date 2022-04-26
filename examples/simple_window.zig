@@ -33,5 +33,8 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .enable_resizable = true,
+        .min_size = .{ .w = 400, .h = 300 },
+        .max_size = .{ .w = 900, .h = 700 },
     });
 }
