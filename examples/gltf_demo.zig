@@ -47,7 +47,7 @@ fn init(ctx: *zp.Context) anyerror!void {
 }
 
 fn loop(ctx: *zp.Context) void {
-    global_tick = ctx.tick;
+    global_tick = @floatCast(f32, ctx.tick);
 
     while (ctx.pollEvent()) |e| {
         if (e == .mouse_event and dig.getIO().*.WantCaptureMouse) {
@@ -135,9 +135,9 @@ fn loop(ctx: *zp.Context) void {
         if (S.interval > 0.1) {
             var mpf = S.interval / S.count;
             if (S.data.items.len < S.MAX_SIZE) {
-                S.data.appendSlice(&.{ ctx.tick, mpf }) catch unreachable;
+                S.data.appendSlice(&.{ @floatCast(f32, ctx.tick), mpf }) catch unreachable;
             } else {
-                S.data.items[S.offset] = ctx.tick;
+                S.data.items[S.offset] = @floatCast(f32, ctx.tick);
                 S.data.items[S.offset + 1] = mpf;
                 S.offset = (S.offset + 2) % S.MAX_SIZE;
             }
@@ -147,7 +147,11 @@ fn loop(ctx: *zp.Context) void {
         const plot = dig.ext.plot;
         if (dig.begin("monitor", null, 0)) {
             _ = dig.sliderFloat("History", &S.history, 1, 30, .{});
-            plot.setNextPlotLimitsX(ctx.tick - S.history, ctx.tick, dig.c.ImGuiCond_Always);
+            plot.setNextPlotLimitsX(
+                @floatCast(f32, ctx.tick) - S.history,
+                @floatCast(f32, ctx.tick),
+                dig.c.ImGuiCond_Always,
+            );
             plot.setNextPlotLimitsY(0, 0.02, .{});
             if (plot.beginPlot("milliseconds per frame", .{})) {
                 if (S.data.items.len > 0) {

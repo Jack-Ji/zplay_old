@@ -176,7 +176,7 @@ fn loop(ctx: *zp.Context) void {
         render_data_scene.vds.?.items,
         Mat4.fromTranslate(Vec3.new(0.0, 0, 0))
             .scale(Vec3.set(0.6))
-            .mul(Mat4.fromRotation(ctx.tick * 10, Vec3.up())),
+            .mul(Mat4.fromRotation(@floatCast(f32, ctx.tick * 10), Vec3.up())),
     );
     current_scene_renderer.draw(&ctx.graphics, render_data_scene) catch unreachable;
     skybox.draw(&ctx.graphics, render_data_skybox) catch unreachable;
