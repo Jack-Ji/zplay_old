@@ -59,7 +59,7 @@ temp_angle: f32 = undefined,
 move_speed: f32 = 2.5,
 mouse_sensitivity: f32 = 0.25,
 
-/// create a 3d camera using position and target
+/// create a camera using position and target
 pub fn fromPositionAndTarget(frustrum: ViewFrustrum, pos: Vec3, target: Vec3, world_up: ?Vec3) Self {
     var camera: Self = .{};
     camera.frustrum = frustrum;

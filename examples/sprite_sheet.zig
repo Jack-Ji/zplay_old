@@ -9,11 +9,14 @@ const TextureDisplay = gfx.post_processing.TextureDisplay;
 const SpriteSheet = gfx.@"2d".SpriteSheet;
 const Sprite = gfx.@"2d".Sprite;
 const SpriteBatch = gfx.@"2d".SpriteBatch;
+const Camera = gfx.@"2d".Camera;
+const console = gfx.font.console;
 
 var sprite_sheet: *SpriteSheet = undefined;
 var tex_display: TextureDisplay = undefined;
 var sprite: Sprite = undefined;
 var sprite_batch: SpriteBatch = undefined;
+var camera: *Camera = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
@@ -40,6 +43,11 @@ fn init(ctx: *zp.Context) anyerror!void {
         10,
         1000,
     );
+    camera = try Camera.fromViewport(
+        std.testing.allocator,
+        ctx.graphics.viewport,
+    );
+    sprite_batch.render_data.camera = camera.getCamera();
 
     // create renderer
     tex_display = try TextureDisplay.init(std.testing.allocator);
@@ -53,6 +61,12 @@ fn loop(ctx: *zp.Context) void {
                     switch (key.scan_code) {
                         .escape => ctx.kill(),
                         .f2 => sprite_sheet.saveToFiles("sheet") catch unreachable,
+                        .left => camera.move(-10, 0, .{}),
+                        .right => camera.move(10, 0, .{}),
+                        .up => camera.move(0, -10, .{}),
+                        .down => camera.move(0, 10, .{}),
+                        .z => camera.setZoom(std.math.min(2, camera.zoom + 0.1)),
+                        .x => camera.setZoom(std.math.max(0.1, camera.zoom - 0.1)),
                         else => {},
                     }
                 }
@@ -74,13 +88,13 @@ fn loop(ctx: *zp.Context) void {
 
     sprite_batch.begin(.back_to_forth);
     sprite_batch.drawSprite(sprite, .{
-        .pos = .{ .x = 100, .y = 400 },
+        .pos = .{ .x = 400, .y = 300 },
         .scale_w = 2,
         .scale_h = 2,
         .rotate_degree = @floatCast(f32, ctx.tick) * 30,
     }) catch unreachable;
     sprite_batch.drawSprite(sprite, .{
-        .pos = .{ .x = 100, .y = 400 },
+        .pos = .{ .x = 400, .y = 300 },
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
         .rotate_degree = @floatCast(f32, ctx.tick) * 30,
         .scale_w = 4 + 2 * std.math.cos(@floatCast(f32, ctx.tick)),
@@ -91,14 +105,39 @@ fn loop(ctx: *zp.Context) void {
     sprite_batch.end() catch unreachable;
 
     // draw fps
-    _ = ctx.drawText("fps: {d:.1}", .{ctx.fps}, .{
+    var draw_opt = console.DrawOption{
         .color = [3]f32{ 1, 1, 1 },
-    });
+    };
+    var rect = ctx.drawText("fps: {d:.1}", .{ctx.fps}, draw_opt);
+    draw_opt.ypos = rect.next_line_ypos;
+    rect = ctx.drawText(
+        "camera pos (up/down/left/right): {d:.0},{d:.0}",
+        .{ camera.pos_x, camera.pos_y },
+        draw_opt,
+    );
+    draw_opt.ypos = rect.next_line_ypos;
+    rect = ctx.drawText(
+        "zoom (z/x): {d:.1}",
+        .{camera.zoom},
+        draw_opt,
+    );
+    draw_opt.ypos = rect.next_line_ypos;
+    rect = ctx.drawText(
+        "frustrum: left({d:.0}) right({d:.0}) bottom({d:.0}) top({d:.0})",
+        .{
+            camera.internal_camera.frustrum.orthographic.left,
+            camera.internal_camera.frustrum.orthographic.right,
+            camera.internal_camera.frustrum.orthographic.bottom,
+            camera.internal_camera.frustrum.orthographic.top,
+        },
+        draw_opt,
+    );
 }
 
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+    camera.deinit();
 }
 
 pub fn main() anyerror!void {

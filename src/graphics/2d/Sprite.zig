@@ -64,7 +64,7 @@ pub fn appendDrawData(
         1 - opt.anchor_point.x, -opt.anchor_point.y,    opt.color[0], opt.color[1], opt.color[2], opt.color[3], self.uv1.x, self.uv0.y,
     });
     const mat = Mat4.fromScale(Vec3.new(self.width * opt.scale_w, self.height * opt.scale_h, 1))
-        .rotate(opt.rotate_degree, Vec3.back())
+        .rotate(opt.rotate_degree, Vec3.forward())
         .translate(Vec3.new(opt.pos.x, opt.pos.y, 0));
     try tr.appendSlice(
         &.{ mat, mat, mat, mat, mat, mat },
