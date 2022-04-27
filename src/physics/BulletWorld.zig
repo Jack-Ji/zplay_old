@@ -154,21 +154,18 @@ pub fn addObject(
             assert(bt.shapeConeGetUpAxis(shape) == bt.c.CBT_LINEAR_AXIS_Y);
             const radius = bt.shapeConeGetRadius(shape);
             const height = bt.shapeConeGetHeight(shape);
-            assert(radius == 1.0 and height == 2.0);
             break :blk Vec3.new(radius, 0.5 * height, radius);
         },
         bt.c.CBT_SHAPE_TYPE_CYLINDER => blk: {
             var half_extents: bt.Vector3 = undefined;
             assert(bt.shapeCylinderGetUpAxis(shape) == bt.c.CBT_LINEAR_AXIS_Y);
             bt.shapeCylinderGetHalfExtentsWithoutMargin(shape, &half_extents);
-            assert(half_extents[0] == half_extents[2]);
             break :blk Vec3.fromSlice(&half_extents);
         },
         bt.c.CBT_SHAPE_TYPE_CAPSULE => blk: {
             assert(bt.shapeCapsuleGetUpAxis(shape) == bt.c.CBT_LINEAR_AXIS_Y);
             const radius = bt.shapeCapsuleGetRadius(shape);
             const half_height = bt.shapeCapsuleGetHalfHeight(shape);
-            assert(radius == 1.0 and half_height == 1.0);
             break :blk Vec3.new(radius, half_height, radius);
         },
         bt.c.CBT_SHAPE_TYPE_TRIANGLE_MESH => Vec3.set(1),
