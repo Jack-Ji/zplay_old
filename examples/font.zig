@@ -59,12 +59,20 @@ fn init(ctx: *zp.Context) anyerror!void {
     vertex_array1.vbos[0].allocInitData(f32, vattrib.items, .static_draw);
 
     vattrib.clearRetainingCapacity();
-    _ = try font_atlas2.appendDrawDataFromUTF8String(
+    var xpos = try font_atlas2.appendDrawDataFromUTF8String(
         "第一行",
         0,
         200,
         .baseline,
         [3]f32{ 1, 0, 0 },
+        &vattrib,
+    );
+    _ = try font_atlas2.appendDrawDataFromUTF8String(
+        "接着第一行",
+        xpos,
+        200,
+        .baseline,
+        [3]f32{ 0, 1, 0 },
         &vattrib,
     );
     _ = try font_atlas2.appendDrawDataFromUTF8String(
