@@ -17,7 +17,7 @@ const error_handling: ErrorHandling =
     if (std.debug.runtime_safety) .assert else .none;
 
 /// check error of last opengl call
-pub fn checkError() void {
+pub inline fn checkError() void {
     if (error_handling == .none) return;
 
     var error_code = gl.getError();
