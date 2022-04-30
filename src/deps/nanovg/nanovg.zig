@@ -868,7 +868,7 @@ fn getLineCrossing(p0: Vec2, p1: Vec2, p2: Vec2, p3: Vec2) f32 {
     const d = p1.sub(p0);
     const e = p3.sub(p2);
     var m = d.x() * e.y() - d.y() * e.x();
-    return if (math.fabs(m) < 1e-6)
+    return if (@fabs(m) < 1e-6)
         math.nan(f32)
     else
         -(d.x() * b.y() - d.y() * b.x()) / m;

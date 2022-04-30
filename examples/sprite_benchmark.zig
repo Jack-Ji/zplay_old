@@ -89,8 +89,8 @@ fn loop(ctx: *zp.Context) void {
                                     .sprite = sprite_sheet.createSprite(name) catch unreachable,
                                     .pos = pos,
                                     .velocity = .{
-                                        .x = 5 * std.math.cos(angle),
-                                        .y = 5 * std.math.sin(angle),
+                                        .x = 5 * @cos(angle),
+                                        .y = 5 * @sin(angle),
                                     },
                                 }) catch unreachable;
                             }

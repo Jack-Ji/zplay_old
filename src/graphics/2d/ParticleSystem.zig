@@ -6,9 +6,193 @@ const Vec2 = alg.Vec2;
 const Vec4 = alg.Vec4;
 const Sprite = @import("Sprite.zig");
 const SpriteBatch = @import("SpriteBatch.zig");
+const Self = @This();
+
+const default_effects_capacity = 10;
+
+/// memory allocator
+allocator: std.mem.Allocator,
+
+/// particle effects
+effects: std.ArrayList(Effect),
+
+/// create particle effect system/manager
+pub fn init(allocator: std.mem.Allocator) !*Self {
+    var self = allocator.create(Self);
+    errdefer allocator.destroy(self);
+    self.allocator = allocator;
+    self.effects = try std.ArrayList(allocator).initCapacity(default_effects_capacity);
+    return self;
+}
+
+/// destroy particle effect system/manager
+pub fn deinit(self: *Self) void {
+    for (self.effects.items) |e| {
+        e.deinit();
+    }
+    self.effects.deinit();
+    self.allocator.destroy(self);
+}
+
+/// update system
+pub fn update(self: *Self, delta_time: f32) void {
+    var i: usize = 0;
+    while (i < self.effects.items.len) {
+        var e = &self.effects.items[i];
+        e.update(delta_time);
+        if (e.isOver()) {
+            _ = self.effects.swapRemove(i);
+        } else {
+            i += 1;
+        }
+    }
+}
+
+/// draw effects
+pub fn draw(self: Self, sprite_batch: SpriteBatch) !void {
+    for (self.effects.items) |e| {
+        e.draw(sprite_batch);
+    }
+}
+
+/// add effect
+pub fn addEffect(
+    self: *Self,
+    max_particle_num: u32,
+    emit_fn: Effect.ParticleEmitFn,
+    origin: Vec2,
+    effect_duration: f32,
+    gen_amount: u32,
+    burst_freq: f32,
+) !void {
+    var effect = try Effect.init(
+        self.allocator,
+        max_particle_num,
+        emit_fn,
+        origin,
+        effect_duration,
+        gen_amount,
+        burst_freq,
+    );
+    errdefer .effect.deinit();
+    try self.effects.append(effect);
+}
+
+/// represent a particle effect
+pub const Effect = struct {
+    pub const ParticleEmitFn = fn (origin: Vec2) Particle;
+
+    /// all particles
+    particles: std.ArrayList(Particle),
+
+    /// particle emitter
+    emit_fn: ParticleEmitFn,
+
+    /// origin of particle
+    origin: Vec2,
+
+    /// effect duration
+    effect_duration: f32,
+
+    /// new particle amount per burst
+    gen_amount: u32,
+
+    /// burst frequency
+    burst_freq: f32,
+
+    /// burst countdown
+    burst_countdown: f32,
+
+    /// particle effect initialization
+    pub fn init(
+        allocator: std.mem.Allocator,
+        max_particle_num: u32,
+        emit_fn: ParticleEmitFn,
+        origin: Vec2,
+        effect_duration: f32,
+        gen_amount: u32,
+        burst_freq: f32,
+    ) !Effect {
+        assert(max_particle_num > 0);
+        assert(effect_duration > 0);
+        assert(gen_amount > 0);
+        assert(burst_freq > 0);
+        assert(effect_duration > burst_freq);
+        return Effect{
+            .particles = try std.ArrayList(Particle).initCapacity(allocator, max_particle_num),
+            .emit_fn = emit_fn,
+            .origin = origin,
+            .effect_duration = effect_duration,
+            .gen_amount = gen_amount,
+            .burst_freq = burst_freq,
+            .burst_countdown = burst_freq,
+        };
+    }
+
+    pub fn deinit(self: Effect) void {
+        self.particles.deinit();
+    }
+
+    /// update effect
+    pub fn update(self: *Effect, delta_time: f32) void {
+        if (self.effect_duration > 0) {
+            self.effect_duration -= delta_time;
+            self.burst_countdown -= delta_time;
+            if (self.effect_duration >= 0 and self.burst_countdown <= 0) {
+                var i: u32 = 0;
+                while (i < self.gen_amount) : (i += 1) {
+                    // generate new particle
+                    self.particles.appendAssumeCapacity(
+                        self.emit_fn(self.origin),
+                    );
+                    if (self.particles.items.len == self.particles.capacity) break;
+                }
+            }
+        }
+
+        // update each particles' status
+        var i: usize = 0;
+        while (i < self.particles.items.len) {
+            var p = &self.particles.items[i];
+            p.update(delta_time);
+            if (p.isDead()) {
+                _ = self.particles.swapRemove(i);
+            } else {
+                i += 1;
+            }
+        }
+    }
+
+    /// draw the effect
+    pub fn draw(self: Effect, sprite_batch: SpriteBatch) !void {
+        for (self.particles.items) |p| {
+            try p.draw(sprite_batch);
+        }
+    }
+
+    /// if effect is over
+    pub fn isOver(self: Effect) bool {
+        return self.effect_duration <= 0 and self.particles.items.len == 0;
+    }
+
+    /// bulitin particle emitter: fire
+    pub fn FireEmitter(comptime radius: f32, comptime dir: Vec2) type {
+        return struct {
+            const radius = radius;
+            const dir = dir;
+
+            pub fn emit(origin: Vec2) Particle {
+                _ = origin;
+            }
+        };
+    }
+};
 
 /// represent a particle
 pub const Particle = struct {
+    /// sprite of particle
+    sprite: Sprite,
+
     /// life of particle
     age: f32,
 
@@ -83,10 +267,10 @@ pub const Particle = struct {
         self.updateColor();
     }
 
-    /// add particle to sprite batch
-    pub fn draw(self: Particle, sprite: Sprite, sprite_batch: SpriteBatch) !void {
+    /// draw particle
+    pub fn draw(self: Particle, sprite_batch: SpriteBatch) !void {
         try sprite_batch.drawSprite(
-            sprite,
+            self.sprite,
             .{
                 .pos = .{ .x = self.pos.x(), .y = self.pos.y() },
                 .color = self.color.toArray(),
@@ -97,94 +281,5 @@ pub const Particle = struct {
                 .depth = 0,
             },
         );
-    }
-};
-
-/// represent a particle effect
-pub const ParticleEffect = struct {
-    pub const GenerateParticleFunc = fn (origin: Vec2) Particle;
-
-    /// all particles
-    particles: std.ArrayList(Particle),
-
-    /// particles' generator
-    gen_func: GenerateParticleFunc,
-
-    /// origin of particle
-    origin: Vec2,
-
-    /// effect duration
-    effect_duration: f32,
-
-    /// new particle amount per burst
-    gen_amount: u32,
-
-    /// burst frequency
-    burst_freq: f32,
-
-    /// burst countdown
-    burst_countdown: f32,
-
-    /// particle effect initialization
-    pub fn init(
-        allocator: std.mem.Allocator,
-        max_particle_num: u32,
-        gen_func: GenerateParticleFunc,
-        origin: Vec2,
-        effect_duration: f32,
-        gen_amount: u32,
-        burst_freq: f32,
-    ) !ParticleEffect {
-        assert(max_particle_num > 0);
-        assert(effect_duration > 0);
-        assert(gen_amount > 0);
-        assert(burst_freq > 0);
-        assert(effect_duration > burst_freq);
-        return ParticleEffect{
-            .particles = try std.ArrayList(Particle).initCapacity(allocator, max_particle_num),
-            .gen_func = gen_func,
-            .origin = origin,
-            .effect_duration = effect_duration,
-            .gen_amount = gen_amount,
-            .burst_freq = burst_freq,
-            .burst_countdown = burst_freq,
-        };
-    }
-
-    /// update effect
-    pub fn update(self: *ParticleEffect, delta_time: f32) void {
-        if (self.effect_duration > 0) {
-            self.effect_duration -= delta_time;
-            self.burst_countdown -= delta_time;
-            if (self.effect_duration >= 0 and self.burst_countdown <= 0) {
-                var i: u32 = 0;
-                while (i < self.gen_amount) : (i += 1) {
-                    // generate new particle
-                    self.particles.appendAssumeCapacity(
-                        self.gen_func(self.origin),
-                    );
-                    if (self.particles.items.len == self.particles.capacity) break;
-                }
-            }
-        }
-
-        // update each particles' status
-        var size = self.particles.len;
-        for (self.particles.items) |*p, i| {
-            p.update(delta_time);
-            while (p.isDead()) {
-                _ = self.particles.swapRemove(i);
-                size -= 1;
-                if (i < size) p.update(delta_time);
-            }
-            if (i == size) break;
-        }
-    }
-
-    /// draw the effect
-    pub fn draw(self: ParticleEffect, sprite: Sprite, sprite_batch: SpriteBatch) !void {
-        for (self.particles.items) |p| {
-            try p.draw(sprite, sprite_batch);
-        }
     }
 };

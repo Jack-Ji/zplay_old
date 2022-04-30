@@ -308,7 +308,7 @@ pub fn applyLights(program: *ShaderProgram, lights: []Light) void {
                         "u_spot_lights[{d}].cutoff",
                         .{spot_light_num},
                     ) catch unreachable,
-                    std.math.cos(alg.toRadians(d.cutoff)),
+                    @cos(alg.toRadians(d.cutoff)),
                 );
                 program.setUniformByName(
                     std.fmt.bufPrintZ(
@@ -316,7 +316,7 @@ pub fn applyLights(program: *ShaderProgram, lights: []Light) void {
                         "u_spot_lights[{d}].outer_cutoff",
                         .{spot_light_num},
                     ) catch unreachable,
-                    std.math.cos(alg.toRadians(d.outer_cutoff)),
+                    @cos(alg.toRadians(d.outer_cutoff)),
                 );
                 spot_light_num += 1;
             },

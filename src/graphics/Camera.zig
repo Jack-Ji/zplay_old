@@ -150,10 +150,10 @@ pub fn rotate(self: *Self, pitch: f32, yaw: f32) void {
 /// update vectors: direction/right/up
 fn updateVectors(self: *Self) void {
     self.euler.data[0] = math.clamp(self.euler.x(), -89, 89);
-    const sin_pitch = math.sin(alg.toRadians(self.euler.x()));
-    const cos_pitch = math.cos(alg.toRadians(self.euler.x()));
-    const sin_yaw = math.sin(alg.toRadians(self.euler.y()));
-    const cos_yaw = math.cos(alg.toRadians(self.euler.y()));
+    const sin_pitch = @sin(alg.toRadians(self.euler.x()));
+    const cos_pitch = @cos(alg.toRadians(self.euler.x()));
+    const sin_yaw = @sin(alg.toRadians(self.euler.y()));
+    const cos_yaw = @cos(alg.toRadians(self.euler.y()));
     self.dir.data[0] = cos_yaw * cos_pitch;
     self.dir.data[1] = sin_pitch;
     self.dir.data[2] = sin_yaw * cos_pitch;
@@ -172,7 +172,7 @@ pub fn getRayTestTarget(
     mouse_y: u32,
 ) Vec3 {
     const far_plane: f32 = 10000.0;
-    const tanfov = math.tan(0.5 * alg.toRadians(
+    const tanfov = @tan(0.5 * alg.toRadians(
         self.frustrum.perspective.fov,
     ));
     const width = @intToFloat(f32, viewport_w);

@@ -144,7 +144,7 @@ fn drawEyes(x: f32, y: f32, w: f32, h: f32, mx: f32, my: f32, t: f32) void {
     const rx = x + w - ex;
     const ry = y + ey;
     const br = if (ex < ey) ex * 0.5 else ey * 0.5;
-    const blink = 1 - math.pow(f32, math.sin(t * 0.5), 200) * 0.8;
+    const blink = 1 - math.pow(f32, @sin(t * 0.5), 200) * 0.8;
 
     bg = nvg.linearGradient(x, y + h * 0.5, x + w * 0.1, y + h, nvg.rgba(0, 0, 0, 32), nvg.rgba(0, 0, 0, 16));
     nvg.beginPath();
@@ -209,12 +209,12 @@ fn drawGraph(x: f32, y: f32, w: f32, h: f32, t: f32) void {
     var dx = w / 5.0;
     var i: usize = undefined;
 
-    samples[0] = (1 + math.sin(t * 1.2345 + math.cos(t * 0.33457) * 0.44)) * 0.5;
-    samples[1] = (1 + math.sin(t * 0.68363 + math.cos(t * 1.3) * 1.55)) * 0.5;
-    samples[2] = (1 + math.sin(t * 1.1642 + math.cos(t * 0.33457) * 1.24)) * 0.5;
-    samples[3] = (1 + math.sin(t * 0.56345 + math.cos(t * 1.63) * 0.14)) * 0.5;
-    samples[4] = (1 + math.sin(t * 1.6245 + math.cos(t * 0.254) * 0.3)) * 0.5;
-    samples[5] = (1 + math.sin(t * 0.345 + math.cos(t * 0.03) * 0.6)) * 0.5;
+    samples[0] = (1 + @sin(t * 1.2345 + @cos(t * 0.33457) * 0.44)) * 0.5;
+    samples[1] = (1 + @sin(t * 0.68363 + @cos(t * 1.3) * 1.55)) * 0.5;
+    samples[2] = (1 + @sin(t * 1.1642 + @cos(t * 0.33457) * 1.24)) * 0.5;
+    samples[3] = (1 + @sin(t * 0.56345 + @cos(t * 1.63) * 0.14)) * 0.5;
+    samples[4] = (1 + @sin(t * 1.6245 + @cos(t * 0.254) * 0.3)) * 0.5;
+    samples[5] = (1 + @sin(t * 0.345 + @cos(t * 0.03) * 0.6)) * 0.5;
 
     i = 0;
     while (i < 6) : (i += 1) {
@@ -296,7 +296,7 @@ fn drawColorwheel(x: f32, y: f32, w: f32, h: f32, t: f32) void {
     var cy: f32 = undefined;
     var aeps: f32 = undefined;
     var r: f32 = undefined;
-    var hue: f32 = math.sin(t * 0.12);
+    var hue: f32 = @sin(t * 0.12);
     var paint: nvg.Paint = undefined;
 
     nvg.save();
@@ -315,10 +315,10 @@ fn drawColorwheel(x: f32, y: f32, w: f32, h: f32, t: f32) void {
         nvg.arc(cx, cy, r0, a0, a1, .cw);
         nvg.arc(cx, cy, r1, a1, a0, .ccw);
         nvg.closePath();
-        ax = cx + math.cos(a0) * (r0 + r1) * 0.5;
-        ay = cy + math.sin(a0) * (r0 + r1) * 0.5;
-        bx = cx + math.cos(a1) * (r0 + r1) * 0.5;
-        by = cy + math.sin(a1) * (r0 + r1) * 0.5;
+        ax = cx + @cos(a0) * (r0 + r1) * 0.5;
+        ay = cy + @sin(a0) * (r0 + r1) * 0.5;
+        bx = cx + @cos(a1) * (r0 + r1) * 0.5;
+        by = cy + @sin(a1) * (r0 + r1) * 0.5;
         paint = nvg.linearGradient(ax, ay, bx, by, nvg.hsla(a0 / (math.pi * 2.0), 1.0, 0.55, 255), nvg.hsla(a1 / (math.pi * 2.0), 1.0, 0.55, 255));
         nvg.fillPaint(paint);
         nvg.fill();
@@ -353,10 +353,10 @@ fn drawColorwheel(x: f32, y: f32, w: f32, h: f32, t: f32) void {
 
     // Center triangle
     r = r0 - 6;
-    ax = math.cos(120.0 / 180.0 * @as(f32, math.pi)) * r;
-    ay = math.sin(120.0 / 180.0 * @as(f32, math.pi)) * r;
-    bx = math.cos(-120.0 / 180.0 * @as(f32, math.pi)) * r;
-    by = math.sin(-120.0 / 180.0 * @as(f32, math.pi)) * r;
+    ax = @cos(120.0 / 180.0 * @as(f32, math.pi)) * r;
+    ay = @sin(120.0 / 180.0 * @as(f32, math.pi)) * r;
+    bx = @cos(-120.0 / 180.0 * @as(f32, math.pi)) * r;
+    by = @sin(-120.0 / 180.0 * @as(f32, math.pi)) * r;
     nvg.beginPath();
     nvg.moveTo(r, 0);
     nvg.lineTo(ax, ay);
@@ -372,8 +372,8 @@ fn drawColorwheel(x: f32, y: f32, w: f32, h: f32, t: f32) void {
     nvg.stroke();
 
     // Select circle on triangle
-    ax = math.cos(120.0 / 180.0 * @as(f32, math.pi)) * r * 0.3;
-    ay = math.sin(120.0 / 180.0 * @as(f32, math.pi)) * r * 0.4;
+    ax = @cos(120.0 / 180.0 * @as(f32, math.pi)) * r * 0.3;
+    ay = @sin(120.0 / 180.0 * @as(f32, math.pi)) * r * 0.4;
     nvg.strokeWidth(2.0);
     nvg.beginPath();
     nvg.circle(ax, ay, 5);
@@ -406,14 +406,14 @@ fn drawLines(x: f32, y: f32, w: f32, h: f32, t: f32) void {
     var caps: [3]nvg.LineCap = .{ .butt, .round, .square };
 
     nvg.save();
-    pts[0] = -s * 0.25 + math.cos(t * 0.3) * s * 0.5;
-    pts[1] = math.sin(t * 0.3) * s * 0.5;
+    pts[0] = -s * 0.25 + @cos(t * 0.3) * s * 0.5;
+    pts[1] = @sin(t * 0.3) * s * 0.5;
     pts[2] = -s * 0.25;
     pts[3] = 0;
     pts[4] = s * 0.25;
     pts[5] = 0;
-    pts[6] = s * 0.25 + math.cos(-t * 0.3) * s * 0.5;
-    pts[7] = math.sin(-t * 0.3) * s * 0.5;
+    pts[6] = s * 0.25 + @cos(-t * 0.3) * s * 0.5;
+    pts[7] = @sin(-t * 0.3) * s * 0.5;
 
     i = 0;
     while (i < 3) : (i += 1) {
@@ -578,10 +578,10 @@ fn drawSpinner(cx: f32, cy: f32, r: f32, t: f32) void {
     nvg.arc(cx, cy, r0, a0, a1, .cw);
     nvg.arc(cx, cy, r1, a1, a0, .ccw);
     nvg.closePath();
-    ax = cx + math.cos(a0) * (r0 + r1) * 0.5;
-    ay = cy + math.sin(a0) * (r0 + r1) * 0.5;
-    bx = cx + math.cos(a1) * (r0 + r1) * 0.5;
-    by = cy + math.sin(a1) * (r0 + r1) * 0.5;
+    ax = cx + @cos(a0) * (r0 + r1) * 0.5;
+    ay = cy + @sin(a0) * (r0 + r1) * 0.5;
+    bx = cx + @cos(a1) * (r0 + r1) * 0.5;
+    by = cy + @sin(a1) * (r0 + r1) * 0.5;
     paint = nvg.linearGradient(ax, ay, bx, by, nvg.rgba(0, 0, 0, 0), nvg.rgba(0, 0, 0, 128));
     nvg.fillPaint(paint);
     nvg.fill();
@@ -604,8 +604,8 @@ fn drawThumbnails(x: f32, y: f32, w: f32, h: f32, t: f32) void {
     var imgh: u32 = undefined;
     var stackh: f32 = @intToFloat(f32, images.len) / 2 * (thumb + 10) + 10;
     var i: usize = undefined;
-    var u: f32 = (1 + math.cos(t * 0.5)) * 0.5;
-    var ua: f32 = (1 - math.cos(t * 0.2)) * 0.5;
+    var u: f32 = (1 + @cos(t * 0.5)) * 0.5;
+    var ua: f32 = (1 - @cos(t * 0.2)) * 0.5;
     var scrollh: f32 = undefined;
     var dv: f32 = undefined;
 

@@ -20,7 +20,7 @@ pub const vbo_indices = 5;
 pub const vbo_num = 6;
 
 /// renderer's vertex attribute locations
-/// NOTE: renderer's vertex shader should follow this 
+/// NOTE: renderer's vertex shader should follow this
 /// convention if its purpose is rendering 3d Mesh/Model objects.
 pub const AttribLocation = enum(c_uint) {
     position = 0,
@@ -329,8 +329,8 @@ pub fn genCircle(
     var i: u32 = 0;
     while (i <= sector_count) : (i += 1) {
         var sector_angle = @intToFloat(f32, i) * sector_step;
-        const cos = math.cos(sector_angle);
-        const sin = math.sin(sector_angle);
+        const cos = @cos(sector_angle);
+        const sin = @sin(sector_angle);
         positions.appendSliceAssumeCapacity(&.{ cos * r, sin * r, 0 });
         normals.appendSliceAssumeCapacity(&.{ 0, 0, 1 });
         texcoords.appendSliceAssumeCapacity(&.{ cos * 0.5 + 0.5, sin * 0.5 + 0.5 });
@@ -481,8 +481,8 @@ pub fn genSphere(
     while (i <= stack_count) : (i += 1) {
         // starting from pi/2 to -pi/2
         var stack_angle = math.pi / 2.0 - @intToFloat(f32, i) * stack_step;
-        var xy = radius * math.cos(stack_angle);
-        var z = radius * math.sin(stack_angle);
+        var xy = radius * @cos(stack_angle);
+        var z = radius * @sin(stack_angle);
 
         var j: u32 = 0;
         while (j <= sector_count) : (j += 1) {
@@ -490,8 +490,8 @@ pub fn genSphere(
             var sector_angle = @intToFloat(f32, j) * sector_step;
 
             // postion
-            var x = xy * math.cos(sector_angle);
-            var y = xy * math.sin(sector_angle);
+            var x = xy * @cos(sector_angle);
+            var y = xy * @sin(sector_angle);
             positions.appendSliceAssumeCapacity(&.{ x, y, z });
 
             // normal
@@ -591,8 +591,8 @@ pub fn genCylinder(
     while (i <= sector_count) : (i += 1) {
         var sector_angle = @intToFloat(f32, i) * sector_step;
         unit_circle.appendSliceAssumeCapacity(&.{
-            math.cos(sector_angle),
-            math.sin(sector_angle),
+            @cos(sector_angle),
+            @sin(sector_angle),
         });
     }
 
@@ -607,9 +607,9 @@ pub fn genCylinder(
     while (i <= sector_count) : (i += 1) {
         var sector_angle = @intToFloat(f32, i) * sector_step;
         side_normals.appendSliceAssumeCapacity(&.{
-            math.cos(zangle) * math.cos(sector_angle),
-            math.cos(zangle) * math.sin(sector_angle),
-            math.sin(zangle),
+            @cos(zangle) * @cos(sector_angle),
+            @cos(zangle) * @sin(sector_angle),
+            @sin(zangle),
         });
     }
 

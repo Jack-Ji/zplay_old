@@ -97,8 +97,8 @@ fn loop(ctx: *zp.Context) void {
         .pos = .{ .x = 400, .y = 300 },
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
         .rotate_degree = @floatCast(f32, ctx.tick) * 30,
-        .scale_w = 4 + 2 * std.math.cos(@floatCast(f32, ctx.tick)),
-        .scale_h = 4 + 2 * std.math.sin(@floatCast(f32, ctx.tick)),
+        .scale_w = 4 + 2 * @cos(@floatCast(f32, ctx.tick)),
+        .scale_h = 4 + 2 * @sin(@floatCast(f32, ctx.tick)),
         .color = [_]f32{ 1, 0, 0, 1 },
         .depth = 0.6,
     }) catch unreachable;

@@ -225,9 +225,9 @@ fn loop(ctx: *zp.Context) void {
                         const new_angle_v = alg.toRadians(angle_v + offset_angle_v);
                         const new_pos = cube_center.add(
                             Vec3.new(
-                                math.cos(new_angle_v) * math.cos(new_angle_h),
-                                math.cos(new_angle_v) * math.sin(new_angle_h),
-                                math.sin(new_angle_v),
+                                @cos(new_angle_v) * @cos(new_angle_h),
+                                @cos(new_angle_v) * @sin(new_angle_h),
+                                @sin(new_angle_v),
                             ).scale(vpos.length()),
                         );
                         var new_camera = Camera.fromPositionAndTarget(
