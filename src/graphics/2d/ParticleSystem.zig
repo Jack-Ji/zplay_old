@@ -18,10 +18,11 @@ effects: std.ArrayList(Effect),
 
 /// create particle effect system/manager
 pub fn init(allocator: std.mem.Allocator) !*Self {
-    var self = allocator.create(Self);
+    var self = try allocator.create(Self);
     errdefer allocator.destroy(self);
     self.allocator = allocator;
-    self.effects = try std.ArrayList(allocator).initCapacity(default_effects_capacity);
+    self.effects = try std.ArrayList(Effect)
+        .initCapacity(allocator, default_effects_capacity);
     return self;
 }
 
@@ -176,10 +177,19 @@ pub const Effect = struct {
     }
 
     /// bulitin particle emitter: fire
-    pub fn FireEmitter(comptime radius: f32, comptime dir: Vec2) type {
+    pub fn FireEmitter(
+        comptime random: std.rand.Random,
+        comptime radius: f32,
+        comptime direction: Vec2,
+        comptime init_age: f32,
+        comptime fade_age: f32,
+    ) type {
         return struct {
-            const radius = radius;
-            const dir = dir;
+            var random = random;
+            var radius = radius;
+            var direction = direction;
+            var init_age = init_age;
+            var fade_age = fade_age;
 
             pub fn emit(origin: Vec2) Particle {
                 _ = origin;

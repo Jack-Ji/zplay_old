@@ -15,7 +15,7 @@ const console = gfx.font.console;
 var sprite_sheet: *SpriteSheet = undefined;
 var tex_display: TextureDisplay = undefined;
 var sprite: Sprite = undefined;
-var sprite_batch: SpriteBatch = undefined;
+var sprite_batch: *SpriteBatch = undefined;
 var camera: *Camera = undefined;
 
 fn init(ctx: *zp.Context) anyerror!void {
@@ -138,6 +138,8 @@ fn quit(ctx: *zp.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
     camera.deinit();
+    sprite_sheet.deinit();
+    sprite_batch.deinit();
 }
 
 pub fn main() anyerror!void {

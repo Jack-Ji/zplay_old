@@ -58,7 +58,7 @@ renderer: SpriteRenderer,
 /// all batch data
 batches: []BatchData,
 
-/// renderer's input 
+/// renderer's input
 render_data: Renderer.Input,
 
 /// sprite-sheet search tree
@@ -76,8 +76,9 @@ pub fn init(
     ctx: *Context,
     max_sheet_num: u32,
     max_sprites_per_drawcall: u32,
-) !Self {
-    var self = Self{
+) !*Self {
+    var self = try allocator.create(Self);
+    self.* = Self{
         .allocator = allocator,
         .gctx = ctx,
         .renderer = SpriteRenderer.init(),
@@ -116,6 +117,7 @@ pub fn deinit(self: *Self) void {
     self.renderer.deinit();
     self.render_data.deinit();
     self.search_tree.deinit();
+    self.allocator.destroy(self);
 }
 
 /// begin batched data

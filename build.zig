@@ -39,6 +39,7 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "sprite_sheet", .link_opt = .{} },
         .{ .name = "sprite_benchmark", .link_opt = .{} },
         .{ .name = "sound_play", .link_opt = .{} },
+        .{ .name = "particle_2d", .link_opt = .{ .link_imgui = true } },
     };
     const build_examples = b.step("build_examples", "compile and install all examples");
     inline for (examples) |demo| {

@@ -14,8 +14,8 @@ const Actor = struct {
 };
 
 var sprite_sheet: *SpriteSheet = undefined;
+var sprite_batch: *SpriteBatch = undefined;
 var characters: std.ArrayList(Actor) = undefined;
-var sprite_batch: SpriteBatch = undefined;
 var all_names: std.ArrayList([]const u8) = undefined;
 var rand_gen: std.rand.DefaultPrng = undefined;
 var delta_tick: f32 = 0;
@@ -137,6 +137,8 @@ fn loop(ctx: *zp.Context) void {
 fn quit(ctx: *zp.Context) void {
     _ = ctx;
     std.log.info("game quit", .{});
+    sprite_sheet.deinit();
+    sprite_batch.deinit();
 }
 
 pub fn main() anyerror!void {

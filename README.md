@@ -16,7 +16,7 @@ A simple framework intended for game/tool creation.
   * Sprite and SpriteBatch system
   * Texture packer used to programmatically create sprite-sheet
   * Chipmunk physics lib integration
-  * (TODO) Particle system
+  * Particle system
 * 3D toolkits:
   * Model loading and rendering (only glTF 2.0 for now)
   * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
