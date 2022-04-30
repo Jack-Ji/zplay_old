@@ -97,8 +97,8 @@ pub fn init(
     for (self.batches) |*b| {
         b.sprites_data = try std.ArrayList(BatchData.SpriteData).initCapacity(allocator, 1000);
         b.vertex_array = VertexArray.init(allocator, 2);
-        b.vertex_array.vbos[0].allocData(max_sprites_per_drawcall * 32, .dynamic_draw);
-        b.vertex_array.vbos[1].allocData(max_sprites_per_drawcall * 64, .dynamic_draw);
+        b.vertex_array.vbos[0].allocData(max_sprites_per_drawcall * 32 * 6, .dynamic_draw);
+        b.vertex_array.vbos[1].allocData(max_sprites_per_drawcall * 64 * 6, .dynamic_draw);
         SpriteRenderer.setupVertexArray(b.vertex_array);
         b.vattrib = try std.ArrayList(f32).initCapacity(allocator, 32000);
         b.vtransforms = try std.ArrayList(Mat4).initCapacity(allocator, 1000);
@@ -151,7 +151,7 @@ pub fn drawSprite(self: *Self, sprite: Sprite, opt: DrawOption) !void {
         try self.search_tree.put(sprite.sheet, count);
         break :blk count;
     };
-    if (self.batches[index].vtransforms.items.len >= self.max_sprites_per_drawcall) {
+    if (self.batches[index].sprites_data.items.len >= self.max_sprites_per_drawcall) {
         return error.TooMuchSprite;
     }
     try self.batches[index].sprites_data.append(.{

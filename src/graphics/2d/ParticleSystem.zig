@@ -1,5 +1,6 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const math = std.math;
 const zp = @import("../../zplay.zig");
 const alg = zp.deps.alg;
 const Vec2 = alg.Vec2;
@@ -50,15 +51,16 @@ pub fn update(self: *Self, delta_time: f32) void {
 }
 
 /// draw effects
-pub fn draw(self: Self, sprite_batch: SpriteBatch) !void {
+pub fn draw(self: Self, sprite_batch: *SpriteBatch) !void {
     for (self.effects.items) |e| {
-        e.draw(sprite_batch);
+        try e.draw(sprite_batch);
     }
 }
 
 /// add effect
 pub fn addEffect(
     self: *Self,
+    random: std.rand.Random,
     max_particle_num: u32,
     emit_fn: Effect.ParticleEmitFn,
     origin: Vec2,
@@ -68,6 +70,7 @@ pub fn addEffect(
 ) !void {
     var effect = try Effect.init(
         self.allocator,
+        random,
         max_particle_num,
         emit_fn,
         origin,
@@ -75,13 +78,19 @@ pub fn addEffect(
         gen_amount,
         burst_freq,
     );
-    errdefer .effect.deinit();
+    errdefer effect.deinit();
     try self.effects.append(effect);
 }
 
 /// represent a particle effect
 pub const Effect = struct {
-    pub const ParticleEmitFn = fn (origin: Vec2) Particle;
+    pub const ParticleEmitFn = fn (
+        random: std.rand.Random,
+        origin: Vec2,
+    ) Particle;
+
+    /// random number generator
+    random: std.rand.Random,
 
     /// all particles
     particles: std.ArrayList(Particle),
@@ -107,6 +116,7 @@ pub const Effect = struct {
     /// particle effect initialization
     pub fn init(
         allocator: std.mem.Allocator,
+        random: std.rand.Random,
         max_particle_num: u32,
         emit_fn: ParticleEmitFn,
         origin: Vec2,
@@ -120,7 +130,9 @@ pub const Effect = struct {
         assert(burst_freq > 0);
         assert(effect_duration > burst_freq);
         return Effect{
-            .particles = try std.ArrayList(Particle).initCapacity(allocator, max_particle_num),
+            .random = random,
+            .particles = try std.ArrayList(Particle)
+                .initCapacity(allocator, max_particle_num),
             .emit_fn = emit_fn,
             .origin = origin,
             .effect_duration = effect_duration,
@@ -139,12 +151,15 @@ pub const Effect = struct {
         if (self.effect_duration > 0) {
             self.effect_duration -= delta_time;
             self.burst_countdown -= delta_time;
-            if (self.effect_duration >= 0 and self.burst_countdown <= 0) {
+            if (self.effect_duration >= 0 and
+                self.burst_countdown <= 0 and
+                self.particles.items.len < self.particles.capacity)
+            {
                 var i: u32 = 0;
                 while (i < self.gen_amount) : (i += 1) {
                     // generate new particle
                     self.particles.appendAssumeCapacity(
-                        self.emit_fn(self.origin),
+                        self.emit_fn(self.random, self.origin),
                     );
                     if (self.particles.items.len == self.particles.capacity) break;
                 }
@@ -165,7 +180,7 @@ pub const Effect = struct {
     }
 
     /// draw the effect
-    pub fn draw(self: Effect, sprite_batch: SpriteBatch) !void {
+    pub fn draw(self: Effect, sprite_batch: *SpriteBatch) !void {
         for (self.particles.items) |p| {
             try p.draw(sprite_batch);
         }
@@ -178,21 +193,42 @@ pub const Effect = struct {
 
     /// bulitin particle emitter: fire
     pub fn FireEmitter(
-        comptime random: std.rand.Random,
         comptime radius: f32,
-        comptime direction: Vec2,
-        comptime init_age: f32,
-        comptime fade_age: f32,
+        comptime age_initial: f32,
+        comptime color_initial: Vec4,
+        comptime color_final: Vec4,
+        comptime color_fade_age: f32,
     ) type {
         return struct {
-            var random = random;
-            var radius = radius;
-            var direction = direction;
-            var init_age = init_age;
-            var fade_age = fade_age;
+            pub var sprite: ?Sprite = null;
+            pub var radius = radius;
+            pub var age_initial = age_initial;
+            pub var color_initial = color_initial;
+            pub var color_final = color_final;
+            pub var color_fade_age = color_fade_age;
 
-            pub fn emit(origin: Vec2) Particle {
-                _ = origin;
+            pub fn emit(random: std.rand.Random, origin: Vec2) Particle {
+                const offset = Vec2.new(
+                    random.float(f32) * radius * @cos(random.float(f32) * math.tau),
+                    random.float(f32) * radius * @sin(random.float(f32) * math.tau),
+                );
+
+                assert(color_fade_age < age_initial);
+                return Particle{
+                    .sprite = sprite.?,
+                    .age = age_initial,
+                    .pos = origin.add(offset),
+                    .move_speed = Vec2.new(-offset.x() * 0.5, 0),
+                    .move_acceleration = Vec2.new(0, -random.float(f32) * 200),
+                    .move_damp = 0.96,
+                    .scale = 0.5,
+                    .scale_speed = -0.1,
+                    .scale_acceleration = 0.0,
+                    .scale_max = 1.0,
+                    .color_initial = color_initial,
+                    .color_final = color_final,
+                    .color_fade_age = color_fade_age,
+                };
             }
         };
     }
@@ -213,21 +249,21 @@ pub const Particle = struct {
     move_damp: f32,
 
     /// rotation changing
-    angle: f32,
-    rotation_speed: f32,
-    rotation_damp: f32,
+    angle: f32 = 0,
+    rotation_speed: f32 = 0,
+    rotation_damp: f32 = 1,
 
     /// scale changing
-    scale: f32,
-    scale_speed: f32,
-    scale_acceleration: f32,
-    scale_max: f32,
+    scale: f32 = 1,
+    scale_speed: f32 = 0,
+    scale_acceleration: f32 = 0,
+    scale_max: f32 = 1,
 
     /// color changing
-    color: Vec4,
-    color_initial: Vec4,
-    color_final: Vec4,
-    color_fade_age: f32,
+    color: Vec4 = undefined,
+    color_initial: Vec4 = Vec4.set(1),
+    color_final: Vec4 = Vec4.set(1),
+    color_fade_age: f32 = 0,
 
     fn updatePos(self: *Particle, delta_time: f32) void {
         assert(self.move_damp >= 0 and self.move_damp <= 1);
@@ -278,7 +314,7 @@ pub const Particle = struct {
     }
 
     /// draw particle
-    pub fn draw(self: Particle, sprite_batch: SpriteBatch) !void {
+    pub fn draw(self: Particle, sprite_batch: *SpriteBatch) !void {
         try sprite_batch.drawSprite(
             self.sprite,
             .{
