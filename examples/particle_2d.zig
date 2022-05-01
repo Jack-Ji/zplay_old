@@ -40,11 +40,7 @@ fn init(ctx: *zp.Context) anyerror!void {
             .{
                 .name = "particle",
                 .image = .{
-                    .pixels = .{
-                        .data = &[_]u8{ 255, 255, 255, 255 } ** 100,
-                        .width = 10,
-                        .height = 10,
-                    },
+                    .file_path = "assets/images/white-circle.png",
                 },
             },
         },
@@ -78,12 +74,6 @@ fn init(ctx: *zp.Context) anyerror!void {
         10,
         0.016,
     );
-
-    // additive blend particles' color
-    ctx.graphics.setBlendOption(.{
-        .src_rgb = .one,
-        .dst_rgb = .one,
-    });
 }
 
 fn loop(ctx: *zp.Context) void {
@@ -109,9 +99,13 @@ fn loop(ctx: *zp.Context) void {
 
     ctx.graphics.clear(true, false, false, null);
     ps.update(ctx.delta_tick);
-    sb.begin(.none);
+    sb.begin(.none, .additive);
     ps.draw(sb) catch unreachable;
     sb.end() catch unreachable;
+
+    _ = ctx.drawText("fps: {d:.1}", .{ctx.fps}, .{
+        .color = [3]f32{ 1, 1, 1 },
+    });
 }
 
 fn quit(ctx: *zp.Context) void {
@@ -127,5 +121,6 @@ pub fn main() anyerror!void {
         .initFn = init,
         .loopFn = loop,
         .quitFn = quit,
+        .enable_console = true,
     });
 }

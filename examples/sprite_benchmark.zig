@@ -116,7 +116,7 @@ fn loop(ctx: *zp.Context) void {
     }
 
     ctx.graphics.clear(true, true, false, [_]f32{ 0.3, 0.3, 0.3, 1.0 });
-    sprite_batch.begin(.none);
+    sprite_batch.begin(.none, .alpha_blend);
     for (characters.items) |c| {
         sprite_batch.drawSprite(c.sprite, .{
             .pos = c.pos,

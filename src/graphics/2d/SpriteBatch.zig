@@ -23,6 +23,12 @@ pub const DepthSortMethod = enum {
     forth_to_back,
 };
 
+pub const BlendMethod = enum {
+    additive,
+    alpha_blend,
+    overwrite,
+};
+
 pub const DrawOption = struct {
     pos: Sprite.Point,
     color: [4]f32 = [_]f32{ 1, 1, 1, 1 },
@@ -67,8 +73,11 @@ search_tree: std.AutoHashMap(*SpriteSheet, u32),
 /// maximum limit
 max_sprites_per_drawcall: u32,
 
-///  sort by depth
+///  sort method
 depth_sort: DepthSortMethod,
+
+///  blend method
+blend: BlendMethod,
 
 /// create sprite-batch
 pub fn init(
@@ -93,6 +102,7 @@ pub fn init(
         .search_tree = std.AutoHashMap(*SpriteSheet, u32).init(allocator),
         .max_sprites_per_drawcall = max_sprites_per_drawcall,
         .depth_sort = .none,
+        .blend = .additive,
     };
     for (self.batches) |*b| {
         b.sprites_data = try std.ArrayList(BatchData.SpriteData).initCapacity(allocator, 1000);
@@ -121,8 +131,13 @@ pub fn deinit(self: *Self) void {
 }
 
 /// begin batched data
-pub fn begin(self: *Self, depth_sort: DepthSortMethod) void {
+pub fn begin(
+    self: *Self,
+    depth_sort: DepthSortMethod,
+    blend: BlendMethod,
+) void {
     self.depth_sort = depth_sort;
+    self.blend = blend;
     for (self.render_data.vds.?.items) |_, i| {
         self.batches[i].sprites_data.clearRetainingCapacity();
         self.batches[i].vattrib.clearRetainingCapacity();
@@ -228,6 +243,45 @@ pub fn end(self: *Self) !void {
             self.batches[i].vtransforms.items,
         );
         vd.count = @intCast(u32, self.batches[i].vtransforms.items.len);
+    }
+
+    // color blend
+    var old_blend_status = self.gctx.isCapabilityEnabled(.blend);
+    var old_blend_option = self.gctx.blend_option;
+    switch (self.blend) {
+        .additive => {
+            if (!old_blend_status) {
+                self.gctx.toggleCapability(.blend, true);
+            }
+            self.gctx.setBlendOption(.{ .src_rgb = .one, .dst_rgb = .one });
+        },
+        .alpha_blend => {
+            if (!old_blend_status) {
+                self.gctx.toggleCapability(.blend, true);
+            }
+            self.gctx.setBlendOption(.{});
+        },
+        .overwrite => {
+            if (old_blend_status) {
+                self.gctx.toggleCapability(.blend, false);
+            }
+        },
+    }
+    defer {
+        switch (self.blend) {
+            .additive, .alpha_blend => {
+                if (!old_blend_status) {
+                    self.gctx.toggleCapability(.blend, false);
+                } else {
+                    self.gctx.setBlendOption(old_blend_option);
+                }
+            },
+            .overwrite => {
+                if (old_blend_status) {
+                    self.gctx.toggleCapability(.blend, true);
+                }
+            },
+        }
     }
 
     // send draw command

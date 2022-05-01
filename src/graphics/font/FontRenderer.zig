@@ -89,14 +89,19 @@ pub fn draw(self: *Self, ctx: *Context, input: Renderer.Input) anyerror!void {
     var old_depth_test = ctx.isCapabilityEnabled(.depth_test);
     var old_stencil_test = ctx.isCapabilityEnabled(.stencil_test);
     var old_blend = ctx.isCapabilityEnabled(.blend);
+    const old_blend_option = ctx.blend_option;
     ctx.setPolygonMode(.fill);
     ctx.toggleCapability(.depth_test, false);
     ctx.toggleCapability(.stencil_test, false);
     ctx.toggleCapability(.blend, true);
+    ctx.setBlendOption(.{});
     defer ctx.setPolygonMode(old_polygon_mode);
     defer ctx.toggleCapability(.depth_test, old_depth_test);
     defer ctx.toggleCapability(.stencil_test, old_stencil_test);
     defer ctx.toggleCapability(.blend, old_blend);
+    defer {
+        if (old_blend) ctx.setBlendOption(old_blend_option);
+    }
 
     if (input.vds == null or input.vds.?.items.len == 0) return;
     self.program.use();

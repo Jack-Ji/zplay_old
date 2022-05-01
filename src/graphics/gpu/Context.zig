@@ -108,6 +108,9 @@ window: sdl.Window,
 /// opengl context
 gl_ctx: sdl.gl.Context,
 
+/// capability status
+cap_status: std.EnumMap(Capability, bool) = undefined,
+
 /// current viewport
 viewport: Viewport = undefined,
 
@@ -188,6 +191,7 @@ pub fn init(window: sdl.Window, g: zp.Game) !Self {
     var self = Self{
         .window = window,
         .gl_ctx = gl_ctx,
+        .cap_status = std.EnumMap(Capability, bool).initFull(false),
     };
     self.setViewport(.{
         .x = 0,
@@ -305,20 +309,23 @@ pub fn setViewport(self: *Self, vp: Viewport) void {
 }
 
 /// toggle capability
-pub fn toggleCapability(self: Self, cap: Capability, on_off: bool) void {
+pub fn toggleCapability(self: *Self, cap: Capability, on_off: bool) void {
     _ = self;
     if (on_off) {
         gl.enable(@enumToInt(cap));
+        self.cap_status.put(cap, true);
     } else {
         gl.disable(@enumToInt(cap));
+        self.cap_status.put(cap, false);
     }
     gl.util.checkError();
 }
 
 /// check capability' s status
-pub fn isCapabilityEnabled(self: Self, cap: Capability) bool {
-    _ = self;
-    return gl.isEnabled(@enumToInt(cap)) == gl.GL_TRUE;
+pub fn isCapabilityEnabled(self: *Self, cap: Capability) bool {
+    const status = self.cap_status.get(cap).?;
+    assert((gl.isEnabled(@enumToInt(cap)) == gl.GL_TRUE) == status);
+    return status;
 }
 
 /// set line width

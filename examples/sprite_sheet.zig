@@ -86,7 +86,7 @@ fn loop(ctx: *zp.Context) void {
         .custom = &Mat4.fromScale(Vec3.new(0.5, 0.5, 1)).translate(Vec3.new(0.5, 0.5, 0)),
     }) catch unreachable;
 
-    sprite_batch.begin(.back_to_forth);
+    sprite_batch.begin(.back_to_forth, .alpha_blend);
     sprite_batch.drawSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .scale_w = 2,
