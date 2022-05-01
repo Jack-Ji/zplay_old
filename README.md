@@ -23,8 +23,6 @@ A simple framework intended for game/tool creation.
   * Blinn-Phong renderer (directional/point/spot light)
   * Environment mapping renderer
   * Skybox renderer
-  * (TODO) PBR renderer
-  * (TODO) Particle system
 
 ## Getting started
 Copy `zplay` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
