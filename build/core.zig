@@ -17,15 +17,11 @@ pub fn link(
     sdk.link(exe, .dynamic);
 
     // use zplay
-    var sdl_package = sdk.getWrapperPackage("sdl");
-    sdl_package.dependencies = &.{
-        sdk.getNativePackageVulkan("sdl-native", gen.package),
-    };
     exe.addPackage(.{
         .name = "zplay",
         .path = .{ .path = root_path ++ "/src/zplay.zig" },
         .dependencies = &.{
-            sdl_package,
+            sdk.getWrapperPackageVulkan("sdl", gen.package),
             gen.package,
         },
     });
