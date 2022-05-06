@@ -2,11 +2,9 @@
 A simple framework intended for game/tool creation.
 
 ## Features
-* Little external dependency, only SDL2 and OpenGL3
+* Little external dependency, only SDL2 and Vulkan (WIP)
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
-* Flexible render-passes pipeline, greatly simplify rendering code
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion
-* Vector graphics drawing ([nanovg](https://github.com/memononen/nanovg))
 * Immediate mode GUI toolkits ([dear-imgui](https://github.com/ocornut/imgui))
 * Realtime data visualization ([ImPlot](https://github.com/epezent/implot))
 * TrueType font loading and rendering
@@ -43,7 +41,7 @@ pub fn build(b: *std.build.Builder) void {
     exe.install();
 
     zplay.link(exe, .{
-      // link any optional modules as you like (imgui/nanovg etc)
+      // link any optional modules as you like (imgui/chipmunk/bullet etc)
     });
 
     const run_cmd = exe.run();
@@ -134,12 +132,9 @@ pub fn main() anyerror!void {
 * imgui demo
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/imgui_demo.png)
 
-* vector graphics
-![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/vector_graphics.png)
-
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
-* [glad-generated OpenGL3 loader](https://glad.dav1d.de) (Apache Version 2.0 license)
+* [zig-vulkan](https://github.com/Snektron/vulkan-zig) (MIT license)
 * [zalgebra](https://github.com/kooparse/zalgebra) (MIT license)
 * [miniaudio](https://miniaud.io/index.html) (MIT license)
 * [cgltf](https://github.com/jkuhlmann/cgltf) (MIT license)
@@ -147,8 +142,6 @@ pub fn main() anyerror!void {
 * [dear-imgui](https://github.com/ocornut/imgui) (MIT license)
 * [ImPlot](https://github.com/epezent/implot) (MIT license)
 * [imnodes](https://github.com/Nelarius/imnodes) (MIT license)
-* [nanovg](https://github.com/memononen/nanovg) (zlib license)
-* [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
 * [bullet3](https://github.com/bulletphysics/bullet3) (zlib license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)

@@ -25,8 +25,6 @@ pub fn build(b: *std.build.Builder) void {
         .{ .name = "imgui_demo", .link_opt = .{ .link_imgui = true } },
         .{ .name = "imgui_fontawesome", .link_opt = .{ .link_imgui = true } },
         .{ .name = "imgui_ttf", .link_opt = .{ .link_imgui = true } },
-        .{ .name = "vector_graphics", .link_opt = .{ .link_imgui = true, .link_nanovg = true } },
-        .{ .name = "vg_benchmark", .link_opt = .{ .link_imgui = true, .link_nanovg = true } },
         .{ .name = "mesh_generation", .link_opt = .{ .link_imgui = true } },
         .{ .name = "gltf_demo", .link_opt = .{ .link_imgui = true } },
         .{ .name = "environment_mapping", .link_opt = .{ .link_imgui = true } },
@@ -67,7 +65,6 @@ pub fn build(b: *std.build.Builder) void {
 pub const LinkOption = struct {
     link_nfd: bool = false,
     link_imgui: bool = false,
-    link_nanovg: bool = false,
     link_bullet: bool = false,
     link_chipmunk: bool = false,
 };
@@ -77,29 +74,15 @@ pub fn link(exe: *std.build.LibExeObjStep, opt: LinkOption) void {
     const root_path = comptime rootPath();
 
     // link dependencies
-    @import("build/sdl.zig").link(exe, root_path);
+    @import("build/core.zig").link(exe, root_path);
     @import("build/opengl.zig").link(exe, root_path);
     @import("build/miniaudio.zig").link(exe, root_path);
     @import("build/stb.zig").link(exe, root_path);
     @import("build/gltf.zig").link(exe, root_path);
     if (opt.link_nfd) @import("build/nfd.zig").link(exe, root_path);
     if (opt.link_imgui) @import("build/imgui.zig").link(exe, root_path);
-    if (opt.link_nanovg) {
-        @import("build/nanovg.zig").link(exe, root_path);
-        @import("build/nanosvg.zig").link(exe, root_path);
-    }
     if (opt.link_bullet) @import("build/bullet.zig").link(exe, root_path);
     if (opt.link_chipmunk) @import("build/chipmunk.zig").link(exe, root_path);
-
-    // use zplay
-    const sdl = @import("./src/deps/sdl/Sdk.zig").init(exe.builder);
-    exe.addPackage(.{
-        .name = "zplay",
-        .path = .{ .path = root_path ++ "/src/zplay.zig" },
-        .dependencies = &[_]std.build.Pkg{
-            sdl.getWrapperPackage("sdl"),
-        },
-    });
 }
 
 /// root path

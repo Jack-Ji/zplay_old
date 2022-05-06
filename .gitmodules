@@ -7,3 +7,6 @@
 [submodule "src/za"]
 	path = src/deps/alg
 	url = https://github.com/kooparse/zalgebra.git
+[submodule "src/deps/vulkan"]
+	path = src/deps/vulkan
+	url = https://github.com/Snektron/vulkan-zig
