@@ -1,7 +1,10 @@
 // export core definitions
 pub usingnamespace @import("core.zig");
 
-/// system events
+/// gpu module (computing/rendering)
+pub const gpu = @import("gpu.zig");
+
+/// system events module
 pub const event = @import("event.zig");
 
 /// graphics module
@@ -19,7 +22,6 @@ pub const utils = @import("utils.zig");
 /// 3rd party libraries
 pub const deps = struct {
     /// required dependencies
-    pub const sdl = @import("sdl"); // sdl2
     pub const gl = @import("deps/gl/gl.zig"); // opengl 3.3 core definitions
     pub const alg = @import("deps/alg/src/main.zig"); // algebra calculation
     pub const miniaudio = @import("deps/miniaudio/miniaudio.zig"); // audio library

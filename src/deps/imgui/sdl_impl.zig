@@ -1,8 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const sdl = @import("sdl");
 const zp = @import("../../zplay.zig");
 const event = zp.event;
-const sdl = zp.deps.sdl;
 const c = @import("c.zig");
 const string_c = @cImport({
     @cInclude("string.h");

@@ -1,5 +1,4 @@
-const zp = @import("../zplay.zig");
-const sdl = zp.deps.sdl;
+const sdl = @import("sdl");
 const Self = @This();
 
 ///  press or release

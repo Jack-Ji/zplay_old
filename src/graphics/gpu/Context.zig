@@ -1,8 +1,8 @@
 const std = @import("std");
 const assert = std.debug.assert;
+const sdl = @import("sdl");
 const Framebuffer = @import("Framebuffer.zig");
 const zp = @import("../../zplay.zig");
-const sdl = zp.deps.sdl;
 const gl = zp.deps.gl;
 const Self = @This();
 

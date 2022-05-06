@@ -1,6 +1,5 @@
 const std = @import("std");
-const zp = @import("zplay.zig");
-const sdl = zp.deps.sdl;
+const sdl = @import("sdl");
 
 /// event definitions
 pub const WindowEvent = @import("event/WindowEvent.zig");

@@ -1,7 +1,7 @@
 const std = @import("std");
+const sdl = @import("sdl");
 const zp = @import("../../zplay.zig");
 const event = zp.event;
-const sdl = zp.deps.sdl;
 const sdl_impl = @import("sdl_impl.zig");
 pub const c = @import("c.zig");
 

@@ -1,10 +1,10 @@
 const std = @import("std");
 const zp = @import("zplay.zig");
+const sdl = @import("sdl");
 const GraphicsContext = zp.graphics.gpu.Context;
 const console = zp.graphics.font.console;
 const event = zp.event;
 const audio = zp.audio;
-const sdl = zp.deps.sdl;
 
 var perf_counter_freq: f64 = undefined;
 

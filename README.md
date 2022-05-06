@@ -25,7 +25,9 @@ A simple framework intended for game/tool creation.
 ## Getting started
 Copy `zplay` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
 
-Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
+Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig).
+
+Install shader compiler [shaderc](https://github.com/google/shaderc), add its `bin` dir to `PATH` environment variable.
 
 Then in your `build.zig` add:
 
@@ -40,9 +42,13 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(b.standardTargetOptions(.{}));
     exe.install();
 
+    // link to zplay framework
     zplay.link(exe, .{
       // link any optional modules as you like (imgui/chipmunk/bullet etc)
     });
+
+    // load shaders
+    zplay.loadShaders(...);
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
