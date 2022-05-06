@@ -1,5 +1,6 @@
 const std = @import("std");
 const sdl = @import("sdl");
+const vk = @import("vulkan");
 const zp = @import("../../zplay.zig");
 const event = zp.event;
 const sdl_impl = @import("sdl_impl.zig");
@@ -14,21 +15,46 @@ pub const fontawesome = @import("fonts/fontawesome.zig");
 /// export 3rd-party extensions
 pub const ext = @import("ext/ext.zig");
 
-extern fn _ImGui_ImplOpenGL3_Init(glsl_version: [*c]u8) bool;
-extern fn _ImGui_ImplOpenGL3_Shutdown() void;
-extern fn _ImGui_ImplOpenGL3_NewFrame() void;
-extern fn _ImGui_ImplOpenGL3_RenderDrawData(draw_data: *c.ImDrawData) void;
+/// imgui's vulkan impl api
+pub const ImGuiImplVulkanInfo = extern struct {
+    instance: vk.Instance,
+    pdev: vk.PhysicalDevice,
+    dev: vk.Device,
+    queue_family: u32,
+    queue: vk.Queue,
+    pipeline_cache: vk.PipelineCache,
+    descriptor_pool: vk.DescriptorPool,
+    sub_pass: u32,
+    min_image_count: u32,
+    image_count: u32,
+    msaa_samples: vk.SampleCountFlags,
+    allocator: [*c]vk.AllocationCallbacks = null,
+    checkResultFn: ?fn (err: vk.Result) callconv(.C) void = null,
+};
+extern fn _ImGui_ImplVulkan_LoadFunctions(loader: vk.PfnGetInstanceProcAddr) bool;
+extern fn _ImGui_ImplVulkan_Init(info: *ImGuiImplVulkanInfo, render_pass: vk.RenderPass) bool;
+extern fn _ImGui_ImplVulkan_Shutdown() void;
+extern fn _ImGui_ImplVulkan_NewFrame() void;
+extern fn _ImGui_ImplVulkan_RenderDrawData(draw_data: *c.ImDrawData, command_buffer: vk.CommandBuffer) void;
 
 /// internal static vars
 var initialized = false;
 var plot_ctx: ?*ext.plot.ImPlotContext = undefined;
 var nodes_ctx: ?*ext.nodes.ImNodesContext = undefined;
 
-/// initialize sdl2 and opengl3 backend
-pub fn init(window: sdl.Window) !void {
+/// initialize sdl2 and vulkan backend
+pub fn init(
+    window: sdl.Window,
+    info: *ImGuiImplVulkanInfo,
+    render_pass: vk.RenderPass,
+) !void {
     _ = c.igCreateContext(null);
     try sdl_impl.init(window.ptr);
-    if (!_ImGui_ImplOpenGL3_Init(null)) {
+    const vkGetInstanceProcAddr = sdl.c.SDL_Vulkan_GetVkGetInstanceProcAddr().?;
+    if (!_ImGui_ImplVulkan_LoadFunctions(vkGetInstanceProcAddr)) {
+        std.debug.panic("load vk functions failed", .{});
+    }
+    if (!_ImGui_ImplVulkan_Init(info, render_pass)) {
         std.debug.panic("init render backend failed", .{});
     }
     plot_ctx = ext.plot.createContext();
@@ -50,7 +76,7 @@ pub fn deinit() void {
     ext.nodes.destroyContext(nodes_ctx.?);
     ext.plot.destroyContext(plot_ctx.?);
     sdl_impl.deinit();
-    _ImGui_ImplOpenGL3_Shutdown();
+    _ImGui_ImplVulkan_Shutdown();
     initialized = false;
 }
 
@@ -68,17 +94,20 @@ pub fn beginFrame() void {
         std.debug.panic("cimgui isn't initialized!", .{});
     }
     sdl_impl.newFrame();
-    _ImGui_ImplOpenGL3_NewFrame();
+    _ImGui_ImplVulkan_NewFrame();
     c.igNewFrame();
 }
 
 /// end frame
-pub fn endFrame() void {
+pub fn endFrame(command_buffer: vk.CommandBuffer) void {
     if (!initialized) {
         std.debug.panic("cimgui isn't initialized!", .{});
     }
     c.igRender();
-    _ImGui_ImplOpenGL3_RenderDrawData(c.igGetDrawData());
+    _ImGui_ImplVulkan_RenderDrawData(
+        c.igGetDrawData(),
+        command_buffer,
+    );
 }
 
 /// load font awesome
