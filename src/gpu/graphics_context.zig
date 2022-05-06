@@ -7,6 +7,8 @@ const required_device_extensions = [_][*:0]const u8{vk.extension_info.khr_swapch
 
 const BaseDispatch = vk.BaseWrapper(.{
     .createInstance = true,
+    .enumerateInstanceLayerProperties = true,
+    .enumerateInstanceExtensionProperties = true,
 });
 
 const InstanceDispatch = vk.InstanceWrapper(.{
