@@ -11,20 +11,22 @@ pub fn link(
         root_path ++ "/src/deps/vulkan/examples/vk.xml",
         "vk.zig",
     );
-    exe.addPackage(gen.package);
 
     // link sdl
     const sdk = @import("../src/deps/sdl/Sdk.zig").init(exe.builder);
-    const build_options = sdk.builder.addOptions();
-    build_options.addOption(bool, "vulkan", true);
     sdk.link(exe, .dynamic);
 
     // use zplay
+    var sdl_package = sdk.getWrapperPackage("sdl");
+    sdl_package.dependencies = &.{
+        sdk.getNativePackageVulkan("sdl-native", gen.package),
+    };
     exe.addPackage(.{
         .name = "zplay",
         .path = .{ .path = root_path ++ "/src/zplay.zig" },
         .dependencies = &.{
-            sdk.getWrapperPackage("sdl"),
+            sdl_package,
+            gen.package,
         },
     });
 }

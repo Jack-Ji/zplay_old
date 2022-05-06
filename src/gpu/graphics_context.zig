@@ -94,15 +94,16 @@ pub const GraphicsContext = struct {
     present_queue: Queue,
 
     pub fn init(allocator: Allocator, app_name: [*:0]const u8, window: sdl.Window) !GraphicsContext {
+        const vkGetInstanceProcAddr = sdl.c.SDL_Vulkan_GetVkGetInstanceProcAddr().?;
         var self: GraphicsContext = undefined;
-        self.vkb = try BaseDispatch.load(sdl.c.SDL_GL_GetProcAddress);
+        self.vkb = try BaseDispatch.load(vkGetInstanceProcAddr);
 
-        var exts = std.ArrayList([*:0]const u8).init();
+        var exts = std.ArrayList([*:0]const u8).init(allocator);
         defer exts.deinit();
         var exts_count: c_uint = 0;
-        _ = sdl.c.SDL_Vulkan_GetInstanceExtensions(&exts_count, null);
+        _ = sdl.c.SDL_Vulkan_GetInstanceExtensions(window.ptr, &exts_count, null);
         try exts.resize(@intCast(usize, exts_count));
-        _ = sdl.c.SDL_Vulkan_GetInstanceExtensions(&exts_count, exts.items.ptr);
+        _ = sdl.c.SDL_Vulkan_GetInstanceExtensions(window.ptr, &exts_count, exts.items.ptr);
 
         const app_info = vk.ApplicationInfo{
             .p_application_name = app_name,
@@ -121,7 +122,7 @@ pub const GraphicsContext = struct {
             .pp_enabled_extension_names = exts.items.ptr,
         }, null);
 
-        self.vki = try InstanceDispatch.load(self.instance, sdl.c.SDL_GL_GetProcAddress);
+        self.vki = try InstanceDispatch.load(self.instance, vkGetInstanceProcAddr);
         errdefer self.vki.destroyInstance(self.instance, null);
 
         self.surface = try createSurface(self.instance, window);
@@ -185,7 +186,7 @@ pub const Queue = struct {
 
 fn createSurface(instance: vk.Instance, window: sdl.Window) !vk.SurfaceKHR {
     var surface: vk.SurfaceKHR = undefined;
-    if (sdl.c.SDL_Vulkan_CreateSurface(window.ptr, instance, window, &surface) != 1) {
+    if (sdl.c.SDL_Vulkan_CreateSurface(window.ptr, instance, &surface) != 1) {
         return error.SurfaceInitFailed;
     }
 
