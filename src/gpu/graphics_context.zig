@@ -100,12 +100,11 @@ pub const GraphicsContext = struct {
         var self: GraphicsContext = undefined;
         self.vkb = try BaseDispatch.load(vkGetInstanceProcAddr);
 
-        var exts = std.ArrayList([*:0]const u8).init(allocator);
-        defer exts.deinit();
         var exts_count: c_uint = 0;
         _ = sdl.c.SDL_Vulkan_GetInstanceExtensions(window.ptr, &exts_count, null);
-        try exts.resize(@intCast(usize, exts_count));
-        _ = sdl.c.SDL_Vulkan_GetInstanceExtensions(window.ptr, &exts_count, exts.items.ptr);
+        var exts = try allocator.alloc([*:0]const u8, @intCast(usize, exts_count));
+        defer allocator.free(exts);
+        _ = sdl.c.SDL_Vulkan_GetInstanceExtensions(window.ptr, &exts_count, exts.ptr);
 
         const app_info = vk.ApplicationInfo{
             .p_application_name = app_name,
@@ -121,7 +120,7 @@ pub const GraphicsContext = struct {
             .enabled_layer_count = 0,
             .pp_enabled_layer_names = undefined,
             .enabled_extension_count = exts_count,
-            .pp_enabled_extension_names = exts.items.ptr,
+            .pp_enabled_extension_names = exts.ptr,
         }, null);
 
         self.vki = try InstanceDispatch.load(self.instance, vkGetInstanceProcAddr);
