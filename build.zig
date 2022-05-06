@@ -85,12 +85,12 @@ pub fn link(exe: *std.build.LibExeObjStep, opt: LinkOption) void {
     if (opt.link_chipmunk) @import("build/chipmunk.zig").link(exe, root_path);
 }
 
-/// compile shaders and load it as package
+/// compile shaders and load them as package
 pub const ShaderSource = struct {
     shader_name: []const u8,
     shader_file: []const u8,
 };
-pub fn loadShaders(
+pub fn compileAndLoadShaders(
     exe: *std.build.LibExeObjStep,
     srcs: []ShaderSource,
     package_name: []const u8,

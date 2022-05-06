@@ -44,11 +44,11 @@ pub fn build(b: *std.build.Builder) void {
 
     // link to zplay framework
     zplay.link(exe, .{
-      // link any optional modules as you like (imgui/chipmunk/bullet etc)
+      // link optional modules (imgui/chipmunk/bullet etc)
     });
 
-    // load shaders
-    zplay.loadShaders(
+    // compile and load shaders
+    zplay.compileAndLoadShaders(
         exe,
         &.{
             .{.shader_name = "vertex_shader", .shader_file = "assets/shader.vs", },
@@ -82,21 +82,12 @@ fn init(ctx: *zp.Context) anyerror!void {
 fn loop(ctx: *zp.Context) void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
-            .keyboard_event => |key| {
-                if (key.trigger_type == .up) {
-                    switch (key.scan_code) {
-                        .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
-                        else => {},
-                    }
-                }
-            },
             .quit_event => ctx.kill(),
             else => {},
         }
     }
 
-    // your rendering code
+    // your game loop
 }
 
 fn quit(ctx: *zp.Context) void {
