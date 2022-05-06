@@ -13,6 +13,9 @@ var perf_counter_freq: f64 = undefined;
 
 /// application context
 pub const Context = struct {
+    /// default memory allocator
+    allocator: std.mem.Allocator,
+
     /// internal window
     window: sdl.Window,
 
@@ -311,6 +314,7 @@ pub fn run(g: Game) !void {
         flags.maximized = true;
     }
     var ctx: Context = .{
+        .allocator = allocator,
         .window = try sdl.createWindow(
             g.app_name,
             g.pos_x,
