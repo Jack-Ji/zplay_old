@@ -48,7 +48,14 @@ pub fn build(b: *std.build.Builder) void {
     });
 
     // load shaders
-    zplay.loadShaders(...);
+    zplay.loadShaders(
+        exe,
+        &.{
+            .{.shader_name = "vertex_shader", .shader_file = "assets/shader.vs", },
+            .{.shader_name = "fragment_shader", .shader_file = "assets/shader.fs", },
+        },
+        "shaders",
+    );
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
@@ -63,6 +70,7 @@ Now in your code you may import and use zplay:
 ```zig
 const std = @import("std");
 const zp = @import("zplay");
+const shaders = @import("shaders");
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;

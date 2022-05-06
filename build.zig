@@ -19,7 +19,7 @@ pub fn build(b: *std.build.Builder) void {
     const examples = [_]struct { name: []const u8, link_opt: LinkOption }{
         .{ .name = "simple_window", .link_opt = .{} },
         .{ .name = "font", .link_opt = .{} },
-        .{ .name = "single_triangle", .link_opt = .{} },
+        .{ .name = "triangle", .link_opt = .{} },
         .{ .name = "cubes", .link_opt = .{ .link_imgui = true } },
         .{ .name = "phong_lighting", .link_opt = .{ .link_imgui = true } },
         .{ .name = "imgui_demo", .link_opt = .{ .link_imgui = true } },
