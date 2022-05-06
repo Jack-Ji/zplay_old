@@ -93,6 +93,8 @@ pub const GraphicsContext = struct {
     graphics_queue: Queue,
     present_queue: Queue,
 
+    window: sdl.Window,
+
     pub fn init(allocator: Allocator, app_name: [*:0]const u8, window: sdl.Window) !GraphicsContext {
         const vkGetInstanceProcAddr = sdl.c.SDL_Vulkan_GetVkGetInstanceProcAddr().?;
         var self: GraphicsContext = undefined;
@@ -139,6 +141,7 @@ pub const GraphicsContext = struct {
         self.present_queue = Queue.init(self.vkd, self.dev, candidate.queues.present_family);
 
         self.mem_props = self.vki.getPhysicalDeviceMemoryProperties(self.pdev);
+        self.window = window;
 
         return self;
     }
@@ -169,6 +172,17 @@ pub const GraphicsContext = struct {
             .allocation_size = requirements.size,
             .memory_type_index = try self.findMemoryTypeIndex(requirements.memory_type_bits, flags),
         }, null);
+    }
+
+    pub fn getDrawableSize(self: GraphicsContext) struct { w: u32, h: u32 } {
+        var w: u32 = undefined;
+        var h: u32 = undefined;
+        sdl.c.SDL_Vulkan_GetDrawableSize(
+            self.window.ptr,
+            @ptrCast(*c_int, &w),
+            @ptrCast(*c_int, &h),
+        );
+        return .{ .w = w, .h = h };
     }
 };
 
