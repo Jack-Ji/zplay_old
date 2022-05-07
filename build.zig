@@ -75,7 +75,6 @@ pub fn link(exe: *std.build.LibExeObjStep, opt: LinkOption) void {
 
     // link dependencies
     @import("build/core.zig").link(exe, root_path);
-    @import("build/opengl.zig").link(exe, root_path);
     @import("build/miniaudio.zig").link(exe, root_path);
     @import("build/stb.zig").link(exe, root_path);
     @import("build/gltf.zig").link(exe, root_path);
