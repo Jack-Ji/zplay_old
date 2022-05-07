@@ -356,10 +356,11 @@ pub fn run(g: Game) !void {
     defer ctx.graphics.deinit();
 
     // create swapchain
+    const pixel_size = ctx.graphics.getDrawableSize();
     ctx.swapchain = try Swapchain.init(
         &ctx.graphics,
         allocator,
-        vk.Extent2D{ .width = g.width, .height = g.height },
+        vk.Extent2D{ .width = pixel_size.w, .height = pixel_size.h },
     );
     defer ctx.swapchain.deinit();
 
