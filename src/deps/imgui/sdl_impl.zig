@@ -195,7 +195,7 @@ pub fn newFrame() void {
         w = 0;
         h = 0;
     }
-    sdl.c.SDL_GL_GetDrawableSize(bd.window, &display_w, &display_h);
+    sdl.c.SDL_Vulkan_GetDrawableSize(bd.window, &display_w, &display_h);
     io.DisplaySize = .{
         .x = @intToFloat(f32, w),
         .y = @intToFloat(f32, h),
