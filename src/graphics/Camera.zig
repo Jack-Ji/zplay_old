@@ -6,7 +6,7 @@ const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
 const Self = @This();
 
-/// params for viewering frustrum
+/// params for viewing frustrum
 pub const ViewFrustrum = union(enum) {
     orthographic: struct {
         left: f32,

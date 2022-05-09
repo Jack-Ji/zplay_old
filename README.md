@@ -43,7 +43,7 @@ pub fn build(b: *std.build.Builder) void {
     exe.install();
 
     zplay.link(exe, .{
-      // link any optional modules as you like (imgui/nanovg etc)
+      // link optional modules (imgui/nanovg etc)
     });
 
     const run_cmd = exe.run();
@@ -70,21 +70,12 @@ fn init(ctx: *zp.Context) anyerror!void {
 fn loop(ctx: *zp.Context) void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
-            .keyboard_event => |key| {
-                if (key.trigger_type == .up) {
-                    switch (key.scan_code) {
-                        .escape => ctx.kill(),
-                        .f1 => ctx.toggleFullscreeen(null),
-                        else => {},
-                    }
-                }
-            },
             .quit_event => ctx.kill(),
             else => {},
         }
     }
 
-    // your rendering code
+    // your game loop
 }
 
 fn quit(ctx: *zp.Context) void {
