@@ -2,9 +2,11 @@
 A simple framework intended for game/tool creation.
 
 ## Features
-* Little external dependency, only SDL2 and Vulkan (WIP)
+* Little external dependency, only SDL2 and OpenGL3
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
+* Flexible render-passes pipeline, greatly simplify rendering code
 * Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion
+* Vector graphics drawing ([nanovg](https://github.com/memononen/nanovg))
 * Immediate mode GUI toolkits ([dear-imgui](https://github.com/ocornut/imgui))
 * Realtime data visualization ([ImPlot](https://github.com/epezent/implot))
 * TrueType font loading and rendering
@@ -25,9 +27,7 @@ A simple framework intended for game/tool creation.
 ## Getting started
 Copy `zplay` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
 
-Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig).
-
-Install shader compiler [shaderc](https://github.com/google/shaderc), add its `bin` dir to `PATH` environment variable.
+Install SDL2 library, please refer to [docs of SDL2.zig](https://github.com/MasterQ32/SDL.zig)
 
 Then in your `build.zig` add:
 
@@ -42,20 +42,9 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(b.standardTargetOptions(.{}));
     exe.install();
 
-    // link to zplay framework
     zplay.link(exe, .{
-      // link optional modules (imgui/chipmunk/bullet etc)
+      // link any optional modules as you like (imgui/nanovg etc)
     });
-
-    // compile and load shaders
-    zplay.compileAndLoadShaders(
-        exe,
-        &.{
-            .{.shader_name = "vertex_shader", .shader_file = "assets/shader.vs", },
-            .{.shader_name = "fragment_shader", .shader_file = "assets/shader.fs", },
-        },
-        "shaders",
-    );
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
@@ -70,7 +59,6 @@ Now in your code you may import and use zplay:
 ```zig
 const std = @import("std");
 const zp = @import("zplay");
-const shaders = @import("shaders");
 
 fn init(ctx: *zp.Context) anyerror!void {
     _ = ctx;
@@ -82,12 +70,21 @@ fn init(ctx: *zp.Context) anyerror!void {
 fn loop(ctx: *zp.Context) void {
     while (ctx.pollEvent()) |e| {
         switch (e) {
+            .keyboard_event => |key| {
+                if (key.trigger_type == .up) {
+                    switch (key.scan_code) {
+                        .escape => ctx.kill(),
+                        .f1 => ctx.toggleFullscreeen(null),
+                        else => {},
+                    }
+                }
+            },
             .quit_event => ctx.kill(),
             else => {},
         }
     }
 
-    // your game loop
+    // your rendering code
 }
 
 fn quit(ctx: *zp.Context) void {
@@ -137,9 +134,12 @@ pub fn main() anyerror!void {
 * imgui demo
 ![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/imgui_demo.png)
 
+* vector graphics
+![picture](https://github.com/jack-ji/zplay/blob/main/examples/screenshots/vector_graphics.png)
+
 ## Third-Party Libraries
 * [SDL2](https://www.libsdl.org) (zlib license)
-* [zig-vulkan](https://github.com/Snektron/vulkan-zig) (MIT license)
+* [glad-generated OpenGL3 loader](https://glad.dav1d.de) (Apache Version 2.0 license)
 * [zalgebra](https://github.com/kooparse/zalgebra) (MIT license)
 * [miniaudio](https://miniaud.io/index.html) (MIT license)
 * [cgltf](https://github.com/jkuhlmann/cgltf) (MIT license)
@@ -147,6 +147,8 @@ pub fn main() anyerror!void {
 * [dear-imgui](https://github.com/ocornut/imgui) (MIT license)
 * [ImPlot](https://github.com/epezent/implot) (MIT license)
 * [imnodes](https://github.com/Nelarius/imnodes) (MIT license)
+* [nanovg](https://github.com/memononen/nanovg) (zlib license)
+* [nanosvg](https://github.com/memononen/nanosvg) (zlib license)
 * [bullet3](https://github.com/bulletphysics/bullet3) (zlib license)
 * [chipmunk](https://chipmunk-physics.net/) (MIT license)
 * [nativefiledialog](https://github.com/mlabbe/nativefiledialog) (zlib license)

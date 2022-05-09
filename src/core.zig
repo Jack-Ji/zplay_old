@@ -1,29 +1,20 @@
 const std = @import("std");
 const zp = @import("zplay.zig");
-const sdl = @import("sdl");
-const vk = @import("vulkan");
-const gpu = zp.gpu;
-const GraphicsContext = gpu.GraphicsContext;
-const Swapchain = gpu.Swapchain;
+const GraphicsContext = zp.graphics.gpu.Context;
 const console = zp.graphics.font.console;
 const event = zp.event;
 const audio = zp.audio;
+const sdl = zp.deps.sdl;
 
 var perf_counter_freq: f64 = undefined;
 
 /// application context
 pub const Context = struct {
-    /// default memory allocator
-    allocator: std.mem.Allocator,
-
     /// internal window
     window: sdl.Window,
 
     /// graphics context
     graphics: GraphicsContext = undefined,
-
-    /// swapchain
-    swapchain: Swapchain = undefined,
 
     /// audio engine
     audio: *audio.Engine = undefined,
@@ -208,7 +199,7 @@ pub const Context = struct {
 /// application configurations
 pub const Game = struct {
     /// default memory allocator
-    allocator: ?std.mem.Allocator = null,
+    allocator: std.mem.Allocator = std.heap.c_allocator,
 
     /// called once before rendering loop starts
     initFn: fn (ctx: *Context) anyerror!void,
@@ -219,8 +210,8 @@ pub const Game = struct {
     /// called before life ends
     quitFn: fn (ctx: *Context) void,
 
-    /// app name
-    app_name: [:0]const u8 = "zplay",
+    /// window's title
+    title: [:0]const u8 = "zplay",
 
     /// position of window
     pos_x: sdl.WindowPosition = .default,
@@ -254,6 +245,9 @@ pub const Game = struct {
     /// relative mouse mode switch
     enable_relative_mouse_mode: bool = false,
 
+    /// graphics api
+    graphics_api: GraphicsContext.Api = .opengl,
+
     /// depth-testing capability
     enable_depth_test: bool = false,
 
@@ -282,27 +276,17 @@ pub const Game = struct {
 
 /// entrance point, never return until application is killed
 pub fn run(g: Game) !void {
-    // initialize memory allocator
-    const DefaultAllocatorType = std.heap.GeneralPurposeAllocator(.{});
-    var gpa: DefaultAllocatorType = undefined;
-    const allocator = g.allocator orelse blk: {
-        gpa = DefaultAllocatorType{};
-        break :blk gpa.allocator();
-    };
-    defer {
-        if (g.allocator == null) _ = gpa.deinit();
-    }
-
-    // initialize SDL library
     try sdl.init(sdl.InitFlags.everything);
     defer sdl.quit();
+
+    // prepare graphics params
+    try GraphicsContext.prepare(g);
 
     // create window
     var flags = sdl.WindowFlags{
         .allow_high_dpi = true,
         .mouse_capture = true,
         .mouse_focus = true,
-        .vulkan = true,
     };
     if (g.enable_borderless) {
         flags.borderless = true;
@@ -313,10 +297,12 @@ pub fn run(g: Game) !void {
     if (g.enable_maximized) {
         flags.maximized = true;
     }
-    var ctx: Context = .{
-        .allocator = allocator,
+    if (g.graphics_api == .opengl) {
+        flags.opengl = true;
+    }
+    var context: Context = .{
         .window = try sdl.createWindow(
-            g.app_name,
+            g.title,
             g.pos_x,
             g.pos_y,
             g.width,
@@ -324,49 +310,37 @@ pub fn run(g: Game) !void {
             flags,
         ),
     };
-    defer ctx.window.destroy();
+    defer context.window.destroy();
 
     // windows size thresholds
     if (g.min_size) |size| {
         sdl.c.SDL_SetWindowMinimumSize(
-            ctx.window.ptr,
+            context.window.ptr,
             @intCast(c_int, size.w),
             @intCast(c_int, size.h),
         );
     }
     if (g.max_size) |size| {
         sdl.c.SDL_SetWindowMaximumSize(
-            ctx.window.ptr,
+            context.window.ptr,
             @intCast(c_int, size.w),
             @intCast(c_int, size.h),
         );
     }
 
-    // apply other window options
-    ctx.toggleResizable(g.enable_resizable);
-    ctx.toggleFullscreeen(g.enable_fullscreen);
-    ctx.toggleRelativeMouseMode(g.enable_relative_mouse_mode);
-
-    // create graphics context
-    ctx.graphics = try GraphicsContext.init(
-        allocator,
-        g.app_name,
-        ctx.window,
-    );
-    defer ctx.graphics.deinit();
-
-    // create swapchain
-    const pixel_size = ctx.graphics.getDrawableSize();
-    ctx.swapchain = try Swapchain.init(
-        &ctx.graphics,
-        allocator,
-        vk.Extent2D{ .width = pixel_size.w, .height = pixel_size.h },
-    );
-    defer ctx.swapchain.deinit();
+    // allocate graphics context
+    context.graphics = try GraphicsContext.init(context.window, g);
+    defer context.graphics.deinit();
+    context.graphics.setVsyncMode(g.enable_vsync);
 
     // allocate audio engine
-    ctx.audio = try audio.Engine.init(allocator, .{});
-    defer ctx.audio.deinit();
+    context.audio = try audio.Engine.init(g.allocator, .{});
+    defer context.audio.deinit();
+
+    // apply window options, still changable through Context's methods
+    context.toggleResizable(g.enable_resizable);
+    context.toggleFullscreeen(g.enable_fullscreen);
+    context.toggleRelativeMouseMode(g.enable_relative_mouse_mode);
 
     // init console
     if (g.enable_console) {
@@ -375,18 +349,29 @@ pub fn run(g: Game) !void {
 
     // init before loop
     perf_counter_freq = @intToFloat(f64, sdl.c.SDL_GetPerformanceFrequency());
-    try g.initFn(&ctx);
-    defer g.quitFn(&ctx);
-    _ = ctx.updateStats();
+    try g.initFn(&context);
+    defer g.quitFn(&context);
+    _ = context.updateStats();
 
     // game loop
-    while (!ctx.quit) {
+    while (!context.quit) {
         // update frame stats
-        ctx.updateStats();
+        context.updateStats();
+
+        // clear console text
+        if (g.enable_console) {
+            console.clear();
+        }
 
         // main loop
-        g.loopFn(&ctx);
-    }
+        g.loopFn(&context);
 
-    try ctx.swapchain.waitForAllFences();
+        // render console text
+        if (g.enable_console) {
+            console.submitAndRender(&context.graphics);
+        }
+
+        // swap buffers
+        context.graphics.swap();
+    }
 }

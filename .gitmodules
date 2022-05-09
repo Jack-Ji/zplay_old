@@ -1,12 +1,9 @@
+[submodule "src/sdl"]
+	path = src/deps/sdl
+	url = https://github.com/MasterQ32/SDL.zig
 [submodule "src/known_folders"]
 	path = src/deps/known_folders
 	url = https://github.com/ziglibs/known-folders
 [submodule "src/za"]
 	path = src/deps/alg
 	url = https://github.com/kooparse/zalgebra.git
-[submodule "src/deps/vulkan"]
-	path = src/deps/vulkan
-	url = https://github.com/Snektron/vulkan-zig
-[submodule "src/deps/sdl"]
-	path = src/deps/sdl
-	url = https://github.com/Jack-Ji/SDL.zig

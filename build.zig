@@ -19,12 +19,14 @@ pub fn build(b: *std.build.Builder) void {
     const examples = [_]struct { name: []const u8, link_opt: LinkOption }{
         .{ .name = "simple_window", .link_opt = .{} },
         .{ .name = "font", .link_opt = .{} },
-        .{ .name = "triangle", .link_opt = .{} },
+        .{ .name = "single_triangle", .link_opt = .{} },
         .{ .name = "cubes", .link_opt = .{ .link_imgui = true } },
         .{ .name = "phong_lighting", .link_opt = .{ .link_imgui = true } },
         .{ .name = "imgui_demo", .link_opt = .{ .link_imgui = true } },
         .{ .name = "imgui_fontawesome", .link_opt = .{ .link_imgui = true } },
         .{ .name = "imgui_ttf", .link_opt = .{ .link_imgui = true } },
+        .{ .name = "vector_graphics", .link_opt = .{ .link_imgui = true, .link_vg = true } },
+        .{ .name = "vg_benchmark", .link_opt = .{ .link_imgui = true, .link_vg = true } },
         .{ .name = "mesh_generation", .link_opt = .{ .link_imgui = true } },
         .{ .name = "gltf_demo", .link_opt = .{ .link_imgui = true } },
         .{ .name = "environment_mapping", .link_opt = .{ .link_imgui = true } },
@@ -65,6 +67,7 @@ pub fn build(b: *std.build.Builder) void {
 pub const LinkOption = struct {
     link_nfd: bool = false,
     link_imgui: bool = false,
+    link_vg: bool = false,
     link_bullet: bool = false,
     link_chipmunk: bool = false,
 };
@@ -74,41 +77,28 @@ pub fn link(exe: *std.build.LibExeObjStep, opt: LinkOption) void {
     const root_path = comptime rootPath();
 
     // link dependencies
-    @import("build/core.zig").link(exe, root_path);
+    @import("build/sdl.zig").link(exe, root_path);
+    @import("build/opengl.zig").link(exe, root_path);
     @import("build/miniaudio.zig").link(exe, root_path);
     @import("build/stb.zig").link(exe, root_path);
     @import("build/gltf.zig").link(exe, root_path);
     if (opt.link_nfd) @import("build/nfd.zig").link(exe, root_path);
     if (opt.link_imgui) @import("build/imgui.zig").link(exe, root_path);
+    if (opt.link_vg) {
+        @import("build/nanovg.zig").link(exe, root_path);
+        @import("build/nanosvg.zig").link(exe, root_path);
+    }
     if (opt.link_bullet) @import("build/bullet.zig").link(exe, root_path);
     if (opt.link_chipmunk) @import("build/chipmunk.zig").link(exe, root_path);
-}
 
-/// compile shaders and load them as package
-pub const ShaderSource = struct {
-    shader_name: []const u8,
-    shader_file: []const u8,
-};
-pub fn compileAndLoadShaders(
-    exe: *std.build.LibExeObjStep,
-    srcs: []ShaderSource,
-    package_name: []const u8,
-) void {
-    var buf: [64]u8 = undefined;
-    const file_name = std.fmt.bufPrint(&buf, "{s}.zig", package_name) catch unreachable;
-
-    // compile shader
-    const vkbuild = @import("src/deps/vulkan/build.zig");
-    const res = vkbuild.ResourceGenStep.init(exe.builder, file_name);
-    for (srcs) |s| {
-        res.addShader(s.shader_name, s.shader_file);
-    }
-
-    // add package
+    // use zplay
+    const sdl = @import("./src/deps/sdl/Sdk.zig").init(exe.builder);
     exe.addPackage(.{
-        .name = package_name,
-        .path = .{ .generated = &res.output_file },
-        .dependencies = null,
+        .name = "zplay",
+        .path = .{ .path = root_path ++ "/src/zplay.zig" },
+        .dependencies = &[_]std.build.Pkg{
+            sdl.getWrapperPackage("sdl"),
+        },
     });
 }
 

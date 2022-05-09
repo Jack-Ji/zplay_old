@@ -20,7 +20,7 @@ pub fn link(
         lib.linkSystemLibrary("imm32");
         lib.linkSystemLibrary("gdi32");
     }
-    lib.addIncludeDir(root_path ++ "/src/deps/vulkan_headers");
+    lib.addIncludeDir(root_path ++ "/src/deps/gl/c/include");
     lib.addIncludeDir(root_path ++ "/src/deps/imgui/c");
     lib.addCSourceFiles(&.{
         root_path ++ "/src/deps/imgui/c/imgui.cpp",
@@ -29,8 +29,8 @@ pub fn link(
         root_path ++ "/src/deps/imgui/c/imgui_tables.cpp",
         root_path ++ "/src/deps/imgui/c/imgui_widgets.cpp",
         root_path ++ "/src/deps/imgui/c/cimgui.cpp",
-        root_path ++ "/src/deps/imgui/c/imgui_impl_vulkan.cpp",
-        root_path ++ "/src/deps/imgui/c/imgui_impl_vulkan_wrapper.cpp",
+        root_path ++ "/src/deps/imgui/c/imgui_impl_opengl3.cpp",
+        root_path ++ "/src/deps/imgui/c/imgui_impl_opengl3_wrapper.cpp",
     }, flags.items);
     lib.addCSourceFiles(&.{
         root_path ++ "/src/deps/imgui/ext/implot/c/implot.cpp",
