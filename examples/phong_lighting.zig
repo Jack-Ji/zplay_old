@@ -82,7 +82,7 @@ const shadow_height = 1024;
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    try dig.init(ctx.window);
+    try dig.init(ctx);
 
     // allocate framebuffer stuff
     const size = ctx.graphics.getDrawableSize();

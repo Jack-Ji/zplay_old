@@ -50,7 +50,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     app_context = ctx;
 
     // init imgui
-    try dig.init(ctx.window);
+    try dig.init(ctx);
 
     // allocate framebuffer stuff
     shadow_fb = try Framebuffer.initForShadowMapping(

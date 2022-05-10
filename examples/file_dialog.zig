@@ -14,7 +14,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     // init default path
     _ = try std.fs.cwd().realpathZ("", &default_path);
 
-    try dig.init(ctx.window);
+    try dig.init(ctx);
     font = try dig.loadTTF(
         "assets/msyh.ttf",
         22,

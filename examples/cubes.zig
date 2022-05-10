@@ -54,7 +54,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 
     // init imgui
-    try dig.init(ctx.window);
+    try dig.init(ctx);
 
     // allocate skybox
     skybox = SkyboxRenderer.init(std.testing.allocator);

@@ -99,7 +99,7 @@ fn loop(ctx: *zp.Context) void {
 
     ctx.graphics.clear(true, false, false, null);
     ps.update(ctx.delta_tick);
-    sb.begin(.none, .additive);
+    sb.begin(.{ .blend = .additive });
     ps.draw(sb) catch unreachable;
     sb.end() catch unreachable;
 

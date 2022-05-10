@@ -1,9 +1,16 @@
 const std = @import("std");
+const assert = std.debug.assert;
 const zp = @import("../../zplay.zig");
 const event = zp.event;
 const sdl = zp.deps.sdl;
 const sdl_impl = @import("sdl_impl.zig");
 pub const c = @import("c.zig");
+
+pub const Error = error{
+    InitOpenGLFailed,
+    InitPlotExtFailed,
+    InitNodesExtFailed,
+};
 
 /// export friendly api
 pub usingnamespace @import("api.zig");
@@ -25,20 +32,27 @@ var plot_ctx: ?*ext.plot.ImPlotContext = undefined;
 var nodes_ctx: ?*ext.nodes.ImNodesContext = undefined;
 
 /// initialize sdl2 and opengl3 backend
-pub fn init(window: sdl.Window) !void {
+pub fn init(ctx: *zp.Context) !void {
     _ = c.igCreateContext(null);
-    try sdl_impl.init(window.ptr);
+    try sdl_impl.init(ctx.window.ptr);
     if (!_ImGui_ImplOpenGL3_Init(null)) {
-        std.debug.panic("init render backend failed", .{});
+        return error.InitOpenGLFailed;
     }
+
     plot_ctx = ext.plot.createContext();
     if (plot_ctx == null) {
-        std.debug.panic("init imgui-extension:implot failed", .{});
+        return error.InitPlotExtFailed;
     }
+
     nodes_ctx = ext.nodes.createContext();
     if (nodes_ctx == null) {
-        std.debug.panic("init imgui-extension:imnodes failed", .{});
+        return error.InitNodesExtFailed;
     }
+
+    const pixel_ratio = ctx.getPixelRatio();
+    var style = c.igGetStyle();
+    assert(style != null);
+    c.ImGuiStyle_ScaleAllSizes(style, pixel_ratio);
     initialized = true;
 }
 
@@ -56,17 +70,13 @@ pub fn deinit() void {
 
 /// process i/o event
 pub fn processEvent(e: event.Event) bool {
-    if (!initialized) {
-        std.debug.panic("cimgui isn't initialized!", .{});
-    }
+    assert(initialized);
     return sdl_impl.processEvent(e);
 }
 
 /// begin frame
 pub fn beginFrame() void {
-    if (!initialized) {
-        std.debug.panic("cimgui isn't initialized!", .{});
-    }
+    assert(initialized);
     sdl_impl.newFrame();
     _ImGui_ImplOpenGL3_NewFrame();
     c.igNewFrame();
@@ -74,19 +84,14 @@ pub fn beginFrame() void {
 
 /// end frame
 pub fn endFrame() void {
-    if (!initialized) {
-        std.debug.panic("cimgui isn't initialized!", .{});
-    }
+    assert(initialized);
     c.igRender();
     _ImGui_ImplOpenGL3_RenderDrawData(c.igGetDrawData());
 }
 
 /// load font awesome
 pub fn loadFontAwesome(size: f32, regular: bool, monospaced: bool) !*c.ImFont {
-    if (!initialized) {
-        std.debug.panic("cimgui isn't initialized!", .{});
-    }
-
+    assert(initialized);
     var font_atlas = c.igGetIO().*.Fonts;
     _ = c.ImFontAtlas_AddFontDefault(
         font_atlas,
@@ -130,9 +135,7 @@ pub fn loadTTF(
     size: f32,
     addional_ranges: ?[*c]const c.ImWchar,
 ) !*c.ImFont {
-    if (!initialized) {
-        std.debug.panic("cimgui isn't initialized!", .{});
-    }
+    assert(initialized);
     var font_atlas = c.igGetIO().*.Fonts;
 
     var default_ranges = c.ImFontAtlas_GetGlyphRangesDefault(font_atlas);

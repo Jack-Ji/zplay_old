@@ -30,7 +30,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 
     // init imgui
-    try dig.init(ctx.window);
+    try dig.init(ctx);
 
     // simple renderer
     simple_renderer = SimpleRenderer.init(.{});

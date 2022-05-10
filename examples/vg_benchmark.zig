@@ -19,7 +19,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     rg = rng.random();
 
     // init imgui
-    try dig.init(ctx.window);
+    try dig.init(ctx);
 
     // init nanovg context
     try nvg.init(nvg.c.NVG_ANTIALIAS | nvg.c.NVG_STENCIL_STROKES);

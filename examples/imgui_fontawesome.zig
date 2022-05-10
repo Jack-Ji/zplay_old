@@ -2019,7 +2019,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 
     // init imgui
-    try dig.init(ctx.window);
+    try dig.init(ctx);
 
     regular_font = try dig.loadFontAwesome(30, true, true);
     solid_font = try dig.loadFontAwesome(30, false, true);

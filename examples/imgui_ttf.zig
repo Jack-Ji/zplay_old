@@ -10,7 +10,7 @@ fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 
     // init imgui
-    try dig.init(ctx.window);
+    try dig.init(ctx);
 
     big_font = try dig.loadTTF(
         "assets/msyh.ttf",

@@ -53,7 +53,7 @@ var plane_vs = [_]f32{0} ** 12;
 fn init(ctx: *zp.Context) anyerror!void {
     std.log.info("game init", .{});
 
-    try dig.init(ctx.window);
+    try dig.init(ctx);
 
     cube = try Mesh.genCube(std.testing.allocator, 1, 1, 1);
     cube_wire_va = VertexArray.init(std.testing.allocator, 1);
