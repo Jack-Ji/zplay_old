@@ -52,15 +52,15 @@ const fs_body =
 ;
 
 const vs = Renderer.shader_head ++ vs_body;
-const fs = Renderer.shader_head ++ fs_body;
+const default_fs = Renderer.shader_head ++ fs_body;
 
 /// shader programs
 program: ShaderProgram = undefined,
 
 /// create a simple renderer
-pub fn init() Self {
+pub fn init(fs: ?[:0]const u8) Self {
     var self = Self{};
-    self.program = ShaderProgram.init(vs, fs, null);
+    self.program = ShaderProgram.init(vs, fs orelse default_fs, null);
     return self;
 }
 

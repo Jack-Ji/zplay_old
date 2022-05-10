@@ -7,6 +7,9 @@ pub const SpriteSheet = @import("2d/SpriteSheet.zig");
 /// sprite batch
 pub const SpriteBatch = @import("2d/SpriteBatch.zig");
 
+/// sprite renderer
+pub const SpriteRenderer = @import("2d/SpriteRenderer.zig");
+
 /// 2d camera
 pub const Camera = @import("2d/Camera.zig");
 

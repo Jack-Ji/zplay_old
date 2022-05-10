@@ -4,15 +4,18 @@ const alg = zp.deps.alg;
 const Vec3 = alg.Vec3;
 const Mat4 = alg.Mat4;
 const gfx = zp.graphics;
+const Renderer = gfx.Renderer;
 const Material = gfx.Material;
 const TextureDisplay = gfx.post_processing.TextureDisplay;
-const SpriteSheet = gfx.@"2d".SpriteSheet;
 const Sprite = gfx.@"2d".Sprite;
+const SpriteSheet = gfx.@"2d".SpriteSheet;
 const SpriteBatch = gfx.@"2d".SpriteBatch;
+const SpriteRenderer = gfx.@"2d".SpriteRenderer;
 const Camera = gfx.@"2d".Camera;
 const console = gfx.font.console;
 
 var sprite_sheet: *SpriteSheet = undefined;
+var custom_effect: SpriteRenderer = undefined;
 var tex_display: TextureDisplay = undefined;
 var sprite: Sprite = undefined;
 var sprite_batch: *SpriteBatch = undefined;
@@ -36,6 +39,21 @@ fn init(ctx: *zp.Context) anyerror!void {
     //    std.testing.allocator,
     //    "sheet",
     //);
+    custom_effect = SpriteRenderer.init(Renderer.shader_head ++
+        \\out vec4 frag_color;
+        \\
+        \\in vec3 v_pos;
+        \\in vec4 v_color;
+        \\in vec2 v_tex;
+        \\
+        \\uniform sampler2D u_texture;
+        \\
+        \\void main()
+        \\{
+        \\    frag_color = texture(u_texture, v_tex);
+        \\    frag_color.gb = frag_color.rr;
+        \\}
+    );
     sprite = try sprite_sheet.createSprite("ogre");
     sprite_batch = try SpriteBatch.init(
         std.testing.allocator,
@@ -86,7 +104,7 @@ fn loop(ctx: *zp.Context) void {
         .custom = &Mat4.fromScale(Vec3.new(0.5, 0.5, 1)).translate(Vec3.new(0.5, 0.5, 0)),
     }) catch unreachable;
 
-    sprite_batch.begin(.back_to_forth, .alpha_blend);
+    sprite_batch.begin(.{ .depth_sort = .back_to_forth });
     sprite_batch.drawSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
         .scale_w = 2,
@@ -95,6 +113,24 @@ fn loop(ctx: *zp.Context) void {
     }) catch unreachable;
     sprite_batch.drawSprite(sprite, .{
         .pos = .{ .x = 400, .y = 300 },
+        .anchor_point = .{ .x = 0.5, .y = 0.5 },
+        .rotate_degree = @floatCast(f32, ctx.tick) * 30,
+        .scale_w = 4 + 2 * @cos(@floatCast(f32, ctx.tick)),
+        .scale_h = 4 + 2 * @sin(@floatCast(f32, ctx.tick)),
+        .color = [_]f32{ 1, 0, 0, 1 },
+        .depth = 0.6,
+    }) catch unreachable;
+    sprite_batch.end() catch unreachable;
+
+    sprite_batch.begin(.{ .depth_sort = .back_to_forth, .custom_renderer = custom_effect });
+    sprite_batch.drawSprite(sprite, .{
+        .pos = .{ .x = 500, .y = 400 },
+        .scale_w = 2,
+        .scale_h = 2,
+        .rotate_degree = @floatCast(f32, ctx.tick) * 30,
+    }) catch unreachable;
+    sprite_batch.drawSprite(sprite, .{
+        .pos = .{ .x = 500, .y = 400 },
         .anchor_point = .{ .x = 0.5, .y = 0.5 },
         .rotate_degree = @floatCast(f32, ctx.tick) * 30,
         .scale_w = 4 + 2 * @cos(@floatCast(f32, ctx.tick)),

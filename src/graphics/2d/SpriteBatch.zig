@@ -24,8 +24,8 @@ pub const DepthSortMethod = enum {
 };
 
 pub const BlendMethod = enum {
-    additive,
     alpha_blend,
+    additive,
     overwrite,
 };
 
@@ -59,7 +59,8 @@ allocator: std.mem.Allocator,
 gctx: *Context,
 
 /// renderer
-renderer: SpriteRenderer,
+default_renderer: SpriteRenderer,
+current_renderer: ?SpriteRenderer = null,
 
 /// all batch data
 batches: []BatchData,
@@ -90,7 +91,7 @@ pub fn init(
     self.* = Self{
         .allocator = allocator,
         .gctx = ctx,
-        .renderer = SpriteRenderer.init(),
+        .default_renderer = SpriteRenderer.init(null),
         .batches = try allocator.alloc(BatchData, max_sheet_num),
         .render_data = try Renderer.Input.init(
             allocator,
@@ -124,20 +125,22 @@ pub fn deinit(self: *Self) void {
         b.vtransforms.deinit();
     }
     self.allocator.free(self.batches);
-    self.renderer.deinit();
+    self.default_renderer.deinit();
     self.render_data.deinit();
     self.search_tree.deinit();
     self.allocator.destroy(self);
 }
 
 /// begin batched data
-pub fn begin(
-    self: *Self,
-    depth_sort: DepthSortMethod,
-    blend: BlendMethod,
-) void {
-    self.depth_sort = depth_sort;
-    self.blend = blend;
+pub const BatchOption = struct {
+    depth_sort: DepthSortMethod = .none,
+    blend: BlendMethod = .alpha_blend,
+    custom_renderer: ?SpriteRenderer = null,
+};
+pub fn begin(self: *Self, opt: BatchOption) void {
+    self.current_renderer = opt.custom_renderer orelse self.default_renderer;
+    self.depth_sort = opt.depth_sort;
+    self.blend = opt.blend;
     for (self.render_data.vds.?.items) |_, i| {
         self.batches[i].sprites_data.clearRetainingCapacity();
         self.batches[i].vattrib.clearRetainingCapacity();
@@ -187,6 +190,7 @@ fn descendCompare(self: *Self, lhs: BatchData.SpriteData, rhs: BatchData.SpriteD
 
 /// send batched data to gpu, issue draw command
 pub fn end(self: *Self) !void {
+    defer self.current_renderer = null;
     if (self.render_data.vds.?.items.len == 0) return;
 
     // generate draw data
@@ -285,5 +289,5 @@ pub fn end(self: *Self) !void {
     }
 
     // send draw command
-    try self.renderer.draw(self.gctx, self.render_data);
+    try self.current_renderer.?.draw(self.gctx, self.render_data);
 }
