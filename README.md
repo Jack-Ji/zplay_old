@@ -5,7 +5,7 @@ A simple framework intended for game/tool creation.
 * Little external dependency, only SDL2 and OpenGL3
 * Support PC platforms: windows/linux (possibly macOS, don't know for sure)
 * Flexible render-passes pipeline, greatly simplify rendering code
-* Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion
+* Graphics oriented math library: Vec2/Vec3/Mat4/Quaternion ([zalgebra](https://github.com/kooparse/zalgebra))
 * Vector graphics drawing ([nanovg](https://github.com/memononen/nanovg))
 * Immediate mode GUI toolkits ([dear-imgui](https://github.com/ocornut/imgui))
 * Realtime data visualization ([ImPlot](https://github.com/epezent/implot))
@@ -13,16 +13,18 @@ A simple framework intended for game/tool creation.
 * Image picture loading/decoding/writing (support png/jpg/bmp/tga)
 * Audio playback (support wav/flac/mp3/vorbis)
 * 2D toolkits:
+  * Camera component
   * Sprite and SpriteBatch system
   * Texture packer used to programmatically create sprite-sheet
-  * Chipmunk physics lib integration
   * Particle system
+  * Chipmunk physics lib integration
 * 3D toolkits:
+  * Camera component
   * Model loading and rendering (only glTF 2.0 for now)
-  * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
   * Blinn-Phong renderer (directional/point/spot light)
   * Environment mapping renderer
   * Skybox renderer
+  * Bullet3 physics lib integration (credit to [zig-gamedev](https://github.com/michal-z/zig-gamedev))
 
 ## Getting started
 Copy `zplay` folder or clone repo (recursively) into `libs` subdirectory of the root of your project.
